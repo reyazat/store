@@ -1,0 +1,7 @@
+export { default as AppLayout } from './AppLayout.vue'
+export { default as AppHeader } from './AppHeader.vue'
+export { default as AppFooter } from './AppFooter.vue'
+export { default as SearchBar } from './SearchBar.vue'
+export { default as CartDrawer } from './CartDrawer.vue'
+export { default as ProductCard } from './ProductCard.vue'
+export { default as Breadcrumb } from './Breadcrumb.vue'

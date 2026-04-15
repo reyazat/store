@@ -1,0 +1,322 @@
+<?php
+
+use Knuckles\Scribe\Extracting\Strategies;
+
+// Optimized Scribe configuration for CMS API
+// See https://scribe.knuckles.wtf/laravel/reference/config for all options
+// Note: Scribe v5.5 uses empty strategies arrays to use built-in defaults
+
+return [
+    // The HTML <title> for the generated documentation.
+    'title' => '',
+
+    // A short description of your API. Will be included in the docs webpage, Postman collection and OpenAPI spec.
+    'description' => '',
+
+    // Text to place in the "Introduction" section, right after the `description`. Markdown and HTML are supported.
+    'intro_text' => '',
+
+    // The base URL displayed in the docs.
+    // If you're using `laravel` type, you can set this to a dynamic string, like '{{ config("app.tenant_url") }}' to get a dynamic base URL.
+    'base_url' => config("app.url"),
+
+    // Routes to include in the docs
+    'routes' => [
+        [
+            'match' => [
+                // Match only routes whose paths match this pattern (use * as a wildcard to match any characters). Example: 'users/*'.
+                'prefixes' => ['api/v1/*'],
+
+                // Match only routes whose domains match this pattern (use * as a wildcard to match any characters). Example: 'api.*'.
+                'domains' => ['*'],
+            ],
+
+            // Include these routes even if they did not match the rules above.
+            'include' => [
+                // All routes are now under v1 prefix
+            ],
+
+            // Exclude these routes even if they matched the rules above.
+            'exclude' => [
+                // Exclude CAPTCHA route (from mews/captcha package)
+                'captcha/api/*',
+            ],
+        ],
+    ],
+
+    // The type of documentation output to generate.
+    // - "static" will generate a static HTMl page in the /public/docs folder,
+    // - "laravel" will generate the documentation as a Blade view, so you can add routing and authentication.
+    // - "external_static" and "external_laravel" do the same as above, but pass the OpenAPI spec as a URL to an external UI template
+    'type' => 'laravel',
+
+    // See https://scribe.knuckles.wtf/laravel/reference/config#theme for supported options
+    'theme' => 'default',
+
+    'static' => [
+        // HTML documentation, assets and Postman collection will be generated to this folder.
+        // Source Markdown will still be in resources/docs.
+        'output_path' => 'public/docs',
+    ],
+
+    'laravel' => [
+        // Whether to automatically create a docs route for you to view your generated docs. You can still set up routing manually.
+        'add_routes' => true,
+
+        // URL path to use for the docs endpoint (if `add_routes` is true).
+        // By default, `/docs` opens the HTML page, `/docs.postman` opens the Postman collection, and `/docs.openapi` the OpenAPI spec.
+        'docs_url' => '/docs',
+
+        // Directory within `public` in which to store CSS and JS assets.
+        // By default, assets are stored in `public/vendor/scribe`.
+        // If set, assets will be stored in `public/{{assets_directory}}`
+        'assets_directory' => null,
+
+        // Middleware to attach to the docs endpoint (if `add_routes` is true).
+        'middleware' => [],
+    ],
+
+    'external' => [
+        'html_attributes' => []
+    ],
+
+    'try_it_out' => [
+        // Add a Try It Out button to your endpoints so consumers can test endpoints right from their browser.
+        // Don't forget to enable CORS headers for your endpoints.
+        'enabled' => true,
+
+        // The base URL to use in the API tester. Leave as null to be the same as the displayed URL (`scribe.base_url`).
+        'base_url' => null,
+
+        // [Laravel Sanctum] Fetch a CSRF token before each request, and add it as an X-XSRF-TOKEN header.
+        'use_csrf' => false,
+
+        // The URL to fetch the CSRF token from (if `use_csrf` is true).
+        'csrf_url' => '/sanctum/csrf-cookie',
+    ],
+
+    // How is your API authenticated? This information will be used in the displayed docs, generated examples and response calls.
+    'auth' => [
+        // Set this to true if ANY endpoints in your API use authentication.
+        'enabled' => true,
+
+        // Set this to true if your API should be authenticated by default. If so, you must also set `enabled` (above) to true.
+        // You can then use @unauthenticated or @authenticated on individual endpoints to change their status from the default.
+        'default' => true,
+
+        // Where is the auth value meant to be sent in a request?
+        'in' => 'bearer',
+
+        // The name of the auth parameter (e.g. token, key, apiKey) or header (e.g. Authorization, Api-Key).
+        'name' => 'Authorization',
+
+        // The value of the parameter to be used by Scribe to authenticate response calls.
+        // This will NOT be included in the generated documentation. If empty, Scribe will use a random value.
+        'use_value' => env('SCRIBE_AUTH_KEY'),
+
+        // Placeholder your users will see for the auth parameter in the example requests.
+        // Set this to null if you want Scribe to use a random value as placeholder instead.
+        'placeholder' => '{YOUR_JWT_TOKEN}',
+
+        // Any extra authentication-related info for your users. Markdown and HTML are supported.
+        'extra_info' => <<<'TEXT'
+            ## JWT Authentication
+
+            This API uses JWT (JSON Web Token) Bearer authentication via the vreyazat/iam-service package.
+
+            ### Getting a Token
+
+            1. **Register** (if needed): `POST /v1/users/register`
+            2. **Login**: `POST /v1/auth/login` with email and password
+            3. **Response** includes `access_token` and `refresh_token`
+
+            ### Using the Token
+
+            Include the access token in the `Authorization` header:
+            ```
+            Authorization: Bearer {YOUR_JWT_TOKEN}
+            ```
+
+            ### Token Refresh
+
+            When your access token expires, use the refresh token:
+            ```
+            POST /v1/auth/refresh
+            ```
+
+            ### Public Endpoints
+
+            Some endpoints don't require authentication (marked with @unauthenticated):
+            - `GET /locales` - Available locales
+            - `GET /search` - Global search
+            - `POST /api/tickets` - Submit a ticket
+            - `GET /api/departments` - List departments
+            - `GET /api/departments/tree` - Department hierarchy
+
+            ### Security Features
+
+            - Access tokens expire after 15 minutes
+            - Refresh tokens expire after 30 days
+            - Multi-factor authentication (MFA) support
+            - Account lockout protection
+            - CAPTCHA protection
+            - Rate limiting per endpoint
+            - Token blacklisting on logout
+            TEXT,
+    ],
+
+    // Example requests for each endpoint will be shown in each of these languages.
+    // Supported options are: bash, javascript, php, python
+    // For CMS API, we focus on the most common languages for API consumers
+    // Note: does not work for `external` docs types
+    'example_languages' => [
+        'bash',      // curl - most universal
+        'javascript', // Fetch API - for frontend developers
+        'php',       // Guzzle - for Laravel/PHP developers
+    ],
+
+    // Generate a Postman collection (v2.1.0) in addition to HTML docs.
+    // For 'static' docs, the collection will be generated to public/docs/collection.json.
+    // For 'laravel' docs, it will be generated to storage/app/scribe/collection.json.
+    // Setting `laravel.add_routes` to true (above) will also add a route for the collection.
+    'postman' => [
+        'enabled' => true,
+
+        'overrides' => [
+            // 'info.version' => '2.0.0',
+        ],
+    ],
+
+    // Generate an OpenAPI spec (v3.0.1) in addition to docs webpage.
+    // For 'static' docs, the collection will be generated to public/docs/openapi.yaml.
+    // For 'laravel' docs, it will be generated to storage/app/scribe/openapi.yaml.
+    // Setting `laravel.add_routes` to true (above) will also add a route for the spec.
+    'openapi' => [
+        'enabled' => true,
+
+        'overrides' => [
+            // 'info.version' => '2.0.0',
+        ],
+
+        // Additional generators to use when generating the OpenAPI spec.
+        // Should extend `Knuckles\Scribe\Writing\OpenApiSpecGenerators\OpenApiGenerator`.
+        'generators' => [],
+    ],
+
+    'groups' => [
+        // Endpoints which don't have a @group will be placed in this default group.
+        'default' => 'عمومی',
+
+        // By default, Scribe will sort groups alphabetically, and endpoints in the order their routes are defined.
+        // You can override this by listing the groups, subgroups and endpoints here in the order you want them.
+        // See https://scribe.knuckles.wtf/blog/laravel-v4#easier-sorting and https://scribe.knuckles.wtf/laravel/reference/config#order for details
+        // Note: does not work for `external` docs types
+        'order' => [
+            // عمومی
+            'عمومی',
+            
+            // احراز هویت (IAM Service)
+            'احراز هویت',
+            'رمز یکبار مصرف',
+            'رمز عبور',
+            'کاربران',
+            'احراز هویت دو مرحله‌ای',
+            'نشست‌ها',
+            'سازمان‌ها',
+            
+        ],
+    ],
+
+    // Custom logo path. This will be used as the value of the src attribute for the <img> tag,
+    // so make sure it points to an accessible URL or path. Set to false to not use a logo.
+    // For example, if your logo is in public/img:
+    // - 'logo' => '../img/logo.png' // for `static` type (output folder is public/docs)
+    // - 'logo' => 'img/logo.png' // for `laravel` type
+    'logo' => false,
+
+    // Customize the "Last updated" value displayed in the docs by specifying tokens and formats.
+    // Examples:
+    // - {date:F j Y} => March 28, 2022
+    // - {git:short} => Short hash of the last Git commit
+    // Available tokens are `{date:<format>}` and `{git:<format>}`.
+    // The format you pass to `date` will be passed to PHP's `date()` function.
+    // The format you pass to `git` can be either "short" or "long".
+    // Note: does not work for `external` docs types
+    'last_updated' => 'Last updated: {date:F j, Y}',
+
+    'examples' => [
+        // Set this to any number to generate the same example values for parameters on each run
+        // Using a fixed seed ensures consistent examples in documentation
+        'faker_seed' => 1234,
+
+        // With API resources and transformers, Scribe tries to generate example models
+        // For CMS API: We prefer factoryMake to avoid database writes during doc generation
+        // Order: factoryMake (no DB write) -> factoryCreate (DB write) -> databaseFirst (read existing)
+        'models_source' => ['factoryMake', 'factoryCreate', 'databaseFirst'],
+    ],
+
+    // The strategies Scribe will use to extract information about your routes at each stage.
+    // Scribe v5.5 compatible strategies
+    'strategies' => [
+        // Extract metadata (title, description, group) from docblocks and attributes
+        'metadata' => [
+            Strategies\Metadata\GetFromDocBlocks::class,
+            Strategies\Metadata\GetFromMetadataAttributes::class,
+        ],
+        
+        // Extract URL parameters from Laravel API and URL parameter tags
+        'urlParameters' => [
+            Strategies\UrlParameters\GetFromLaravelAPI::class,
+            Strategies\UrlParameters\GetFromUrlParamTag::class,
+            Strategies\UrlParameters\GetFromUrlParamAttribute::class,
+        ],
+        
+        // Extract query parameters from FormRequests (validation rules) and docblock tags
+        'queryParameters' => [
+            Strategies\QueryParameters\GetFromFormRequest::class,
+            Strategies\QueryParameters\GetFromInlineValidator::class,
+            Strategies\QueryParameters\GetFromQueryParamTag::class,
+            Strategies\QueryParameters\GetFromQueryParamAttribute::class,
+        ],
+        
+        // Extract headers from attributes and docblock tags
+        'headers' => [
+            Strategies\Headers\GetFromHeaderTag::class,
+            Strategies\Headers\GetFromHeaderAttribute::class,
+        ],
+        
+        // Extract body parameters from FormRequests (validation rules) and docblock tags
+        'bodyParameters' => [
+            Strategies\BodyParameters\GetFromFormRequest::class,
+            Strategies\BodyParameters\GetFromInlineValidator::class,
+            Strategies\BodyParameters\GetFromBodyParamTag::class,
+            Strategies\BodyParameters\GetFromBodyParamAttribute::class,
+        ],
+        
+        // Extract responses from various sources
+        // Note: ResponseCalls disabled to prevent actual API calls during doc generation
+        'responses' => [
+            Strategies\Responses\UseTransformerTags::class,
+            Strategies\Responses\UseApiResourceTags::class,
+            Strategies\Responses\UseResponseTag::class,
+            Strategies\Responses\UseResponseFileTag::class,
+        ],
+        
+        // Extract response field descriptions from attributes and docblock tags
+        'responseFields' => [
+            Strategies\ResponseFields\GetFromResponseFieldAttribute::class,
+            Strategies\ResponseFields\GetFromResponseFieldTag::class,
+        ],
+    ],
+
+    // For response calls, API resource responses and transformer responses,
+    // Scribe will try to start database transactions, so no changes are persisted to your database.
+    // For CMS API: Disabled to avoid SQLite errors during doc generation
+    // If you need response calls with DB access, add your connection here (e.g., ['mysql'])
+    'database_connections_to_transact' => [],
+
+    'fractal' => [
+        // If you are using a custom serializer with league/fractal, you can specify it here.
+        'serializer' => null,
+    ],
+];

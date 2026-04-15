@@ -1,0 +1,127 @@
+<script setup lang="ts">
+import { RouterLink } from 'vue-router'
+import { Phone, Mail, MapPin, Instagram, Send, MessageCircle } from 'lucide-vue-next'
+</script>
+
+<template>
+  <footer class="bg-secondary-800 text-white">
+    <!-- Main Footer -->
+    <div class="container mx-auto px-4 py-12">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <!-- About -->
+        <div class="lg:col-span-2">
+          <div class="flex items-center gap-2 mb-4">
+          <RouterLink to="/" class="flex items-center gap-2 min-w-0">
+          <img
+            src="/images/Logo/tejarat-logo.jpg"
+            alt="لوگو تجارت"
+            class="h-9 w-auto object-contain flex-shrink-0"
+          />
+        </RouterLink>
+            <div>
+              <span class="text-xl font-bold">اتکا</span>
+              <span class="block text-xs text-secondary-400">تجارت الکترونیک و فناوری</span>
+            </div>
+          </div>
+          <p class="text-secondary-400 text-sm leading-relaxed mb-4">
+            شرکت تجارت الکترونیک و فناوری اتکا با بیش از ۱۰ سال تجربه در ارائه بهترین محصولات با کیفیت و قیمت مناسب، همواره در تلاش است تا بهترین تجربه خرید آنلاین را برای شما فراهم کند.
+          </p>
+          <!-- Social Links -->
+          <div class="flex items-center gap-3">
+            <a href="#" class="w-10 h-10 bg-secondary-700 hover:bg-primary-600 rounded-lg flex items-center justify-center transition">
+              <Instagram class="w-5 h-5" />
+            </a>
+            <a href="#" class="w-10 h-10 bg-secondary-700 hover:bg-primary-600 rounded-lg flex items-center justify-center transition">
+              <Send class="w-5 h-5" />
+            </a>
+            <a href="#" class="w-10 h-10 bg-secondary-700 hover:bg-primary-600 rounded-lg flex items-center justify-center transition">
+              <MessageCircle class="w-5 h-5" />
+            </a>
+          </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div>
+          <h3 class="text-lg font-bold mb-4 text-white">دسترسی سریع</h3>
+          <ul class="space-y-3 text-sm">
+            <li>
+              <RouterLink to="/products" class="text-secondary-400 hover:text-primary-400 transition">محصولات</RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/categories" class="text-secondary-400 hover:text-primary-400 transition">دسته‌بندی‌ها</RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/brands" class="text-secondary-400 hover:text-primary-400 transition">برندها</RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/discounts" class="text-secondary-400 hover:text-primary-400 transition">تخفیف‌ها</RouterLink>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Customer Service -->
+        <div>
+          <h3 class="text-lg font-bold mb-4 text-white">خدمات مشتریان</h3>
+          <ul class="space-y-3 text-sm">
+            <li>
+              <RouterLink to="/user/orders" class="text-secondary-400 hover:text-primary-400 transition">پیگیری سفارش</RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/user/addresses" class="text-secondary-400 hover:text-primary-400 transition">آدرس‌های من</RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/user/wishlist" class="text-secondary-400 hover:text-primary-400 transition">لیست علاقه‌مندی‌ها</RouterLink>
+            </li>
+            <li>
+              <a href="#" class="text-secondary-400 hover:text-primary-400 transition">سوالات متداول</a>
+            </li>
+            <li>
+              <a href="#" class="text-secondary-400 hover:text-primary-400 transition">قوانین و مقررات</a>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Contact -->
+        <div>
+          <h3 class="text-lg font-bold mb-4 text-white">تماس با ما</h3>
+          <ul class="space-y-3 text-sm">
+            <li class="flex items-center gap-2 text-secondary-400">
+              <MapPin class="w-4 h-4 text-primary-500" />
+              <span>تهران، خیابان ولیعصر</span>
+            </li>
+            <li class="flex items-center gap-2 text-secondary-400">
+              <Phone class="w-4 h-4 text-primary-500" />
+              <a href="tel:02112345678" class="hover:text-primary-400 transition">۰۲۱-۱۲۳۴۵۶۷۸</a>
+            </li>
+            <li class="flex items-center gap-2 text-secondary-400">
+              <Mail class="w-4 h-4 text-primary-500" />
+              <a href="mailto:info@atka.ir" class="hover:text-primary-400 transition">info@atka.ir</a>
+            </li>
+          </ul>
+          
+          <!-- Trust Badges -->
+          <div class="mt-6 flex gap-2">
+            <div class="w-16 h-16 bg-secondary-700 rounded-lg flex items-center justify-center">
+              <span class="text-xs text-center text-secondary-400">نماد<br/>اعتماد</span>
+            </div>
+            <div class="w-16 h-16 bg-secondary-700 rounded-lg flex items-center justify-center">
+              <span class="text-xs text-center text-secondary-400">ساماندهی</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Bottom Bar -->
+    <div class="border-t border-secondary-700">
+      <div class="container mx-auto px-4 py-4">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-secondary-400">
+          <p>© {{ new Date().getFullYear() }} شرکت تجارت الکترونیک و فناوری اتکا. تمامی حقوق محفوظ است.</p>
+          <div class="flex items-center gap-4">
+            <span>طراحی و توسعه با ❤️</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+</template>

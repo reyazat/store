@@ -1,0 +1,76 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class Order extends AbstractModel
+{
+    use SoftDeletes;
+
+    protected $fillable = [
+        'order_number',
+        'user_id',
+        'address_id',
+        'status',
+        'payment_status',
+        'payment_method',
+        'subtotal',
+        'tax',
+        'shipping',
+        'discount',
+        'total',
+        'notes',
+        'admin_notes',
+        'paid_at',
+        'shipped_at',
+        'delivered_at',
+        'cancelled_at',
+    ];
+
+    protected $casts = [
+        'subtotal' => 'decimal:4',
+        'tax' => 'decimal:4',
+        'shipping' => 'decimal:4',
+        'discount' => 'decimal:4',
+        'total' => 'decimal:4',
+        'paid_at' => 'datetime',
+        'shipped_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function address(): BelongsTo
+    {
+        return $this->belongsTo(Address::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function orderAddress(): HasOne
+    {
+        return $this->hasOne(OrderAddress::class);
+    }
+
+    protected static function boot(): void
+    {
+        parent::boot();
+
+        static::creating(function ($order) {
+            if (!$order->order_number) {
+                $order->order_number = 'ORD-' . strtoupper(uniqid());
+            }
+        });
+    }
+}

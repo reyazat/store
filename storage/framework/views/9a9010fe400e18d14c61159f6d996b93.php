@@ -1,0 +1,2 @@
+<small class="badge badge-<?php echo e($colour); ?>"><?php echo e($text); ?></small>
+<?php /**PATH /home/user/ecommerce-2/vendor/knuckleswtf/scribe/resources/views/components/badges/base.blade.php ENDPATH**/ ?>
