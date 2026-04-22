@@ -3,7 +3,12 @@
 namespace App\Http\Controllers\API\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Cart\CartAddItemRequest;
+use App\Http\Requests\Cart\CartUpdateItemRequest;
+use App\Http\Resources\Cart\CartItemResource;
+use App\Http\Resources\Cart\CartResource;
 use App\Models\CartItem;
+use App\Models\ListingVariant;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,93 +21,57 @@ class CartController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        
-        $cart = $this->cartService->getOrCreateCart($user);
-        
+        $cart = $this->cartService->getOrCreateCart($request->user());
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $cart->id,
-                'items' => $cart->items->map(fn($item) => [
-                    'id' => $item->id,
-                    'listing_id' => $item->listing_id,
-                    'listing_variant_id' => $item->listing_variant_id,
-                    'variant_id' => $item->listingVariant?->variant_id,
-                    'product' => [
-                        'id' => $item->listing->product->id,
-                        'name' => $item->listing->product->name,
-                        'slug' => $item->listing->product->slug,
-                        'image' => $item->listing->product->main_image,
-                    ],
-                    'vendor' => $item->listing->vendor ? [
-                        'id' => $item->listing->vendor->id,
-                        'name' => $item->listing->vendor->name,
-                    ] : null,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'subtotal' => $item->subtotal,
-                ]),
-                'total' => $cart->total,
-                'items_count' => $cart->items_count,
-            ],
+            'data'    => new CartResource($cart),
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(CartAddItemRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'listing_id' => 'required|integer|exists:listings,id',
-            'quantity' => 'nullable|integer|min:1',
-            'variant_id' => 'nullable|integer|exists:product_variants,id',
-        ]);
-        
-        $user = $request->user();
-        
-        $cart = $this->cartService->getOrCreateCart($user);
-        
-        // Find listing_variant_id from variant_id and listing_id
+        $validated = $request->validated();
+
+        $cart = $this->cartService->getOrCreateCart($request->user());
+
         $listingVariantId = null;
         if (isset($validated['variant_id'])) {
-            $listingVariant = \App\Models\ListingVariant::where('listing_id', $validated['listing_id'])
+            $listingVariant = ListingVariant::where('listing_id', $validated['listing_id'])
                 ->where('variant_id', $validated['variant_id'])
                 ->first();
             $listingVariantId = $listingVariant?->id;
         }
-        
+
         $item = $this->cartService->addItem(
             $cart,
             $validated['listing_id'],
             $validated['quantity'] ?? 1,
             $listingVariantId
         );
-        
+
         return response()->json([
             'success' => true,
             'message' => 'محصول به سبد خرید اضافه شد',
-            'data' => $item,
+            'data'    => new CartItemResource($item),
         ], 201);
     }
 
-    public function update(Request $request, CartItem $cartItem): JsonResponse
+    public function update(CartUpdateItemRequest $request, CartItem $cartItem): JsonResponse
     {
-        $validated = $request->validate([
-            'quantity' => 'required|integer|min:0',
-        ]);
-        
-        $item = $this->cartService->updateItemQuantity($cartItem, $validated['quantity']);
-        
+        $item = $this->cartService->updateItemQuantity($cartItem, $request->validated('quantity'));
+
         return response()->json([
             'success' => true,
             'message' => 'سبد خرید به‌روزرسانی شد',
-            'data' => $item,
+            'data'    => new CartItemResource($item),
         ]);
     }
 
     public function destroy(CartItem $cartItem): JsonResponse
     {
         $this->cartService->removeItem($cartItem);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'محصول از سبد خرید حذف شد',
@@ -111,11 +80,9 @@ class CartController extends Controller
 
     public function clear(Request $request): JsonResponse
     {
-        $user = $request->user();
-        
-        $cart = $this->cartService->getOrCreateCart($user);
+        $cart = $this->cartService->getOrCreateCart($request->user());
         $this->cartService->clearCart($cart);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'سبد خرید خالی شد',

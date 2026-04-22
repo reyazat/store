@@ -1,9 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Search, Edit, Trash2, Shield } from 'lucide-vue-next'
-
-const users = ref<any[]>([])
-const isLoading = ref(false)
+import { Shield } from 'lucide-vue-next'
 </script>
 
 <template>

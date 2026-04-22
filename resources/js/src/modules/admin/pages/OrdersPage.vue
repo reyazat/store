@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Eye, Search, Filter } from 'lucide-vue-next'
+import { Eye, Search } from 'lucide-vue-next'
 import api from '@shared/utils/api'
 
 const orders = ref<any[]>([])

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ChevronLeft, ChevronRight, Plus, ShoppingCart } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-vue-next'
 import type { Product } from '@shared/types'
 
 interface Props {
@@ -9,7 +9,7 @@ interface Props {
   loading?: boolean
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const scrollContainerRef = ref<HTMLElement | null>(null)
 

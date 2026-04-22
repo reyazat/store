@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { Menu, X, ShoppingCart, Heart, User, Search, ChevronDown, MapPin, Phone, Headphones, Grid3X3, Truck, Shield, RotateCcw } from 'lucide-vue-next'
+import { Menu, X, ShoppingCart, Heart, User, Search, ChevronDown, Phone, Headphones, Grid3X3, Truck, Shield, RotateCcw } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
 

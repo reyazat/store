@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API\User;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Order\OrderStoreRequest;
+use App\Http\Resources\Order\OrderDetailResource;
+use App\Http\Resources\Order\OrderListResource;
 use App\Models\Address;
 use App\Models\Order;
 use App\Repositories\Contracts\OrderRepositoryInterface;
@@ -23,27 +26,19 @@ class OrderController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $filters = $request->only(['status', 'per_page']);
-        
-        $orders = $this->orderRepository->getUserOrders($user, $filters);
-        
+        $orders = $this->orderRepository->getUserOrders(
+            $request->user(),
+            $request->only(['status', 'per_page'])
+        );
+
         return response()->json([
             'success' => true,
-            'data' => $orders->map(fn($order) => [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'status' => $order->status,
-                'payment_status' => $order->payment_status,
-                'total' => $order->total,
-                'items_count' => $order->items->count(),
-                'created_at' => $order->created_at,
-            ]),
-            'meta' => [
+            'data'    => OrderListResource::collection($orders),
+            'meta'    => [
                 'current_page' => $orders->currentPage(),
-                'last_page' => $orders->lastPage(),
-                'per_page' => $orders->perPage(),
-                'total' => $orders->total(),
+                'last_page'    => $orders->lastPage(),
+                'per_page'     => $orders->perPage(),
+                'total'        => $orders->total(),
             ],
         ]);
     }
@@ -56,86 +51,49 @@ class OrderController extends Controller
                 'message' => 'دسترسی غیرمجاز',
             ], 403);
         }
-        
+
+        $order->load(['items', 'orderAddress']);
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'id' => $order->id,
-                'order_number' => $order->order_number,
-                'status' => $order->status,
-                'payment_status' => $order->payment_status,
-                'payment_method' => $order->payment_method,
-                'subtotal' => $order->subtotal,
-                'tax' => $order->tax,
-                'shipping' => $order->shipping,
-                'discount' => $order->discount,
-                'total' => $order->total,
-                'notes' => $order->notes,
-                'items' => $order->items->map(fn($item) => [
-                    'product_name' => $item->product_name,
-                    'vendor_name' => $item->vendor_name,
-                    'sku' => $item->sku,
-                    'quantity' => $item->quantity,
-                    'price' => $item->price,
-                    'subtotal' => $item->subtotal,
-                ]),
-                'address' => $order->orderAddress ? [
-                    'first_name' => $order->orderAddress->first_name,
-                    'last_name' => $order->orderAddress->last_name,
-                    'phone' => $order->orderAddress->phone,
-                    'address' => $order->orderAddress->address,
-                    'city' => $order->orderAddress->city,
-                    'province' => $order->orderAddress->province,
-                    'postal_code' => $order->orderAddress->postal_code,
-                ] : null,
-                'created_at' => $order->created_at,
-                'paid_at' => $order->paid_at,
-                'shipped_at' => $order->shipped_at,
-                'delivered_at' => $order->delivered_at,
-            ],
+            'data'    => new OrderDetailResource($order),
         ]);
     }
 
     /**
      * @throws Throwable
      */
-    public function store(Request $request): JsonResponse
+    public function store(OrderStoreRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'address_id' => 'required|integer|exists:addresses,id',
-            'payment_method' => 'nullable|string',
-            'notes' => 'nullable|string',
-        ]);
-        
-        $user = $request->user();
-        
-        $cart = $this->cartService->getOrCreateCart($user);
-        
+        $validated = $request->validated();
+        $user      = $request->user();
+        $cart      = $this->cartService->getOrCreateCart($user);
+
         if ($cart->items->isEmpty()) {
             return response()->json([
                 'success' => false,
                 'message' => 'سبد خرید خالی است',
             ], 400);
         }
-        
+
         $address = Address::findOrFail($validated['address_id']);
-        
+
         if ($address->user_id !== $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'دسترسی غیرمجاز',
             ], 403);
         }
-        
+
         $order = $this->orderService->createOrderFromCart($user, $cart, $address, $validated);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'سفارش با موفقیت ثبت شد',
-            'data' => [
-                'id' => $order->id,
+            'data'    => [
+                'id'           => $order->id,
                 'order_number' => $order->order_number,
-                'total' => $order->total,
+                'total'        => $order->total,
             ],
         ], 201);
     }

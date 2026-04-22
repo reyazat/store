@@ -38,9 +38,6 @@ const router = createRouter({
 
 // Navigation Guards
 router.beforeEach((to, _from, next) => {
-  if (to.name !== 'home' && to.name !== 'not-found') {
-    return next({ name: 'home' })
-  }
 
   const authStore = useAuthStore()
 

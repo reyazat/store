@@ -1,0 +1,22 @@
+<?php
+
+namespace App\Http\Requests\Order;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class OrderStoreRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'address_id'     => ['required', 'integer', 'exists:addresses,id'],
+            'payment_method' => ['nullable', 'string'],
+            'notes'          => ['nullable', 'string'],
+        ];
+    }
+}

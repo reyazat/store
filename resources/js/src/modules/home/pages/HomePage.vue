@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ChevronLeft, ChevronRight, Truck, Shield, RotateCcw, Headphones, Zap, Percent, Star, Clock, TrendingUp, Grid3X3 } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Truck, Shield, RotateCcw, Headphones, Percent, Star, Clock, TrendingUp, Grid3X3 } from 'lucide-vue-next'
 import { ProductCard } from '@shared/components'
-import HeroSection from '../components/HeroSection.vue'
 import CategorySection from '../components/CategorySection.vue'
 import DiscountProductsSection from '../components/DiscountProductsSection.vue'
 import { homeService } from '../services'

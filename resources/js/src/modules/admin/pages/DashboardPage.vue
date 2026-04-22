@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ShoppingCart, Users, Package, DollarSign, TrendingUp, TrendingDown } from 'lucide-vue-next'
+import { ShoppingCart, Users, Package, DollarSign, TrendingUp } from 'lucide-vue-next'
 import api from '@shared/utils/api'
 
 interface DashboardStats {

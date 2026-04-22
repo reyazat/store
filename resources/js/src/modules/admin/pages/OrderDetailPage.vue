@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Package, Truck, CheckCircle, XCircle } from 'lucide-vue-next'
+import { ArrowRight } from 'lucide-vue-next'
 import api from '@shared/utils/api'
 
 const route = useRoute()
