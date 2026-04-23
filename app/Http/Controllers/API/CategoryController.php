@@ -14,6 +14,7 @@ use App\Http\Requests\Category\CategoryUpdateRequest;
 use App\Http\Resources\Category\CategoryDetailResource;
 use App\Http\Resources\Category\CategoryListResource;
 use App\Models\Category;
+use App\Services\CategoryService;
 use Illuminate\Http\JsonResponse;
 use Throwable;
 
@@ -24,7 +25,8 @@ class CategoryController extends Controller
         private readonly ShowCategoryAction $showAction,
         private readonly StoreCategoryAction $storeAction,
         private readonly UpdateCategoryAction $updateAction,
-        private readonly DestroyCategoryAction $destroyAction
+        private readonly DestroyCategoryAction $destroyAction,
+        private readonly CategoryService $categoryService
     ) {
     }
 
@@ -87,6 +89,16 @@ class CategoryController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Category deleted successfully.',
+        ]);
+    }
+
+    public function headerCategories(): JsonResponse
+    {
+        $categories = $this->categoryService->getHeaderCategories(6);
+
+        return response()->json([
+            'success' => true,
+            'data' => CategoryListResource::collection($categories),
         ]);
     }
 }

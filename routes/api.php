@@ -5,6 +5,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
   Route::get('/sliders', [\App\Http\Controllers\API\SliderController::class, 'index']);
+  Route::get('/site-features', [\App\Http\Controllers\API\SiteFeatureController::class, 'index']);
+  Route::get('/promo-banners', [\App\Http\Controllers\API\PromoBannerController::class, 'index']);
+  Route::post('/newsletter/subscribe', [\App\Http\Controllers\API\NewsletterController::class, 'subscribe']);
 
   Route::prefix('products')->group(function () {
     Route::get('/', [\App\Http\Controllers\API\ProductController::class, 'index']);
@@ -15,6 +18,7 @@ Route::prefix('v1')->group(function () {
   Route::prefix('categories')->group(function () {
     Route::get('/', [\App\Http\Controllers\API\CategoryController::class, 'index']);
     Route::get('/search', [\App\Http\Controllers\API\CategoryController::class, 'index']);
+    Route::get('/header', [\App\Http\Controllers\API\CategoryController::class, 'headerCategories']);
     Route::get('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'show']);
   });
 
@@ -174,4 +178,18 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::post('/sliders/{slider}', [\App\Http\Controllers\API\Admin\SliderController::class, 'update']);
   Route::delete('/sliders/{slider}', [\App\Http\Controllers\API\Admin\SliderController::class, 'destroy']);
   Route::post('/sliders-reorder', [\App\Http\Controllers\API\Admin\SliderController::class, 'reorder']);
+
+  // Site Features Management
+  Route::get('/site-features', [\App\Http\Controllers\API\Admin\SiteFeatureController::class, 'index']);
+  Route::post('/site-features', [\App\Http\Controllers\API\Admin\SiteFeatureController::class, 'store']);
+  Route::get('/site-features/{siteFeature}', [\App\Http\Controllers\API\Admin\SiteFeatureController::class, 'show']);
+  Route::put('/site-features/{siteFeature}', [\App\Http\Controllers\API\Admin\SiteFeatureController::class, 'update']);
+  Route::delete('/site-features/{siteFeature}', [\App\Http\Controllers\API\Admin\SiteFeatureController::class, 'destroy']);
+
+  // Promo Banners Management
+  Route::get('/promo-banners', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'index']);
+  Route::post('/promo-banners', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'store']);
+  Route::get('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'show']);
+  Route::post('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'update']);
+  Route::delete('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'destroy']);
 });

@@ -12,6 +12,7 @@ use App\Models\ListingVariant;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class CartController extends Controller
 {
@@ -43,12 +44,19 @@ class CartController extends Controller
             $listingVariantId = $listingVariant?->id;
         }
 
-        $item = $this->cartService->addItem(
-            $cart,
-            $validated['listing_id'],
-            $validated['quantity'] ?? 1,
-            $listingVariantId
-        );
+        try {
+            $item = $this->cartService->addItem(
+                $cart,
+                $validated['listing_id'],
+                $validated['quantity'] ?? 1,
+                $listingVariantId
+            );
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,
@@ -59,7 +67,14 @@ class CartController extends Controller
 
     public function update(CartUpdateItemRequest $request, CartItem $cartItem): JsonResponse
     {
-        $item = $this->cartService->updateItemQuantity($cartItem, $request->validated('quantity'));
+        try {
+            $item = $this->cartService->updateItemQuantity($cartItem, $request->validated('quantity'));
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,

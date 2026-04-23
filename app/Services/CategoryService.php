@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -23,6 +24,11 @@ class CategoryService
     public function getCategoryById(int $id): ?Category
     {
         return $this->categoryRepository->findById($id);
+    }
+
+    public function getHeaderCategories(int $limit = 6): Collection
+    {
+        return $this->categoryRepository->getHeaderCategories($limit);
     }
 
     /**

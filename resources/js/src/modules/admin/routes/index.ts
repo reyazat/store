@@ -51,6 +51,16 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/SlidersPage.vue'),
       },
       {
+        path: 'site-features',
+        name: 'admin-site-features',
+        component: () => import('../pages/SiteFeaturesPage.vue'),
+      },
+      {
+        path: 'promo-banners',
+        name: 'admin-promo-banners',
+        component: () => import('../pages/PromoBannersPage.vue'),
+      },
+      {
         path: 'settings',
         name: 'admin-settings',
         component: () => import('../pages/SettingsPage.vue'),

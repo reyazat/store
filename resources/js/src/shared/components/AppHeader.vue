@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { Menu, X, ShoppingCart, Heart, User, Search, ChevronDown, Phone, Headphones, Grid3X3, Truck, Shield, RotateCcw } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import api from '@shared/utils/api'
+import type { Category } from '@shared/types'
 
 const router = useRouter()
 const cartStore = useCartStore()
@@ -12,6 +14,9 @@ const isMenuOpen = ref(false)
 const isSearchOpen = ref(false)
 const isCategoryMenuOpen = ref(false)
 const searchQuery = ref('')
+const categories = ref<Category[]>([])
+const isLoadingCategories = ref(true)
+const categoryError = ref<string | null>(null)
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
@@ -24,14 +29,36 @@ const handleSearch = () => {
   }
 }
 
-const categories = [
-  { name: 'الکترونیک', slug: 'electronics', icon: '📱' },
-  { name: 'پوشاک و مد', slug: 'fashion', icon: '👕' },
-  { name: 'خانه و آشپزخانه', slug: 'home-kitchen', icon: '🏠' },
-  { name: 'زیبایی و سلامت', slug: 'beauty-health', icon: '💄' },
-  { name: 'ورزش و سفر', slug: 'sports-travel', icon: '⚽' },
-  { name: 'کتاب و لوازم تحریر', slug: 'books-stationery', icon: '📚' },
-]
+// Get category icon based on name/slug
+const getCategoryIcon = (category: Category): string => {
+  const iconMap: Record<string, string> = {
+    'electronics': '📱',
+    'fashion': '👕',
+    'home-kitchen': '🏠',
+    'beauty-health': '💄',
+    'sports-travel': '⚽',
+    'books-stationery': '📚',
+    'toys-kids': '🧸',
+    'tools-automotive': '🔧',
+  }
+  return iconMap[category.slug] || '📦'
+}
+
+const loadCategories = async () => {
+  isLoadingCategories.value = true
+  categoryError.value = null
+  try {
+    const response = await api.get('/categories/header')
+    categories.value = response.data?.data || []
+  } catch (error: any) {
+    console.error('Failed to load header categories:', error)
+    categoryError.value = error.response?.data?.message || 'خطا در بارگذاری دسته‌بندی‌ها'
+  } finally {
+    isLoadingCategories.value = false
+  }
+}
+
+onMounted(loadCategories)
 </script>
 
 <template>
@@ -208,22 +235,52 @@ const categories = [
             </button>
             
             <!-- Dropdown Menu -->
-            <div 
+            <div
               v-show="isCategoryMenuOpen"
               class="absolute top-full right-0 w-64 bg-white shadow-xl rounded-b-lg border border-secondary-100 py-2 z-50"
             >
-              <RouterLink 
-                v-for="cat in categories" 
-                :key="cat.slug"
-                :to="`/categories/${cat.slug}`"
-                class="flex items-center gap-3 px-4 py-3 hover:bg-secondary-50 transition"
-                @click="isCategoryMenuOpen = false"
-              >
-                <span class="text-xl">{{ cat.icon }}</span>
-                <span class="text-secondary-700">{{ cat.name }}</span>
-              </RouterLink>
+              <!-- Loading State -->
+              <div v-if="isLoadingCategories" class="px-4 py-3">
+                <div class="animate-pulse space-y-3">
+                  <div v-for="i in 6" :key="i" class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-secondary-200 rounded-lg"></div>
+                    <div class="h-4 bg-secondary-200 rounded w-24"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Error State -->
+              <div v-else-if="categoryError" class="px-4 py-3 text-center">
+                <p class="text-sm text-red-500 mb-2">{{ categoryError }}</p>
+                <button
+                  @click="loadCategories"
+                  class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                >
+                  تلاش مجدد
+                </button>
+              </div>
+
+              <!-- Categories -->
+              <template v-else-if="categories.length > 0">
+                <RouterLink
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  :to="`/categories/${cat.slug}`"
+                  class="flex items-center gap-3 px-4 py-3 hover:bg-secondary-50 transition"
+                  @click="isCategoryMenuOpen = false"
+                >
+                  <span class="text-xl">{{ getCategoryIcon(cat) }}</span>
+                  <span class="text-secondary-700">{{ cat.name }}</span>
+                </RouterLink>
+              </template>
+
+              <!-- Empty State -->
+              <div v-else class="px-4 py-3 text-sm text-secondary-500 text-center">
+                دسته‌بندی یافت نشد
+              </div>
+
               <hr class="my-2" />
-              <RouterLink 
+              <RouterLink
                 to="/categories"
                 class="flex items-center gap-3 px-4 py-3 text-primary-600 hover:bg-primary-50 transition font-medium"
                 @click="isCategoryMenuOpen = false"

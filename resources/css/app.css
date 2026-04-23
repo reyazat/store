@@ -3,6 +3,22 @@
 @source '../js/src/**/*.vue';
 @source '../js/src/**/*.ts';
 
+/* Safelist dynamic gradient classes used by promo banners */
+@source inline("bg-gradient-to-br");
+@source inline("from-primary-{500,600,700}");
+@source inline("to-primary-{500,600,700}");
+@source inline("from-emerald-{500,600}");
+@source inline("to-emerald-{500,600}");
+@source inline("to-teal-{500,600,700}");
+@source inline("from-violet-{500,600,700}");
+@source inline("to-violet-{500,600,700}");
+@source inline("from-purple-{500,600,700}");
+@source inline("to-purple-{500,600,700}");
+@source inline("from-amber-{500,600}");
+@source inline("to-orange-{500,600,700}");
+@source inline("from-rose-{500,600}");
+@source inline("to-pink-{500,600,700}");
+
 @theme {
     --font-sans: 'Vazirmatn', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

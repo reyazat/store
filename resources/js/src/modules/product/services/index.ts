@@ -1,15 +1,31 @@
 import api from '@shared/utils/api'
 
-interface ProductFilters {
+export type ProductSort =
+  | 'newest'
+  | 'oldest'
+  | 'price_asc'
+  | 'price_desc'
+  | 'popular'
+  | 'name_asc'
+  | 'name_desc'
+  | 'discount'
+
+export interface ProductFilters {
   page?: number
   per_page?: number
+  limit?: number
   search?: string
   category_id?: number
+  category_slug?: string
   manufacturer_id?: number
+  manufacturer_ids?: number[]
+  manufacturer_slug?: string
   has_discount?: boolean
-  sort_by?: string
-  sort_order?: string
-  sort_by_discount?: string
+  featured?: boolean
+  in_stock?: boolean
+  min_price?: number
+  max_price?: number
+  sort?: ProductSort
 }
 
 export const productService = {

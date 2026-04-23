@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { ProductCard } from '@shared/components'
 import type { Product } from '@shared/types'
 
 interface Props {
@@ -12,6 +13,8 @@ interface Props {
 defineProps<Props>()
 
 const scrollContainerRef = ref<HTMLElement | null>(null)
+const canScrollLeft = ref(false)
+const canScrollRight = ref(true)
 
 const scroll = (direction: 'left' | 'right') => {
   if (!scrollContainerRef.value) return
@@ -21,13 +24,6 @@ const scroll = (direction: 'left' | 'right') => {
     behavior: 'smooth'
   })
 }
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price)
-}
-
-const canScrollLeft = ref(false)
-const canScrollRight = ref(true)
 
 const checkScroll = () => {
   if (!scrollContainerRef.value) return
@@ -96,54 +92,9 @@ const checkScroll = () => {
             <div
               v-for="product in products"
               :key="product.id"
-              class="flex-shrink-0 w-[220px] bg-white rounded-xl overflow-hidden group"
+              class="flex-shrink-0 w-[220px]"
             >
-              <!-- Image -->
-              <RouterLink :to="`/products/${product.slug}`" class="block relative">
-                <div class="aspect-square bg-secondary-50 overflow-hidden">
-                  <img
-                    :src="product.main_image || '/images/placeholder.jpg'"
-                    :alt="product.name"
-                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                </div>
-                <!-- Discount Badge -->
-                <div
-                  v-if="product.discount_percent"
-                  class="absolute top-2 right-2 bg-violet-600 text-white text-xs font-bold px-2 py-1 rounded-lg"
-                >
-                  {{ product.discount_percent }}%
-                </div>
-              </RouterLink>
-
-              <!-- Content -->
-              <div class="p-3">
-                <!-- Name -->
-                <RouterLink :to="`/products/${product.slug}`">
-                  <h4 class="text-sm font-medium text-secondary-800 line-clamp-2 min-h-[40px] hover:text-violet-600 transition">
-                    {{ product.name }}
-                  </h4>
-                </RouterLink>
-
-                <!-- Price & Add to Cart -->
-                <div class="flex items-center justify-between mt-3">
-                  <div>
-                    <p v-if="product.old_price" class="text-xs text-secondary-400 line-through">
-                      {{ formatPrice(product.old_price) }}
-                    </p>
-                    <p class="text-violet-600 font-bold text-sm">
-                      {{ formatPrice(product.price) }}
-                      <span class="text-xs font-normal text-secondary-500">ریال</span>
-                    </p>
-                  </div>
-                  <button
-                    class="w-8 h-8 bg-violet-600 hover:bg-violet-700 text-white rounded-lg flex items-center justify-center transition"
-                    title="افزودن به سبد خرید"
-                  >
-                    <Plus class="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
+              <ProductCard :product="product" view-mode="grid" />
             </div>
           </template>
 

@@ -1,0 +1,60 @@
+import type { Component } from 'vue'
+import {
+  Truck,
+  Shield,
+  RotateCcw,
+  Headphones,
+  Percent,
+  Star,
+  Clock,
+  TrendingUp,
+  Grid3X3,
+  ShoppingCart,
+  Heart,
+  Tag,
+  Gift,
+  Package,
+  Award,
+  Zap,
+  CheckCircle,
+  CreditCard,
+  MapPin,
+  Phone,
+  Mail,
+  Sparkles,
+} from 'lucide-vue-next'
+
+const ICON_MAP: Record<string, Component> = {
+  truck: Truck,
+  shield: Shield,
+  'rotate-ccw': RotateCcw,
+  rotate: RotateCcw,
+  headphones: Headphones,
+  percent: Percent,
+  star: Star,
+  clock: Clock,
+  'trending-up': TrendingUp,
+  trending: TrendingUp,
+  'grid-3x3': Grid3X3,
+  grid: Grid3X3,
+  'shopping-cart': ShoppingCart,
+  cart: ShoppingCart,
+  heart: Heart,
+  tag: Tag,
+  gift: Gift,
+  package: Package,
+  award: Award,
+  zap: Zap,
+  'check-circle': CheckCircle,
+  check: CheckCircle,
+  'credit-card': CreditCard,
+  'map-pin': MapPin,
+  phone: Phone,
+  mail: Mail,
+  sparkles: Sparkles,
+}
+
+export function resolveIcon(name?: string | null, fallback: Component = Sparkles): Component {
+  if (!name) return fallback
+  return ICON_MAP[name.toLowerCase()] ?? fallback
+}

@@ -1,18 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ChevronLeft, ChevronRight, Truck, Shield, RotateCcw, Headphones, Percent, Star, Clock, TrendingUp, Grid3X3 } from 'lucide-vue-next'
+import { ChevronLeft, ChevronRight, Star, Clock, TrendingUp, Grid3X3 } from 'lucide-vue-next'
 import { ProductCard } from '@shared/components'
 import CategorySection from '../components/CategorySection.vue'
 import DiscountProductsSection from '../components/DiscountProductsSection.vue'
-import { homeService } from '../services'
+import { homeService, type SiteFeature, type PromoBanner } from '../services'
+import { resolveIcon } from '@shared/utils/icons'
 import type { Product, Category } from '@shared/types'
 
 const featuredProducts = ref<Product[]>([])
 const newProducts = ref<Product[]>([])
 const discountedProducts = ref<Product[]>([])
 const categories = ref<Category[]>([])
+const siteFeatures = ref<SiteFeature[]>([])
+const promoBanners = ref<PromoBanner[]>([])
 const isLoading = ref(true)
+
+// Newsletter form state
+const newsletterEmail = ref('')
+const newsletterSubmitting = ref(false)
+const newsletterMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
 
 // Slider state
 const currentSlide = ref(0)
@@ -37,20 +45,31 @@ function startAutoSlide() {
   }
 }
 
+const bannerGradientClass = (banner: PromoBanner): string => {
+  const from = banner.gradient_from ? `from-${banner.gradient_from}` : 'from-primary-500'
+  const to = banner.gradient_to ? `to-${banner.gradient_to}` : 'to-primary-700'
+  return `bg-gradient-to-br ${from} ${to}`
+}
+
 onMounted(async () => {
   try {
-    const [productsRes, discountedRes, categoriesRes, slidersData] = await Promise.all([
+    const [productsRes, discountedRes, categoriesRes, slidersData, features, banners, newestRes] = await Promise.all([
       homeService.getFeaturedProducts(),
       homeService.getDiscountedProducts(8),
       homeService.getCategories(),
       homeService.getSliders(),
+      homeService.getSiteFeatures(),
+      homeService.getPromoBanners('home'),
+      homeService.getNewestProducts(10),
     ])
 
     featuredProducts.value = productsRes.data || []
-    newProducts.value = productsRes.data || []
+    newProducts.value = newestRes.data || []
     discountedProducts.value = discountedRes.data || []
     categories.value = categoriesRes.data || []
     slides.value = slidersData
+    siteFeatures.value = features
+    promoBanners.value = banners
   } catch (error) {
     console.error('Failed to load home data:', error)
   } finally {
@@ -59,19 +78,38 @@ onMounted(async () => {
   }
 })
 
-const services = [
-  { icon: Truck, title: 'ارسال سریع', desc: 'ارسال به سراسر کشور' },
-  { icon: Shield, title: 'ضمانت اصالت', desc: '۱۰۰٪ اصل و اورجینال' },
-  { icon: RotateCcw, title: '۷ روز بازگشت', desc: 'بازگشت آسان کالا' },
-  { icon: Headphones, title: 'پشتیبانی ۲۴/۷', desc: 'پاسخگویی همیشگی' },
-]
-
 const quickCategoriesRef = ref<HTMLElement | null>(null)
 
 const scrollCategories = (dir: 'right' | 'left') => {
   if (!quickCategoriesRef.value) return
   quickCategoriesRef.value.scrollBy({ left: dir === 'left' ? -240 : 240, behavior: 'smooth' })
 }
+
+const submitNewsletter = async (event: Event) => {
+  event.preventDefault()
+  newsletterMessage.value = null
+
+  if (!newsletterEmail.value) {
+    newsletterMessage.value = { type: 'error', text: 'لطفاً ایمیل را وارد کنید.' }
+    return
+  }
+
+  newsletterSubmitting.value = true
+  try {
+    await homeService.subscribeNewsletter(newsletterEmail.value, 'home')
+    newsletterMessage.value = { type: 'success', text: 'عضویت شما با موفقیت ثبت شد!' }
+    newsletterEmail.value = ''
+  } catch (error: unknown) {
+    const message = (error as { response?: { data?: { message?: string } } })
+      ?.response?.data?.message ?? 'خطا در ثبت عضویت. لطفاً دوباره تلاش کنید.'
+    newsletterMessage.value = { type: 'error', text: message }
+  } finally {
+    newsletterSubmitting.value = false
+  }
+}
+
+const hasSiteFeatures = computed(() => siteFeatures.value.length > 0)
+const hasPromoBanners = computed(() => promoBanners.value.length > 0)
 </script>
 
 <template>
@@ -235,21 +273,30 @@ const scrollCategories = (dir: 'right' | 'left') => {
       </div>
     </section>
     
-    <!-- Services Bar -->
-    <section class="py-6 bg-white border-t">
+    <!-- Services Bar (dynamic) -->
+    <section v-if="hasSiteFeatures || isLoading" class="py-6 bg-white border-t">
       <div class="container mx-auto px-4">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div 
-            v-for="service in services" 
-            :key="service.title"
+        <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div v-for="i in 4" :key="i" class="flex items-center gap-3 p-4 rounded-xl bg-secondary-50 animate-pulse">
+            <div class="w-12 h-12 bg-secondary-100 rounded-full"></div>
+            <div class="flex-1 space-y-2">
+              <div class="h-3 w-20 bg-secondary-100 rounded"></div>
+              <div class="h-3 w-28 bg-secondary-100 rounded"></div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div
+            v-for="feature in siteFeatures"
+            :key="feature.id"
             class="flex items-center gap-3 p-4 rounded-xl bg-secondary-50"
           >
             <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-              <component :is="service.icon" class="w-6 h-6 text-primary-600" />
+              <component :is="resolveIcon(feature.icon)" class="w-6 h-6 text-primary-600" />
             </div>
             <div>
-              <h4 class="font-bold text-secondary-800">{{ service.title }}</h4>
-              <p class="text-sm text-secondary-500">{{ service.desc }}</p>
+              <h4 class="font-bold text-secondary-800">{{ feature.title }}</h4>
+              <p v-if="feature.description" class="text-sm text-secondary-500">{{ feature.description }}</p>
             </div>
           </div>
         </div>
@@ -319,48 +366,33 @@ const scrollCategories = (dir: 'right' | 'left') => {
       </div>
     </section>
     
-    <!-- Promotional Banners -->
-    <section class="py-4">
+    <!-- Promotional Banners (dynamic) -->
+    <section v-if="hasPromoBanners" class="py-4">
       <div class="container mx-auto px-4">
         <div class="grid md:grid-cols-3 gap-4">
-          <!-- Banner 1 -->
-          <div class="bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl p-6 text-white relative overflow-hidden group cursor-pointer">
+          <component
+            :is="banner.link ? RouterLink : 'div'"
+            v-for="banner in promoBanners"
+            :key="banner.id"
+            :to="banner.link || undefined"
+            :class="[
+              bannerGradientClass(banner),
+              'rounded-2xl p-6 text-white relative overflow-hidden group cursor-pointer block',
+            ]"
+          >
             <div class="relative z-10">
-              <Percent class="w-10 h-10 mb-3 opacity-80" />
-              <h3 class="text-xl font-bold mb-1">تخفیف‌های روزانه</h3>
-              <p class="text-primary-100 text-sm mb-4">هر روز تخفیف‌های جدید</p>
-              <span class="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                مشاهده <ChevronLeft class="w-4 h-4" />
+              <component :is="resolveIcon(banner.icon)" class="w-10 h-10 mb-3 opacity-80" />
+              <h3 class="text-xl font-bold mb-1">{{ banner.title }}</h3>
+              <p v-if="banner.subtitle" class="text-white/80 text-sm mb-4">{{ banner.subtitle }}</p>
+              <span
+                v-if="banner.cta_text"
+                class="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all"
+              >
+                {{ banner.cta_text }} <ChevronLeft class="w-4 h-4" />
               </span>
             </div>
             <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
-          </div>
-          
-          <!-- Banner 2 -->
-          <div class="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-6 text-white relative overflow-hidden group cursor-pointer">
-            <div class="relative z-10">
-              <Truck class="w-10 h-10 mb-3 opacity-80" />
-              <h3 class="text-xl font-bold mb-1">ارسال رایگان</h3>
-              <p class="text-emerald-100 text-sm mb-4">خرید بالای ۵۰۰ هزار تومان</p>
-              <span class="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                شروع خرید <ChevronLeft class="w-4 h-4" />
-              </span>
-            </div>
-            <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
-          </div>
-          
-          <!-- Banner 3 -->
-          <div class="bg-gradient-to-br from-violet-500 to-purple-700 rounded-2xl p-6 text-white relative overflow-hidden group cursor-pointer">
-            <div class="relative z-10">
-              <Shield class="w-10 h-10 mb-3 opacity-80" />
-              <h3 class="text-xl font-bold mb-1">ضمانت اصالت</h3>
-              <p class="text-violet-100 text-sm mb-4">۱۰۰٪ اصل و اورجینال</p>
-              <span class="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
-                بیشتر بدانید <ChevronLeft class="w-4 h-4" />
-              </span>
-            </div>
-            <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
-          </div>
+          </component>
         </div>
       </div>
     </section>
@@ -439,19 +471,36 @@ const scrollCategories = (dir: 'right' | 'left') => {
         <div class="max-w-2xl mx-auto text-center text-white">
           <h2 class="text-2xl md:text-3xl font-bold mb-4">از تخفیف‌ها باخبر شوید!</h2>
           <p class="text-primary-100 mb-6">با عضویت در خبرنامه، از جدیدترین تخفیف‌ها و محصولات مطلع شوید.</p>
-          <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <input 
-              type="email" 
+          <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" @submit="submitNewsletter" novalidate>
+            <label for="newsletter-email" class="sr-only">ایمیل خبرنامه</label>
+            <input
+              id="newsletter-email"
+              v-model="newsletterEmail"
+              type="email"
+              required
+              :disabled="newsletterSubmitting"
               placeholder="ایمیل خود را وارد کنید"
-              class="flex-1 px-5 py-3 rounded-full text-secondary-800 focus:outline-none focus:ring-4 focus:ring-primary-300"
+              class="flex-1 px-5 py-3 rounded-full text-secondary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-60"
             />
-            <button 
+            <button
               type="submit"
-              class="px-8 py-3 bg-white text-primary-600 rounded-full font-bold hover:bg-primary-50 transition"
+              :disabled="newsletterSubmitting"
+              class="px-8 py-3 bg-white text-primary-600 rounded-full font-bold hover:bg-primary-50 transition disabled:opacity-60"
             >
-              عضویت
+              {{ newsletterSubmitting ? 'در حال ارسال...' : 'عضویت' }}
             </button>
           </form>
+          <p
+            v-if="newsletterMessage"
+            :class="[
+              'mt-4 text-sm',
+              newsletterMessage.type === 'success' ? 'text-emerald-100' : 'text-red-200',
+            ]"
+            role="status"
+            aria-live="polite"
+          >
+            {{ newsletterMessage.text }}
+          </p>
         </div>
       </div>
     </section>

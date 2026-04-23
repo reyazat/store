@@ -5,6 +5,7 @@ namespace App\Repositories\Eloquents;
 use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 class CategoryRepository implements CategoryRepositoryInterface
 {
@@ -36,5 +37,16 @@ class CategoryRepository implements CategoryRepositoryInterface
     public function findById(int $id): ?Category
     {
         return Category::query()->find($id);
+    }
+
+    public function getHeaderCategories(int $limit = 6): Collection
+    {
+        return Category::query()
+            ->whereNull('parent_id')
+            ->where('status', 1)
+            ->orderBy('sorted')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
     }
 }

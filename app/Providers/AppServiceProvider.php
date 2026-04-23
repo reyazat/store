@@ -26,6 +26,12 @@ use App\Repositories\Contracts\OrderRepositoryInterface;
 use App\Repositories\Eloquents\OrderRepository;
 use App\Repositories\Contracts\SliderRepositoryInterface;
 use App\Repositories\Eloquents\SliderRepository;
+use App\Repositories\Contracts\SiteFeatureRepositoryInterface;
+use App\Repositories\Eloquents\SiteFeatureRepository;
+use App\Repositories\Contracts\PromoBannerRepositoryInterface;
+use App\Repositories\Eloquents\PromoBannerRepository;
+use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
+use App\Repositories\Eloquents\NewsletterSubscriberRepository;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -51,6 +57,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(CartRepositoryInterface::class, CartRepository::class);
         $this->app->bind(OrderRepositoryInterface::class, OrderRepository::class);
         $this->app->bind(SliderRepositoryInterface::class, SliderRepository::class);
+        $this->app->bind(SiteFeatureRepositoryInterface::class, SiteFeatureRepository::class);
+        $this->app->bind(PromoBannerRepositoryInterface::class, PromoBannerRepository::class);
+        $this->app->bind(NewsletterSubscriberRepositoryInterface::class, NewsletterSubscriberRepository::class);
     }
 
     /**
