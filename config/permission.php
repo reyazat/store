@@ -4,6 +4,14 @@ use Spatie\Permission\DefaultTeamResolver;
 
 return [
 
+    /*
+     * Default guard to use when checking permissions in non-web contexts
+     * (e.g., console commands, seeders, queue workers)
+     */
+    'defaults' => [
+        'guard' => env('AUTH_GUARD', 'api'),
+    ],
+
     'models' => [
 
         /*
