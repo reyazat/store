@@ -7,6 +7,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends BaseUser
 {
+    /**
+     * Return the guard name for Spatie Permission.
+     * Required for proper guard detection in console/seed context.
+     */
+    public function guardName(): string
+    {
+        return 'api';
+    }
+
     public function addresses(): HasMany
     {
         return $this->hasMany(Address::class);
