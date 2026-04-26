@@ -43,8 +43,19 @@ class EcommerceUserSeeder extends Seeder
         ];
 
         foreach ($customers as $customerData) {
-            $customer = User::firstOrCreate(['email' => $customerData['email']], [
+            // Check if user exists by email OR phone
+            $existingUser = User::where('email', $customerData['email'])
+                ->orWhere('phone', $customerData['phone'])
+                ->first();
+
+            if ($existingUser) {
+                $this->command->line("   ⚠ Skipped: {$customerData['email']} (already exists)");
+                continue;
+            }
+
+            $customer = User::create([
                 'name' => $customerData['name'],
+                'email' => $customerData['email'],
                 'phone' => $customerData['phone'] ?? null,
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
