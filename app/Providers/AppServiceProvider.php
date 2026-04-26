@@ -32,6 +32,8 @@ use App\Repositories\Contracts\PromoBannerRepositoryInterface;
 use App\Repositories\Eloquents\PromoBannerRepository;
 use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
 use App\Repositories\Eloquents\NewsletterSubscriberRepository;
+use App\Repositories\Eloquents\UserRepository;
+use IamApi\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -67,6 +69,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Override vendor's UserRepository to use App\Models\User with guardName() method
+        // Must be in boot() to run after vendor's RepositoryServiceProvider
+        $this->app->singleton(UserRepositoryInterface::class, function ($app) {
+            return new UserRepository(new \App\Models\User());
+        });
+
         // Configure rate limiters
         $this->configureRateLimiting();
 

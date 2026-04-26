@@ -8,8 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class User extends BaseUser
 {
     /**
-     * Return the guard name for Spatie Permission.
+     * The guard name for Spatie Permission.
      * Required for proper guard detection in console/seed context.
+     */
+    protected ?string $guard_name = 'api';
+
+    /**
+     * Return the guard name for Spatie Permission.
      */
     public function guardName(): string
     {
