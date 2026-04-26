@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1a981c79f77fe0c4917c42019a240ff9",
+    "content-hash": "093d2599fe21d33422759e7e459767ba",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -8170,17 +8170,11 @@
         },
         {
             "name": "vreyazat/iam-service",
-            "version": "v1.2.1",
-            "source": {
-                "type": "git",
-                "url": "git@gitlab.com:vreyazat/iam-service.git",
-                "reference": "469030b51e61dbad199eba21bf4b6cb61dd19faf"
-            },
+            "version": "dev-main",
             "dist": {
-                "type": "zip",
-                "url": "https://gitlab.com/api/v4/projects/vreyazat%2Fiam-service/repository/archive.zip?sha=469030b51e61dbad199eba21bf4b6cb61dd19faf",
-                "reference": "469030b51e61dbad199eba21bf4b6cb61dd19faf",
-                "shasum": ""
+                "type": "path",
+                "url": "packages/vreyazat/iam-service",
+                "reference": "bf03a1eacac6beecd9c09392f7be50b3411b2c4d"
             },
             "require": {
                 "bacon/bacon-qr-code": "^3.0",
@@ -8247,11 +8241,10 @@
                 "multi-tenancy",
                 "rbac"
             ],
-            "support": {
-                "source": "https://gitlab.com/vreyazat/iam-service/-/tree/v1.2.1",
-                "issues": "https://gitlab.com/vreyazat/iam-service/-/issues"
-            },
-            "time": "2025-12-03T21:47:07+03:30"
+            "transport-options": {
+                "symlink": false,
+                "relative": true
+            }
         }
     ],
     "packages-dev": [
@@ -10902,15 +10895,24 @@
             "time": "2025-11-17T20:03:58+00:00"
         }
     ],
-    "aliases": [],
+    "aliases": [
+        {
+            "package": "vreyazat/iam-service",
+            "version": "dev-main",
+            "alias": "1.2.1",
+            "alias_normalized": "1.2.1.0"
+        }
+    ],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "vreyazat/iam-service": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
         "php": "^8.3",
         "ext-pdo": "*"
     },
-    "platform-dev": [],
-    "plugin-api-version": "2.6.0"
+    "platform-dev": {},
+    "plugin-api-version": "2.9.0"
 }
