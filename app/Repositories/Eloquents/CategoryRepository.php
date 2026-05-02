@@ -11,7 +11,7 @@ class CategoryRepository implements CategoryRepositoryInterface
 {
     public function getAll(array $filters = []): LengthAwarePaginator
     {
-        $query = Category::query();
+        $query = Category::query()->withCount('products');
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -25,13 +25,13 @@ class CategoryRepository implements CategoryRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
-        if (!empty($filters['parent_id'])) {
+        if (array_key_exists('parent_id', $filters) && $filters['parent_id'] !== null) {
             $query->where('parent_id', $filters['parent_id']);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
+        $perPage = $filters['per_page'] ?? 20;
 
-        return $query->paginate((int) $perPage);
+        return $query->orderBy('sorted')->orderBy('id')->paginate((int) $perPage);
     }
 
     public function findById(int $id): ?Category
@@ -44,8 +44,11 @@ class CategoryRepository implements CategoryRepositoryInterface
         return Category::query()
             ->whereNull('parent_id')
             ->where('status', 1)
+            ->withCount(['products' => function ($query) {
+                $query->where('status', 1);
+            }])
+            ->orderByDesc('products_count')
             ->orderBy('sorted')
-            ->orderBy('id')
             ->limit($limit)
             ->get();
     }

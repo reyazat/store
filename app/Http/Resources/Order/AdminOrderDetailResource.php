@@ -9,6 +9,8 @@ class AdminOrderDetailResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $statusModel = \App\Models\OrderStatus::findByKey($this->status);
+
         return [
             'id'             => $this->id,
             'order_number'   => $this->order_number,
@@ -18,6 +20,8 @@ class AdminOrderDetailResource extends JsonResource
                 'email' => $this->user->email,
             ] : null),
             'status'         => $this->status,
+            'status_label'   => $statusModel?->label ?? $this->status,
+            'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'payment_method' => $this->payment_method,
             'subtotal'       => $this->subtotal,
@@ -43,6 +47,18 @@ class AdminOrderDetailResource extends JsonResource
                 'city'        => $this->orderAddress->city,
                 'province'    => $this->orderAddress->province,
                 'postal_code' => $this->orderAddress->postal_code,
+            ] : null),
+            'latest_transaction' => $this->whenLoaded('latestTransaction', fn () => $this->latestTransaction ? [
+                'id'             => $this->latestTransaction->id,
+                'driver'         => $this->latestTransaction->driver,
+                'gateway_ref'    => $this->latestTransaction->gateway_ref,
+                'status'         => $this->latestTransaction->status,
+                'amount'         => $this->latestTransaction->amount,
+                'card_last_four' => $this->latestTransaction->card_last_four,
+                'receipt_path'   => $this->latestTransaction->receipt_path
+                    ? asset('storage/' . $this->latestTransaction->receipt_path)
+                    : null,
+                'paid_at'        => $this->latestTransaction->paid_at,
             ] : null),
             'created_at'     => $this->created_at,
             'paid_at'        => $this->paid_at,

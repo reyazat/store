@@ -6,41 +6,32 @@ import { userService } from '../services'
 import { formatPrice, formatDate } from '@shared/utils/format'
 import UserSidebar from '../components/UserSidebar.vue'
 
-const orders = ref<any[]>([])
+interface OrderListItem {
+  id: number
+  order_number: string
+  status: string
+  status_label: string
+  status_color: string
+  payment_status: string
+  total: number
+  items_count: number
+  created_at: string
+}
+
+const orders = ref<OrderListItem[]>([])
 const isLoading = ref(true)
+const errorMsg = ref<string | null>(null)
 
 onMounted(async () => {
   try {
     const response = await userService.getOrders()
     orders.value = response.data || []
-  } catch (error) {
-    console.error('Failed to load orders:', error)
+  } catch {
+    errorMsg.value = 'خطا در بارگذاری سفارشات'
   } finally {
     isLoading.value = false
   }
 })
-
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    processing: 'bg-blue-100 text-blue-800',
-    shipped: 'bg-purple-100 text-purple-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    pending: 'در انتظار',
-    processing: 'در حال پردازش',
-    shipped: 'ارسال شده',
-    delivered: 'تحویل داده شده',
-    cancelled: 'لغو شده',
-  }
-  return texts[status] || status
-}
 </script>
 
 <template>
@@ -60,6 +51,8 @@ const getStatusText = (status: string) => {
               <div class="h-4 bg-gray-200 rounded w-1/4"></div>
             </div>
           </div>
+
+          <div v-else-if="errorMsg" class="p-8 text-center text-red-500 text-sm">{{ errorMsg }}</div>
           
           <div v-else-if="orders.length === 0" class="p-12 text-center text-gray-500">
             <p class="mb-4">هیچ سفارشی ثبت نشده است</p>
@@ -82,8 +75,11 @@ const getStatusText = (status: string) => {
               </div>
               <div class="text-left">
                 <p class="font-bold text-primary-600">{{ formatPrice(order.total) }} تومان</p>
-                <span :class="['inline-block px-2 py-1 text-xs rounded mt-1', getStatusColor(order.status)]">
-                  {{ getStatusText(order.status) }}
+                <span
+                  class="inline-block px-2 py-1 text-xs rounded mt-1 font-medium"
+                  :style="{ backgroundColor: order.status_color + '22', color: order.status_color }"
+                >
+                  {{ order.status_label }}
                 </span>
               </div>
             </RouterLink>

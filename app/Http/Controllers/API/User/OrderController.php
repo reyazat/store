@@ -52,7 +52,7 @@ class OrderController extends Controller
             ], 403);
         }
 
-        $order->load(['items', 'orderAddress']);
+        $order->load(['items', 'orderAddress', 'latestTransaction']);
 
         return response()->json([
             'success' => true,

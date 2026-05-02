@@ -7,6 +7,7 @@ namespace App\Repositories\Eloquents;
 use App\Models\Product;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 
 
@@ -147,5 +148,25 @@ class ProductRepository implements ProductRepositoryInterface
     public function findById(int $id) :?Product
     {
         return Product::query()->find($id);
+    }
+
+    public function autocomplete(string $query, int $limit = 5): Collection
+    {
+        return Product::query()
+            ->where('status', 1)
+            ->where(function ($builder) use ($query) {
+                $builder->where('name', 'like', "%{$query}%")
+                    ->orWhere('base_sku', 'like', "%{$query}%");
+            })
+            ->select(['id', 'name', 'slug', 'main_image', 'discount_percent', 'discount_start_at', 'discount_end_at'])
+            ->with(['listings' => function ($q) {
+                $q->where('status', 'active')
+                    ->select(['id', 'product_id', 'base_price'])
+                    ->limit(1);
+            }])
+            ->orderByDesc('sorted')
+            ->orderByDesc('viewed')
+            ->limit($limit)
+            ->get();
     }
 }

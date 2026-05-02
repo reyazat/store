@@ -39,4 +39,24 @@ export const cartService = {
     const response = await api.post('/user/orders', { address_id: addressId })
     return response.data
   },
+
+  async getPaymentMethods() {
+    const response = await api.get('/payment/methods')
+    return response.data
+  },
+
+  async initiatePayment(orderId: number, driver: string) {
+    const response = await api.post('/user/payment/initiate', { order_id: orderId, driver })
+    return response.data
+  },
+
+  async uploadReceipt(transactionId: number, file: File, cardLastFour?: string) {
+    const formData = new FormData()
+    formData.append('receipt', file)
+    if (cardLastFour) formData.append('card_last_four', cardLastFour)
+    const response = await api.post(`/user/payment/transactions/${transactionId}/receipt`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return response.data
+  },
 }

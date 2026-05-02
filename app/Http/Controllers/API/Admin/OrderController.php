@@ -42,7 +42,7 @@ class OrderController extends Controller
 
     public function show(Order $order): JsonResponse
     {
-        $order->load(['user', 'items', 'orderAddress']);
+        $order->load(['user', 'items', 'orderAddress', 'latestTransaction']);
 
         return response()->json([
             'success' => true,
@@ -57,7 +57,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'وضعیت سفارش به‌روزرسانی شد',
-            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress'])),
+            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress', 'latestTransaction'])),
         ]);
     }
 
@@ -68,7 +68,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'وضعیت پرداخت به‌روزرسانی شد',
-            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress'])),
+            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress', 'latestTransaction'])),
         ]);
     }
 
@@ -79,7 +79,7 @@ class OrderController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'یادداشت ادمین به‌روزرسانی شد',
-            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress'])),
+            'data'    => new AdminOrderDetailResource($order->fresh(['user', 'items', 'orderAddress', 'latestTransaction'])),
         ]);
     }
 }

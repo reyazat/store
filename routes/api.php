@@ -7,11 +7,14 @@ Route::prefix('v1')->group(function () {
   Route::get('/sliders', [\App\Http\Controllers\API\SliderController::class, 'index']);
   Route::get('/site-features', [\App\Http\Controllers\API\SiteFeatureController::class, 'index']);
   Route::get('/promo-banners', [\App\Http\Controllers\API\PromoBannerController::class, 'index']);
+  Route::get('/site-settings', [\App\Http\Controllers\API\SiteSettingController::class, 'index']);
+  Route::get('/nav-links/{group}', [\App\Http\Controllers\API\NavLinkController::class, 'byGroup']);
   Route::post('/newsletter/subscribe', [\App\Http\Controllers\API\NewsletterController::class, 'subscribe']);
 
   Route::prefix('products')->group(function () {
     Route::get('/', [\App\Http\Controllers\API\ProductController::class, 'index']);
     Route::get('/search', [\App\Http\Controllers\API\ProductController::class, 'index']);
+    Route::get('/autocomplete', [\App\Http\Controllers\API\ProductController::class, 'autocomplete']);
     Route::get('/{product}', [\App\Http\Controllers\API\ProductController::class, 'show']);
   });
 
@@ -121,6 +124,15 @@ Route::middleware(['auth:api'])->prefix('v1')->group(function () {
   });
 });
 
+// Public payment methods list (for checkout display)
+Route::get('/v1/payment/methods', [\App\Http\Controllers\API\User\PaymentController::class, 'methods']);
+
+// Public order statuses (labels + colors for user panel display)
+Route::get('/v1/order-statuses', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'index']);
+
+// Zarinpal callback — must be accessible without auth (redirected from Zarinpal)
+Route::get('/v1/payment/zarinpal/callback', [\App\Http\Controllers\API\User\PaymentController::class, 'zarinpalCallback']);
+
 // User Panel Routes (authenticated users)
 Route::middleware(['auth:api'])->prefix('v1/user')->name('user.')->group(function () {
   // Profile
@@ -150,6 +162,10 @@ Route::middleware(['auth:api'])->prefix('v1/user')->name('user.')->group(functio
   Route::get('/wishlist', [\App\Http\Controllers\API\User\WishlistController::class, 'index']);
   Route::post('/wishlist', [\App\Http\Controllers\API\User\WishlistController::class, 'store']);
   Route::delete('/wishlist/{wishlist}', [\App\Http\Controllers\API\User\WishlistController::class, 'destroy']);
+
+  // Payments
+  Route::post('/payment/initiate', [\App\Http\Controllers\API\User\PaymentController::class, 'initiate']);
+  Route::post('/payment/transactions/{transaction}/receipt', [\App\Http\Controllers\API\User\PaymentController::class, 'uploadReceipt']);
 });
 
 // Admin Panel Routes (admin users only)
@@ -192,4 +208,37 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::get('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'show']);
   Route::post('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'update']);
   Route::delete('/promo-banners/{promoBanner}', [\App\Http\Controllers\API\Admin\PromoBannerController::class, 'destroy']);
+
+  // Site Settings Management
+  Route::get('/site-settings', [\App\Http\Controllers\API\Admin\SiteSettingController::class, 'index']);
+  Route::put('/site-settings', [\App\Http\Controllers\API\Admin\SiteSettingController::class, 'update']);
+  Route::post('/site-settings/upload-file', [\App\Http\Controllers\API\Admin\SiteSettingController::class, 'uploadFile']);
+
+  // Nav Links Management
+  Route::get('/nav-links', [\App\Http\Controllers\API\Admin\NavLinkController::class, 'index']);
+  Route::post('/nav-links', [\App\Http\Controllers\API\Admin\NavLinkController::class, 'store']);
+  Route::get('/nav-links/{navLink}', [\App\Http\Controllers\API\Admin\NavLinkController::class, 'show']);
+  Route::put('/nav-links/{navLink}', [\App\Http\Controllers\API\Admin\NavLinkController::class, 'update']);
+  Route::delete('/nav-links/{navLink}', [\App\Http\Controllers\API\Admin\NavLinkController::class, 'destroy']);
+
+  // Card-to-Card Receipt Confirmation
+  Route::post('/transactions/{transaction}/confirm-receipt', [\App\Http\Controllers\API\Admin\AdminPaymentController::class, 'confirmReceipt']);
+  Route::post('/transactions/{transaction}/reject-receipt', [\App\Http\Controllers\API\Admin\AdminPaymentController::class, 'rejectReceipt']);
+
+  // Payment Methods Management
+  Route::get('/payment-methods', [\App\Http\Controllers\API\Admin\PaymentMethodController::class, 'index']);
+  Route::get('/payment-methods/{paymentMethod}', [\App\Http\Controllers\API\Admin\PaymentMethodController::class, 'show']);
+  Route::put('/payment-methods/{paymentMethod}', [\App\Http\Controllers\API\Admin\PaymentMethodController::class, 'update']);
+
+  // Order Statuses Management
+  Route::get('/order-statuses', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'index']);
+  Route::post('/order-statuses', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'store']);
+  Route::put('/order-statuses/{orderStatus}', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'update']);
+  Route::delete('/order-statuses/{orderStatus}', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'destroy']);
+
+  // IAM User Management
+  Route::get('/users', [\App\Http\Controllers\API\Admin\UserController::class, 'index']);
+  Route::get('/users/{id}', [\App\Http\Controllers\API\Admin\UserController::class, 'show']);
+  Route::post('/users/{id}/lock', [\App\Http\Controllers\API\Admin\UserController::class, 'lock']);
+  Route::post('/users/{id}/unlock', [\App\Http\Controllers\API\Admin\UserController::class, 'unlock']);
 });

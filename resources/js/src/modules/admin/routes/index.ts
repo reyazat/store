@@ -61,9 +61,33 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/PromoBannersPage.vue'),
       },
       {
+        path: 'site-settings',
+        name: 'admin-site-settings',
+        component: () => import('../pages/SiteSettingsPage.vue'),
+      },
+      {
+        path: 'payment-methods',
+        name: 'admin-payment-methods',
+        component: () => import('../pages/PaymentMethodsPage.vue'),
+      },
+      {
+        path: 'order-statuses',
+        name: 'admin-order-statuses',
+        component: () => import('../pages/OrderStatusesPage.vue'),
+      },
+      {
+        path: 'nav-links',
+        name: 'admin-nav-links',
+        component: () => import('../pages/NavLinksPage.vue'),
+      },
+      {
+        path: 'audit-logs',
+        name: 'admin-audit-logs',
+        component: () => import('../pages/AuditLogsPage.vue'),
+      },
+      {
         path: 'settings',
-        name: 'admin-settings',
-        component: () => import('../pages/SettingsPage.vue'),
+        redirect: '/admin/site-settings',
       },
     ],
   },

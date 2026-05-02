@@ -16,7 +16,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/user/orders/:id',
     name: 'user-order-detail',
-    component: () => import('../pages/OrdersPage.vue'),
+    component: () => import('../pages/OrderDetailPage.vue'),
     meta: { requiresAuth: true },
   },
   {

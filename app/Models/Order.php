@@ -63,6 +63,16 @@ class Order extends AbstractModel
         return $this->hasOne(OrderAddress::class);
     }
 
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function latestTransaction(): HasOne
+    {
+        return $this->hasOne(PaymentTransaction::class)->latestOfMany();
+    }
+
     protected static function boot(): void
     {
         parent::boot();

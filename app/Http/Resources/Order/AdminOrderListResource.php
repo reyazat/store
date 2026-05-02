@@ -9,6 +9,8 @@ class AdminOrderListResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $statusModel = \App\Models\OrderStatus::findByKey($this->status);
+
         return [
             'id'             => $this->id,
             'order_number'   => $this->order_number,
@@ -19,6 +21,8 @@ class AdminOrderListResource extends JsonResource
             ] : null),
             'customer_name'  => $this->user?->name,
             'status'         => $this->status,
+            'status_label'   => $statusModel?->label ?? $this->status,
+            'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'total'          => $this->total,
             'items_count'    => $this->whenLoaded('items', fn () => $this->items->count()),

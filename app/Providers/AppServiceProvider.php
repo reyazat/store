@@ -32,6 +32,10 @@ use App\Repositories\Contracts\PromoBannerRepositoryInterface;
 use App\Repositories\Eloquents\PromoBannerRepository;
 use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
 use App\Repositories\Eloquents\NewsletterSubscriberRepository;
+use App\Repositories\Contracts\SiteSettingRepositoryInterface;
+use App\Repositories\Eloquents\SiteSettingRepository;
+use App\Repositories\Contracts\NavLinkRepositoryInterface;
+use App\Repositories\Eloquents\NavLinkRepository;
 use App\Repositories\Eloquents\UserRepository;
 use IamApi\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -62,6 +66,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(SiteFeatureRepositoryInterface::class, SiteFeatureRepository::class);
         $this->app->bind(PromoBannerRepositoryInterface::class, PromoBannerRepository::class);
         $this->app->bind(NewsletterSubscriberRepositoryInterface::class, NewsletterSubscriberRepository::class);
+        $this->app->bind(SiteSettingRepositoryInterface::class, SiteSettingRepository::class);
+        $this->app->bind(NavLinkRepositoryInterface::class, NavLinkRepository::class);
     }
 
     /**

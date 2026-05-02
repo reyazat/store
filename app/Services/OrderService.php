@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\ListingVariant;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderStatus;
 use App\Models\User;
 use App\Repositories\Contracts\OrderRepositoryInterface;
 use Illuminate\Support\Facades\DB;
@@ -98,20 +99,20 @@ class OrderService
 
     public function updateOrderStatus(Order $order, string $status): Order
     {
-        $attributes = ['status' => $status];
+        $statusModel    = OrderStatus::findByKey($status);
+        $previousStatus = $order->status;
+        $attributes     = ['status' => $status];
 
-        if ($status === 'shipped') {
-            $attributes['shipped_at'] = now();
-        } elseif ($status === 'delivered') {
+        if ($statusModel?->is_completion) {
             $attributes['delivered_at'] = now();
-        } elseif ($status === 'cancelled') {
+        } elseif ($statusModel?->is_cancellation) {
             $attributes['cancelled_at'] = now();
         }
 
-        $previousStatus = $order->status;
         $order->update($attributes);
 
-        if ($status === 'cancelled' && $previousStatus !== 'cancelled') {
+        $previousStatusModel = OrderStatus::findByKey($previousStatus);
+        if ($statusModel?->is_cancellation && !($previousStatusModel?->is_cancellation)) {
             $this->restoreStock($order);
         }
 

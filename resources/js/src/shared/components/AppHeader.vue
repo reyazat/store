@@ -1,36 +1,33 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { RouterLink, useRouter } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { Menu, X, ShoppingCart, Heart, User, Search, ChevronDown, Phone, Headphones, Grid3X3, Truck, Shield, RotateCcw } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { useSiteSettings } from '@shared/composables/useSiteSettings'
+import { useNavLinks } from '@shared/composables/useNavLinks'
+import SearchAutocomplete from '@shared/components/SearchAutocomplete.vue'
 import api from '@shared/utils/api'
 import type { Category } from '@shared/types'
 
-const router = useRouter()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
 const isSearchOpen = ref(false)
 const isCategoryMenuOpen = ref(false)
-const searchQuery = ref('')
 const categories = ref<Category[]>([])
 const isLoadingCategories = ref(true)
 const categoryError = ref<string | null>(null)
+
+const { settings } = useSiteSettings()
+const { links: headerLinks } = useNavLinks('header')
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push({ path: '/products', query: { search: searchQuery.value } })
-    isSearchOpen.value = false
-  }
-}
-
-// Get category icon based on name/slug
 const getCategoryIcon = (category: Category): string => {
+  if (category.icon) return category.icon
   const iconMap: Record<string, string> = {
     'electronics': '📱',
     'fashion': '👕',
@@ -68,13 +65,16 @@ onMounted(loadCategories)
       <div class="container mx-auto px-4">
         <div class="flex justify-between items-center">
           <div class="flex items-center gap-6">
-            <a href="tel:02112345678" class="flex items-center gap-1 hover:text-primary-300 transition">
+            <a
+              :href="settings.phone_link || 'tel:02112345678'"
+              class="flex items-center gap-1 hover:text-primary-300 transition"
+            >
               <Phone class="w-4 h-4" />
-              <span>۰۲۱-۱۲۳۴۵۶۷۸</span>
+              <span>{{ settings.phone || '۰۲۱-۱۲۳۴۵۶۷۸' }}</span>
             </a>
-            <span class="hidden md:flex items-center gap-1">
+            <span v-if="settings.support_hours" class="hidden md:flex items-center gap-1">
               <Headphones class="w-4 h-4" />
-              پشتیبانی ۲۴ ساعته
+              {{ settings.support_hours }}
             </span>
           </div>
           <div class="flex items-center gap-4">
@@ -103,29 +103,15 @@ onMounted(loadCategories)
           <!-- Logo -->
           <RouterLink to="/" class="flex-shrink-0">
             <img
-              src="/images/Logo/tejarat-logo-500.png"
-              alt="لوگو تجارت"
+              :src="settings.logo || '/images/Logo/tejarat-logo-500.png'"
+              :alt="settings.logo_alt || settings.site_name || 'لوگو فروشگاه'"
               class="h-12 w-auto object-contain"
             />
           </RouterLink>
           
-          <!-- Search Bar -->
+          <!-- Search Bar (Desktop) -->
           <div class="flex-1 max-w-2xl hidden md:block">
-            <form @submit.prevent="handleSearch" class="relative">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="جستجو در بین هزاران محصول..."
-                class="w-full h-12 pl-12 pr-5 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all text-secondary-700 placeholder-secondary-400"
-              />
-              <button 
-                type="submit"
-                class="absolute left-1 top-1 h-10 px-4 bg-primary-500 hover:bg-primary-600 text-white rounded-lg transition flex items-center gap-2"
-              >
-                <Search class="w-5 h-5" />
-                <span class="hidden lg:inline">جستجو</span>
-              </button>
-            </form>
+            <SearchAutocomplete />
           </div>
           
           <!-- Actions -->
@@ -207,17 +193,7 @@ onMounted(loadCategories)
         
         <!-- Mobile Search -->
         <div v-if="isSearchOpen" class="md:hidden pb-4">
-          <form @submit.prevent="handleSearch" class="relative">
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="جستجو..."
-              class="w-full h-12 pl-12 pr-5 rounded-xl border-2 border-secondary-200 focus:border-primary-500"
-            />
-            <button type="submit" class="absolute left-1 top-1 h-10 px-4 bg-primary-500 text-white rounded-lg">
-              <Search class="w-5 h-5" />
-            </button>
-          </form>
+          <SearchAutocomplete />
         </div>
       </div>
     </div>
@@ -266,11 +242,17 @@ onMounted(loadCategories)
                   v-for="cat in categories"
                   :key="cat.id"
                   :to="`/categories/${cat.slug}`"
-                  class="flex items-center gap-3 px-4 py-3 hover:bg-secondary-50 transition"
+                  class="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary-50 transition group"
                   @click="isCategoryMenuOpen = false"
                 >
-                  <span class="text-xl">{{ getCategoryIcon(cat) }}</span>
-                  <span class="text-secondary-700">{{ cat.name }}</span>
+                  <span class="text-xl flex-shrink-0">{{ getCategoryIcon(cat) }}</span>
+                  <span class="flex-1 text-secondary-700 group-hover:text-primary-600 transition">{{ cat.name }}</span>
+                  <span
+                    v-if="cat.products_count !== undefined"
+                    class="text-xs text-secondary-400 bg-secondary-100 group-hover:bg-primary-50 group-hover:text-primary-500 px-1.5 py-0.5 rounded-full transition flex-shrink-0"
+                  >
+                    {{ cat.products_count }}
+                  </span>
                 </RouterLink>
               </template>
 
@@ -291,18 +273,31 @@ onMounted(loadCategories)
           </div>
           
           <!-- Nav Links -->
-          <RouterLink to="/" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
-            صفحه اصلی
-          </RouterLink>
-          <RouterLink to="/products" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
-            محصولات
-          </RouterLink>
-          <RouterLink to="/discounts" class="px-4 h-12 flex items-center text-red-500 hover:text-red-600 hover:bg-red-50 transition font-medium">
-            🔥 تخفیف‌ها
-          </RouterLink>
-          <RouterLink to="/brands" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
-            برندها
-          </RouterLink>
+          <template v-if="headerLinks.length > 0">
+            <component
+              v-for="link in headerLinks"
+              :key="link.id"
+              :is="link.url.startsWith('http') ? 'a' : RouterLink"
+              v-bind="link.url.startsWith('http') ? { href: link.url, target: link.target } : { to: link.url }"
+              class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium"
+            >
+              {{ link.label }}
+            </component>
+          </template>
+          <template v-else>
+            <RouterLink to="/" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
+              صفحه اصلی
+            </RouterLink>
+            <RouterLink to="/products" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
+              محصولات
+            </RouterLink>
+            <RouterLink to="/discounts" class="px-4 h-12 flex items-center text-red-500 hover:text-red-600 hover:bg-red-50 transition font-medium">
+              🔥 تخفیف‌ها
+            </RouterLink>
+            <RouterLink to="/brands" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
+              برندها
+            </RouterLink>
+          </template>
           
           <!-- Spacer -->
           <div class="flex-1"></div>

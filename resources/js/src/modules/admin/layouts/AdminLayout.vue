@@ -8,13 +8,17 @@ import {
   FolderTree, 
   Users, 
   Ticket, 
-  Settings, 
+  Settings,
   LogOut, 
   Menu, 
   X,
   ChevronLeft,
   Bell,
-  GalleryHorizontal
+  GalleryHorizontal,
+  Link,
+  CreditCard,
+  ListChecks,
+  ClipboardList
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
@@ -25,14 +29,18 @@ const isSidebarOpen = ref(true)
 const isMobileSidebarOpen = ref(false)
 
 const menuItems = [
-  { name: 'داشبورد', icon: LayoutDashboard, path: '/admin/dashboard' },
-  { name: 'سفارشات', icon: ShoppingCart, path: '/admin/orders' },
-  { name: 'محصولات', icon: Package, path: '/admin/products' },
-  { name: 'دسته‌بندی‌ها', icon: FolderTree, path: '/admin/categories' },
-  { name: 'کاربران', icon: Users, path: '/admin/users' },
-  { name: 'کوپن‌ها', icon: Ticket, path: '/admin/coupons' },
-  { name: 'اسلایدر', icon: GalleryHorizontal, path: '/admin/sliders' },
-  { name: 'تنظیمات', icon: Settings, path: '/admin/settings' },
+  { name: 'داشبورد',       icon: LayoutDashboard,  path: '/admin/dashboard' },
+  { name: 'سفارشات',       icon: ShoppingCart,     path: '/admin/orders' },
+  { name: 'محصولات',       icon: Package,          path: '/admin/products' },
+  { name: 'دسته‌بندی‌ها', icon: FolderTree,       path: '/admin/categories' },
+  { name: 'کاربران',       icon: Users,            path: '/admin/users' },
+  { name: 'کوپن‌ها',       icon: Ticket,           path: '/admin/coupons' },
+  { name: 'اسلایدر',          icon: GalleryHorizontal, path: '/admin/sliders' },
+  { name: 'لینک‌ها',          icon: Link,              path: '/admin/nav-links' },
+  { name: 'روش‌های پرداخت',   icon: CreditCard,        path: '/admin/payment-methods' },
+  { name: 'وضعیت‌های سفارش', icon: ListChecks,        path: '/admin/order-statuses' },
+  { name: 'لاگ‌های فعالیت',   icon: ClipboardList,     path: '/admin/audit-logs' },
+  { name: 'تنظیمات',          icon: Settings,          path: '/admin/site-settings' },
 ]
 
 const handleLogout = async () => {
