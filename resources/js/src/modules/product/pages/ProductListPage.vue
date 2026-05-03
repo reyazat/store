@@ -7,7 +7,7 @@ import { productService, type ProductSort } from '../services'
 import { brandsService, type Brand } from '@modules/category/services/brandsService'
 import { categoryService } from '@modules/category/services'
 import type { Product, Category } from '@shared/types'
-import { ChevronDown, Grid3X3, LayoutList } from 'lucide-vue-next'
+import { ChevronDown, Grid3X3, List } from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,6 +42,7 @@ const sortOptions: { value: ProductSort; label: string }[] = [
 ]
 
 const currentSort = computed<ProductSort>(() => (route.query.sort as ProductSort) || 'newest')
+const viewMode = ref<'grid' | 'list'>('grid')
 
 const syncFiltersFromQuery = () => {
   const q = route.query
@@ -218,6 +219,26 @@ watch(() => route.query, () => {
           </div>
         </div>
 
+        <!-- View Mode Toggle -->
+        <div class="flex items-center bg-secondary-100 rounded-lg p-1">
+          <button
+            type="button"
+            @click="viewMode = 'grid'"
+            :class="['p-2 rounded transition', viewMode === 'grid' ? 'bg-white shadow text-primary-600' : 'text-secondary-500 hover:text-secondary-700']"
+            aria-label="نمایش شبکه‌ای"
+          >
+            <Grid3X3 class="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            @click="viewMode = 'list'"
+            :class="['p-2 rounded transition', viewMode === 'list' ? 'bg-white shadow text-primary-600' : 'text-secondary-500 hover:text-secondary-700']"
+            aria-label="نمایش لیستی"
+          >
+            <List class="w-4 h-4" />
+          </button>
+        </div>
+
         <span class="text-sm text-secondary-500">{{ total }} محصول</span>
       </div>
     </div>
@@ -329,9 +350,17 @@ watch(() => route.query, () => {
           </div>
         </div>
 
-        <!-- Products Grid -->
-        <div v-else-if="products.length > 0" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <ProductCard v-for="product in products" :key="product.id" :product="product" />
+        <!-- Products -->
+        <div
+          v-else-if="products.length > 0"
+          :class="[
+            'gap-4',
+            viewMode === 'grid'
+              ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+              : 'flex flex-col',
+          ]"
+        >
+          <ProductCard v-for="product in products" :key="product.id" :product="product" :view-mode="viewMode" />
         </div>
 
         <!-- Empty State -->

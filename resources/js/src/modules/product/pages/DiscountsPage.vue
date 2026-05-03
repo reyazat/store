@@ -161,7 +161,7 @@ const totalPages = computed(() => Math.ceil(totalCount.value / perPage.value))
     <!-- Products Grid -->
     <div class="container mx-auto px-4 py-8">
       <!-- Loading State -->
-      <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         <div v-for="i in 12" :key="i" class="animate-pulse">
           <div class="aspect-square bg-secondary-100 rounded-xl mb-3"></div>
           <div class="h-4 bg-secondary-100 rounded mb-2"></div>
@@ -191,7 +191,7 @@ const totalPages = computed(() => Math.ceil(totalCount.value / perPage.value))
         :class="[
           'gap-4',
           viewMode === 'grid'
-            ? 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6'
+            ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
             : 'flex flex-col'
         ]"
       >
