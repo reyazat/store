@@ -17,4 +17,12 @@ class OrderUpdateStatusRequest extends FormRequest
             'status' => ['required', 'string', 'exists:order_statuses,key'],
         ];
     }
+
+    public function messages(): array
+    {
+        return [
+            'status.required' => 'وضعیت سفارش الزامی است',
+            'status.exists'   => 'وضعیت انتخاب‌شده معتبر نیست',
+        ];
+    }
 }

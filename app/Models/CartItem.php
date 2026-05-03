@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CartItem extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'cart_id',
         'listing_id',

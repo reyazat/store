@@ -11,6 +11,8 @@ class Order extends AbstractModel
 {
     use SoftDeletes;
 
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'order_number',
         'user_id',

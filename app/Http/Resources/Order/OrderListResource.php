@@ -19,7 +19,7 @@ class OrderListResource extends JsonResource
             'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'total'          => $this->total,
-            'items_count'    => $this->whenLoaded('items', fn () => $this->items->count()),
+            'items_count'    => $this->whenLoaded('items', fn () => $this->items->count(), 0),
             'created_at'     => $this->created_at,
         ];
     }

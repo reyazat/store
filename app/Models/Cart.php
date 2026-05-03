@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Cart extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'user_id',
         'session_id',

@@ -6,6 +6,7 @@ import { Breadcrumb } from '@shared/components'
 import { userService } from '../services'
 import { formatPrice, formatDate } from '@shared/utils/format'
 import UserSidebar from '../components/UserSidebar.vue'
+import UploadReceiptInline from '../components/UploadReceiptInline.vue'
 
 interface OrderItem {
   product_name: string
@@ -58,6 +59,7 @@ interface OrderDetail {
   paid_at: string | null
   shipped_at: string | null
   delivered_at: string | null
+  cancelled_at: string | null
 }
 
 const route  = useRoute()
@@ -67,15 +69,22 @@ const order     = ref<OrderDetail | null>(null)
 const isLoading = ref(true)
 const errorMsg  = ref<string | null>(null)
 
-onMounted(async () => {
+const loadOrder = async () => {
   try {
     const response = await userService.getOrder(Number(route.params.id))
     order.value = response.data || null
   } catch {
     errorMsg.value = 'خطا در بارگذاری جزئیات سفارش'
-  } finally {
-    isLoading.value = false
   }
+}
+
+const reloadOrder = async () => {
+  await loadOrder()
+}
+
+onMounted(async () => {
+  await loadOrder()
+  isLoading.value = false
 })
 
 const driverLabel = (driver: string) => {
@@ -108,9 +117,10 @@ const transactionStatusClass = (status: string) => {
 
 const paymentStatusLabel = (status: string) => {
   const labels: Record<string, string> = {
-    pending: 'در انتظار پرداخت',
-    paid:    'پرداخت شده',
-    failed:  'خطا در پرداخت',
+    pending:  'در انتظار پرداخت',
+    paid:     'پرداخت شده',
+    failed:   'خطا در پرداخت',
+    refunded: 'مسترد شده',
   }
   return labels[status] ?? status
 }
@@ -237,24 +247,39 @@ const paymentStatusLabel = (status: string) => {
             </div>
 
             <!-- Receipt image (card-to-card) -->
-            <div v-if="order.latest_transaction.driver === 'card_to_card' && order.latest_transaction.receipt_path" class="mt-4 pt-4 border-t border-gray-100">
-              <p class="text-sm text-gray-500 mb-2">رسید آپلود شده:</p>
-              <a :href="order.latest_transaction.receipt_path" target="_blank" rel="noopener">
-                <img
-                  :src="order.latest_transaction.receipt_path"
-                  alt="رسید پرداخت"
-                  class="max-h-48 rounded-lg border border-gray-200 object-contain"
-                />
-              </a>
-              <p v-if="order.latest_transaction.status === 'pending'" class="mt-2 text-xs text-amber-600 flex items-center gap-1">
-                <Clock class="w-3.5 h-3.5" /> رسید ارسال شده و در انتظار تأیید مدیر است.
-              </p>
-              <p v-else-if="order.latest_transaction.status === 'paid'" class="mt-2 text-xs text-green-600 flex items-center gap-1">
-                <CheckCircle class="w-3.5 h-3.5" /> رسید تأیید شد.
-              </p>
-              <p v-else-if="order.latest_transaction.status === 'failed'" class="mt-2 text-xs text-red-600 flex items-center gap-1">
-                <XCircle class="w-3.5 h-3.5" /> رسید رد شد. لطفاً با پشتیبانی تماس بگیرید.
-              </p>
+            <div v-if="order.latest_transaction.driver === 'card_to_card'" class="mt-4 pt-4 border-t border-gray-100">
+
+              <!-- Receipt already uploaded -->
+              <div v-if="order.latest_transaction.receipt_path">
+                <p class="text-sm text-gray-500 mb-2">رسید آپلود شده:</p>
+                <a :href="order.latest_transaction.receipt_path" target="_blank" rel="noopener">
+                  <img
+                    :src="order.latest_transaction.receipt_path"
+                    alt="رسید پرداخت"
+                    class="max-h-48 rounded-lg border border-gray-200 object-contain"
+                  />
+                </a>
+                <p v-if="order.latest_transaction.status === 'pending'" class="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                  <Clock class="w-3.5 h-3.5" /> رسید ارسال شده و در انتظار تأیید مدیر است.
+                </p>
+                <p v-else-if="order.latest_transaction.status === 'paid'" class="mt-2 text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle class="w-3.5 h-3.5" /> رسید تأیید شد.
+                </p>
+                <div v-else-if="order.latest_transaction.status === 'failed'" class="mt-2">
+                  <p class="text-xs text-red-600 flex items-center gap-1 mb-2">
+                    <XCircle class="w-3.5 h-3.5" /> رسید رد شد.
+                  </p>
+                  <UploadReceiptInline :transaction-id="order.latest_transaction.id" :order-id="order.id" @uploaded="reloadOrder" />
+                </div>
+              </div>
+
+              <!-- No receipt yet -->
+              <div v-else class="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p class="text-sm font-medium text-amber-800 mb-3 flex items-center gap-1.5">
+                  <Clock class="w-4 h-4" /> رسید پرداخت آپلود نشده است
+                </p>
+                <UploadReceiptInline :transaction-id="order.latest_transaction.id" :order-id="order.id" @uploaded="reloadOrder" />
+              </div>
             </div>
           </div>
 

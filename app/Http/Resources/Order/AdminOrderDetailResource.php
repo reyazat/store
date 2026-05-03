@@ -32,6 +32,7 @@ class AdminOrderDetailResource extends JsonResource
             'notes'          => $this->notes,
             'admin_notes'    => $this->admin_notes,
             'items'          => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
+                'id'           => $item->id,
                 'product_name' => $item->product_name,
                 'vendor_name'  => $item->vendor_name,
                 'sku'          => $item->sku,

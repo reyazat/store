@@ -24,13 +24,30 @@ class OrderStatus extends Model
         'sort_order'      => 'integer',
     ];
 
+    private static array $keyCache = [];
+
     public static function findByKey(string $key): ?self
     {
-        return static::where('key', $key)->first();
+        if (!array_key_exists($key, self::$keyCache)) {
+            self::$keyCache[$key] = static::where('key', $key)->first();
+        }
+
+        return self::$keyCache[$key];
+    }
+
+    public static function clearCache(): void
+    {
+        self::$keyCache = [];
     }
 
     public static function allOrdered(): \Illuminate\Database\Eloquent\Collection
     {
         return static::orderBy('sort_order')->get();
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn ()    => static::clearCache());
+        static::deleted(fn ()  => static::clearCache());
     }
 }

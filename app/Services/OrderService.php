@@ -200,15 +200,14 @@ class OrderService
      */
     public function restoreStock(Order $order): void
     {
-        DB::transaction(function () use ($order) {
-            $order->loadMissing('items');
-            foreach ($order->items as $item) {
-                if (!$item->listing_variant_id) {
-                    continue;
-                }
-                ListingVariant::where('id', $item->listing_variant_id)
-                    ->increment('stock_quantity', (int) $item->quantity);
+        $order->loadMissing('items');
+
+        foreach ($order->items as $item) {
+            if (!$item->listing_variant_id) {
+                continue;
             }
-        });
+            ListingVariant::where('id', $item->listing_variant_id)
+                ->increment('stock_quantity', (int) $item->quantity);
+        }
     }
 }

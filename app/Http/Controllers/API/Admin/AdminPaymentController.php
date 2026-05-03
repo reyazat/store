@@ -19,11 +19,17 @@ class AdminPaymentController extends Controller
 
     public function confirmReceipt(PaymentTransaction $transaction): JsonResponse
     {
+        $transaction->loadMissing('order');
+
         if ($transaction->driver !== 'card_to_card' || $transaction->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'این تراکنش قابل تأیید نیست',
             ], 422);
+        }
+
+        if (!$transaction->order) {
+            return response()->json(['success' => false, 'message' => 'سفارش مرتبط یافت نشد'], 404);
         }
 
         $order = $this->confirmAction->execute($transaction);
@@ -37,11 +43,17 @@ class AdminPaymentController extends Controller
 
     public function rejectReceipt(PaymentTransaction $transaction): JsonResponse
     {
+        $transaction->loadMissing('order');
+
         if ($transaction->driver !== 'card_to_card' || $transaction->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'این تراکنش قابل رد نیست',
             ], 422);
+        }
+
+        if (!$transaction->order) {
+            return response()->json(['success' => false, 'message' => 'سفارش مرتبط یافت نشد'], 404);
         }
 
         $order = $this->rejectAction->execute($transaction);

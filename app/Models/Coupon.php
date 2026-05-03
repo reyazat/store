@@ -9,6 +9,8 @@ class Coupon extends AbstractModel
 {
     use SoftDeletes;
 
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'code',
         'name',

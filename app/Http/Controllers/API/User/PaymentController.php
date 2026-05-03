@@ -15,6 +15,7 @@ use App\Models\PaymentMethod;
 use App\Models\PaymentTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
@@ -53,6 +54,36 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'امکان پرداخت برای این سفارش وجود ندارد'], 422);
         }
 
+        $existingPending = $order->paymentTransactions()
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+
+        if ($existingPending) {
+            $instructions = null;
+
+            if ($existingPending->driver === 'card_to_card') {
+                $pm     = PaymentMethod::where('driver', 'card_to_card')->first();
+                $config = $pm?->config ?? [];
+
+                $instructions = [
+                    'card_number'  => $config['card_number']  ?? '',
+                    'card_holder'  => $config['card_holder']  ?? '',
+                    'bank_name'    => $config['bank_name']    ?? '',
+                    'amount'       => $order->total,
+                    'instructions' => $config['instructions'] ?? '',
+                ];
+            }
+
+            return response()->json([
+                'success'      => true,
+                'transaction'  => new PaymentTransactionResource($existingPending),
+                'redirect_url' => null,
+                'instructions' => $instructions,
+                'message'      => 'تراکنش در انتظار تأیید وجود دارد',
+            ]);
+        }
+
         try {
             $result = $this->initiateAction->execute($order, $request->validated('driver'));
         } catch (\RuntimeException $e) {
@@ -72,9 +103,10 @@ class PaymentController extends Controller
      */
     public function uploadReceipt(UploadReceiptRequest $request, PaymentTransaction $transaction): JsonResponse
     {
+        $transaction->loadMissing('order');
         $order = $transaction->order;
 
-        if ($order->user_id !== $request->user()->id) {
+        if (!$order || $order->user_id !== $request->user()->id) {
             return response()->json(['success' => false, 'message' => 'دسترسی غیرمجاز'], 403);
         }
 
@@ -88,6 +120,10 @@ class PaymentController extends Controller
             'receipt_path'   => $path,
             'card_last_four' => $request->input('card_last_four'),
         ]);
+
+        if (!$result['success']) {
+            Storage::disk('public')->delete($path);
+        }
 
         return response()->json([
             'success' => $result['success'],
@@ -109,7 +145,7 @@ class PaymentController extends Controller
             ->with('order')
             ->first();
 
-        if (!$transaction) {
+        if (!$transaction || !$transaction->order) {
             return redirect(config('app.frontend_url') . '/payment/result?status=error&message=' . urlencode('تراکنش یافت نشد'));
         }
 

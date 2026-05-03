@@ -39,7 +39,11 @@ class OrderRepository implements OrderRepositoryInterface
         }
         
         if (!empty($filters['search'])) {
-            $query->where('order_number', 'like', '%' . $filters['search'] . '%');
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', fn ($u) => $u->where('name', 'like', '%' . $search . '%'));
+            });
         }
         
         $perPage = $filters['per_page'] ?? 15;

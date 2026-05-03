@@ -13,6 +13,10 @@ use RuntimeException;
 
 class PaymentService
 {
+    public function __construct(private readonly OrderService $orderService)
+    {
+    }
+
     /**
      * Resolve the gateway driver for a given payment method.
      */
@@ -38,7 +42,11 @@ class PaymentService
 
         $gateway = $this->resolveGateway($paymentMethod);
 
-        return $gateway->initiate($order);
+        $result = $gateway->initiate($order);
+
+        $order->update(['payment_method' => $driver]);
+
+        return $result;
     }
 
     /**
@@ -52,31 +60,28 @@ class PaymentService
         $result = $gateway->verify($transaction, $callbackData);
 
         DB::transaction(function () use ($transaction, $result, $paymentMethod) {
+            $transaction->loadMissing('order');
             $order = $transaction->order;
 
             if ($result['success']) {
-                // Card-to-card: receipt uploaded, awaiting admin confirmation — do NOT mark as paid yet
                 if ($paymentMethod->driver === 'card_to_card') {
-                    $order->update([
-                        'status' => $paymentMethod->success_order_status,
-                    ]);
+                    // Receipt uploaded — awaiting admin confirmation; do NOT mark payment as paid yet
+                    $this->orderService->updateOrderStatus($order, $paymentMethod->success_order_status);
                 } else {
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'status'         => $paymentMethod->success_order_status,
-                        'paid_at'        => now(),
-                    ]);
+                    // Online gateway confirmed — mark as paid immediately
+                    $order->update(['payment_status' => 'paid', 'paid_at' => now()]);
+                    $this->orderService->updateOrderStatus($order, $paymentMethod->success_order_status);
                 }
             } else {
                 $cancelled = str_contains(strtolower($result['message']), 'لغو') ||
                              str_contains(strtolower($result['message']), 'cancel');
 
-                $order->update([
-                    'payment_status' => 'failed',
-                    'status'         => $cancelled
-                        ? $paymentMethod->cancel_order_status
-                        : $paymentMethod->failure_order_status,
-                ]);
+                $newStatus = $cancelled
+                    ? $paymentMethod->cancel_order_status
+                    : $paymentMethod->failure_order_status;
+
+                $order->update(['payment_status' => 'failed']);
+                $this->orderService->updateOrderStatus($order, $newStatus);
             }
         });
 

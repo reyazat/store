@@ -5,6 +5,7 @@ import { ArrowRight, Check, AlertCircle, MapPin, CreditCard, Package, CheckCircl
 import { orderService, type AdminOrderDetail } from '../services/orderService'
 import { orderStatusService } from '../services/paymentMethodService'
 import type { OrderStatus } from '../types/payment'
+import { formatDate, formatPrice } from '@shared/utils/format'
 
 const route  = useRoute()
 const router = useRouter()
@@ -28,14 +29,13 @@ onMounted(async () => {
       orderService.getById(route.params.id as string),
       orderStatusService.getAll(),
     ])
+    initNotes()
   } catch {
     errorMsg.value = 'خطا در بارگذاری جزئیات سفارش'
   } finally {
     isLoading.value = false
   }
 })
-
-const formatPrice = (n: number) => new Intl.NumberFormat('fa-IR').format(n)
 
 const updateStatus = async (status: string) => {
   if (!order.value) return
@@ -61,6 +61,27 @@ const confirmReceipt = async () => {
     showToast('خطا در تأیید رسید', 'error')
   } finally {
     confirmingReceipt.value = false
+  }
+}
+
+const adminNotesText = ref('')
+const isSavingNotes = ref(false)
+
+const initNotes = () => {
+  adminNotesText.value = order.value?.admin_notes ?? ''
+}
+
+const saveNotes = async () => {
+  if (!order.value) return
+  isSavingNotes.value = true
+  try {
+    const updated = await orderService.updateNotes(order.value.id, adminNotesText.value)
+    if (order.value) order.value.admin_notes = updated.admin_notes
+    showToast('یادداشت ذخیره شد', 'success')
+  } catch {
+    showToast('خطا در ذخیره یادداشت', 'error')
+  } finally {
+    isSavingNotes.value = false
   }
 }
 
@@ -135,7 +156,7 @@ const txStatusClass = (s: string) => {
           </div>
           <div>
             <p class="text-xs text-secondary-500 mb-1">تاریخ ثبت</p>
-            <p class="text-sm text-secondary-700">{{ order.created_at }}</p>
+            <p class="text-sm text-secondary-700">{{ formatDate(order.created_at) }}</p>
           </div>
           <div>
             <p class="text-xs text-secondary-500 mb-1">مبلغ کل</p>
@@ -236,7 +257,7 @@ const txStatusClass = (s: string) => {
           </div>
           <div v-if="order.latest_transaction.paid_at" class="flex justify-between border-b border-secondary-50 pb-2">
             <span class="text-secondary-500">تاریخ پرداخت</span>
-            <span>{{ order.latest_transaction.paid_at }}</span>
+            <span>{{ formatDate(order.latest_transaction.paid_at) }}</span>
           </div>
         </div>
 
@@ -293,9 +314,21 @@ const txStatusClass = (s: string) => {
       </div>
 
       <!-- Admin Notes -->
-      <div v-if="order.admin_notes" class="bg-white rounded-xl shadow-sm p-6">
-        <h2 class="text-base font-bold text-secondary-800 mb-2">یادداشت ادمین</h2>
-        <p class="text-sm text-secondary-600">{{ order.admin_notes }}</p>
+      <div class="bg-white rounded-xl shadow-sm p-6">
+        <h2 class="text-base font-bold text-secondary-800 mb-3">یادداشت داخلی (فقط ادمین)</h2>
+        <textarea
+          v-model="adminNotesText"
+          rows="3"
+          placeholder="یادداشت برای تیم داخلی..."
+          class="w-full px-3 py-2 rounded-lg border border-secondary-200 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none"
+        />
+        <button
+          @click="saveNotes"
+          :disabled="isSavingNotes"
+          class="mt-2 px-4 py-2 bg-secondary-700 hover:bg-secondary-800 disabled:opacity-60 text-white text-sm rounded-lg font-medium transition"
+        >
+          {{ isSavingNotes ? 'در حال ذخیره...' : 'ذخیره یادداشت' }}
+        </button>
       </div>
 
     </div>

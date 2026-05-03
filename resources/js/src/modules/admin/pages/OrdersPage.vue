@@ -7,10 +7,11 @@ import { orderService, type AdminOrder } from '../services/orderService'
 import { orderStatusService } from '../services/paymentMethodService'
 import type { OrderStatus } from '../types/payment'
 import AdminPagination from '../components/AdminPagination.vue'
+import { formatDate, formatPrice } from '@shared/utils/format'
 
 const { items: orders, isLoading, errorMsg, filters, meta, debouncedReload, reload, goToPage } =
-  useAdminList<AdminOrder, { search: string; status: string; per_page: number }>({
-    defaultFilters: { search: '', status: '', per_page: 20 },
+  useAdminList<AdminOrder, { search: string; status: string; payment_status: string; per_page: number }>({
+    defaultFilters: { search: '', status: '', payment_status: '', per_page: 20 },
     fetchFn: (f) => orderService.getAll(f),
   })
 
@@ -18,8 +19,6 @@ const statuses = ref<OrderStatus[]>([])
 onMounted(async () => {
   try { statuses.value = await orderStatusService.getAll() } catch { /* non-critical */ }
 })
-
-const formatPrice = (price: number) => new Intl.NumberFormat('fa-IR').format(price)
 </script>
 
 <template>
@@ -53,8 +52,20 @@ const formatPrice = (price: number) => new Intl.NumberFormat('fa-IR').format(pri
         <option v-for="s in statuses" :key="s.key" :value="s.key">{{ s.label }}</option>
       </select>
       <select
+        v-model="filters.payment_status"
+        class="h-10 px-3 rounded-lg border border-secondary-200 focus:border-primary-500 text-sm text-secondary-700"
+        @change="reload"
+      >
+        <option value="">همه وضعیت‌های پرداخت</option>
+        <option value="pending">در انتظار پرداخت</option>
+        <option value="paid">پرداخت شده</option>
+        <option value="failed">ناموفق</option>
+        <option value="refunded">مسترد</option>
+      </select>
+      <select
         v-model="filters.per_page"
         class="h-10 px-3 rounded-lg border border-secondary-200 focus:border-primary-500 text-sm text-secondary-700"
+        @change="reload"
       >
         <option :value="20">۲۰ در صفحه</option>
         <option :value="50">۵۰ در صفحه</option>
@@ -110,7 +121,7 @@ const formatPrice = (price: number) => new Intl.NumberFormat('fa-IR').format(pri
                   {{ order.status_label || order.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm text-secondary-500">{{ order.created_at }}</td>
+              <td class="px-6 py-4 text-sm text-secondary-500">{{ formatDate(order.created_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <RouterLink :to="`/admin/orders/${order.id}`" class="p-2 hover:bg-secondary-100 rounded-lg inline-flex" title="مشاهده جزئیات">
                   <Eye class="w-4 h-4 text-secondary-600" />

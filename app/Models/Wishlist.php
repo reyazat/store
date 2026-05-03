@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Wishlist extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'user_id',
         'product_id',

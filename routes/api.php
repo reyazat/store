@@ -127,8 +127,6 @@ Route::middleware(['auth:api'])->prefix('v1')->group(function () {
 // Public payment methods list (for checkout display)
 Route::get('/v1/payment/methods', [\App\Http\Controllers\API\User\PaymentController::class, 'methods']);
 
-// Public order statuses (labels + colors for user panel display)
-Route::get('/v1/order-statuses', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'index']);
 
 // Zarinpal callback — must be accessible without auth (redirected from Zarinpal)
 Route::get('/v1/payment/zarinpal/callback', [\App\Http\Controllers\API\User\PaymentController::class, 'zarinpalCallback']);

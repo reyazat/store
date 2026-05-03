@@ -26,6 +26,7 @@ class OrderDetailResource extends JsonResource
             'total'          => $this->total,
             'notes'          => $this->notes,
             'items'          => $this->whenLoaded('items', fn () => $this->items->map(fn ($item) => [
+                'id'           => $item->id,
                 'product_name' => $item->product_name,
                 'vendor_name'  => $item->vendor_name,
                 'sku'          => $item->sku,
@@ -58,6 +59,7 @@ class OrderDetailResource extends JsonResource
             'paid_at'        => $this->paid_at,
             'shipped_at'     => $this->shipped_at,
             'delivered_at'   => $this->delivered_at,
+            'cancelled_at'   => $this->cancelled_at,
         ];
     }
 }

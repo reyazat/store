@@ -18,19 +18,38 @@ interface OrderListItem {
   created_at: string
 }
 
-const orders = ref<OrderListItem[]>([])
+const orders    = ref<OrderListItem[]>([])
 const isLoading = ref(true)
-const errorMsg = ref<string | null>(null)
+const errorMsg  = ref<string | null>(null)
+const currentPage = ref(1)
+const lastPage    = ref(1)
+const isLoadingMore = ref(false)
 
-onMounted(async () => {
+const fetchOrders = async (page = 1) => {
   try {
-    const response = await userService.getOrders()
-    orders.value = response.data || []
+    const response = await userService.getOrders({ page, per_page: 10 })
+    if (page === 1) {
+      orders.value = response.data || []
+    } else {
+      orders.value = [...orders.value, ...(response.data || [])]
+    }
+    currentPage.value = response.meta?.current_page ?? page
+    lastPage.value    = response.meta?.last_page ?? 1
   } catch {
     errorMsg.value = 'خطا در بارگذاری سفارشات'
-  } finally {
-    isLoading.value = false
   }
+}
+
+const loadMore = async () => {
+  if (currentPage.value >= lastPage.value) return
+  isLoadingMore.value = true
+  await fetchOrders(currentPage.value + 1)
+  isLoadingMore.value = false
+}
+
+onMounted(async () => {
+  await fetchOrders(1)
+  isLoading.value = false
 })
 </script>
 
@@ -83,6 +102,16 @@ onMounted(async () => {
                 </span>
               </div>
             </RouterLink>
+
+            <div v-if="currentPage < lastPage" class="p-4 text-center">
+              <button
+                @click="loadMore"
+                :disabled="isLoadingMore"
+                class="px-6 py-2 text-sm text-primary-600 border border-primary-300 rounded-lg hover:bg-primary-50 disabled:opacity-50 transition"
+              >
+                {{ isLoadingMore ? 'در حال بارگذاری...' : 'سفارشات بیشتر' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>

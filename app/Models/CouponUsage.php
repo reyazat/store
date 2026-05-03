@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CouponUsage extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     protected $table = 'coupon_usage';
 
     protected $fillable = [

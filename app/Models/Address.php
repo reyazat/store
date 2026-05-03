@@ -9,6 +9,8 @@ class Address extends AbstractModel
 {
     use SoftDeletes;
 
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'user_id',
         'title',

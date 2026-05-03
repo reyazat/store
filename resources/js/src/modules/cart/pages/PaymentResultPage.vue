@@ -1,18 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { CheckCircle, XCircle, AlertCircle, ArrowRight } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
+import { CheckCircle, XCircle, AlertCircle, ShoppingBag, RefreshCw } from 'lucide-vue-next'
 
 const route = useRoute()
-const router = useRouter()
 
-const status = computed(() => route.query.status as string)
+const status  = computed(() => route.query.status as string)
 const orderId = computed(() => route.query.order_id as string | undefined)
-const refId = computed(() => route.query.ref_id as string | undefined)
+const refId   = computed(() => route.query.ref_id as string | undefined)
 
-const isSuccess = computed(() => status.value === 'success')
+const isSuccess   = computed(() => status.value === 'success')
 const isCancelled = computed(() => status.value === 'cancelled')
-const isFailed = computed(() => status.value === 'failed' || status.value === 'error')
 </script>
 
 <template>
@@ -20,19 +18,21 @@ const isFailed = computed(() => status.value === 'failed' || status.value === 'e
 
     <!-- Success -->
     <div v-if="isSuccess" class="bg-white rounded-2xl shadow-sm p-10">
-      <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
-        <CheckCircle class="w-10 h-10 text-green-500" />
+      <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5 animate-bounce-once">
+        <CheckCircle class="w-11 h-11 text-green-500" />
       </div>
-      <h1 class="text-2xl font-bold text-gray-800 mb-2">پرداخت موفق</h1>
-      <p class="text-gray-500 mb-1">پرداخت شما با موفقیت انجام شد.</p>
-      <p v-if="refId" class="text-sm text-gray-400 mb-6">کد پیگیری: <span class="font-mono font-medium text-gray-600">{{ refId }}</span></p>
+      <h1 class="text-2xl font-bold text-gray-800 mb-2">پرداخت موفق!</h1>
+      <p class="text-gray-500 mb-1">پرداخت شما با موفقیت انجام شد و سفارش در حال پردازش است.</p>
+      <p v-if="refId" class="text-sm text-gray-400 mb-6 mt-2">
+        کد پیگیری: <span class="font-mono font-semibold text-gray-600 bg-gray-100 px-2 py-0.5 rounded">{{ refId }}</span>
+      </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
         <RouterLink
           v-if="orderId"
           :to="`/user/orders/${orderId}`"
-          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition text-sm"
+          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold transition text-sm"
         >
-          <ArrowRight class="w-4 h-4" /> مشاهده سفارش
+          <ShoppingBag class="w-4 h-4" /> مشاهده سفارش
         </RouterLink>
         <RouterLink
           to="/products"
@@ -46,23 +46,23 @@ const isFailed = computed(() => status.value === 'failed' || status.value === 'e
     <!-- Cancelled -->
     <div v-else-if="isCancelled" class="bg-white rounded-2xl shadow-sm p-10">
       <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-5">
-        <AlertCircle class="w-10 h-10 text-amber-500" />
+        <AlertCircle class="w-11 h-11 text-amber-500" />
       </div>
       <h1 class="text-2xl font-bold text-gray-800 mb-2">پرداخت لغو شد</h1>
-      <p class="text-gray-500 mb-6">شما پرداخت را لغو کردید. سفارش شما ثبت شده اما پرداخت نشده است.</p>
-      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <p class="text-gray-500 mb-2">پرداخت شما لغو شد. سفارش ثبت شده است و می‌توانید دوباره پرداخت کنید.</p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
         <RouterLink
           v-if="orderId"
           :to="`/user/orders/${orderId}`"
-          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition text-sm"
+          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition text-sm"
         >
-          <ArrowRight class="w-4 h-4" /> مشاهده سفارش
+          <RefreshCw class="w-4 h-4" /> رفتن به سفارش برای پرداخت مجدد
         </RouterLink>
         <RouterLink
-          to="/cart"
+          to="/products"
           class="px-6 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-medium transition text-sm"
         >
-          بازگشت به سبد خرید
+          ادامه خرید
         </RouterLink>
       </div>
     </div>
@@ -70,19 +70,19 @@ const isFailed = computed(() => status.value === 'failed' || status.value === 'e
     <!-- Failed / Error -->
     <div v-else class="bg-white rounded-2xl shadow-sm p-10">
       <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-5">
-        <XCircle class="w-10 h-10 text-red-500" />
+        <XCircle class="w-11 h-11 text-red-500" />
       </div>
       <h1 class="text-2xl font-bold text-gray-800 mb-2">پرداخت ناموفق</h1>
-      <p class="text-gray-500 mb-6">
-        {{ isFailed ? 'متاسفانه پرداخت شما با خطا مواجه شد. در صورت کسر مبلغ، طی ۷۲ ساعت بازگشت داده می‌شود.' : 'خطایی در پردازش پرداخت رخ داد.' }}
-      </p>
+      <p class="text-gray-500 mb-2">متأسفانه پرداخت انجام نشد.</p>
+      <p class="text-xs text-gray-400 mb-6">در صورت کسر مبلغ از حساب، طی ۷۲ ساعت کاری بازگشت داده می‌شود.</p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <button
-          @click="router.go(-1)"
-          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-medium transition text-sm"
+        <RouterLink
+          v-if="orderId"
+          :to="`/user/orders/${orderId}`"
+          class="flex items-center justify-center gap-2 px-6 py-2.5 bg-primary-500 hover:bg-primary-600 text-white rounded-xl font-semibold transition text-sm"
         >
-          تلاش مجدد
-        </button>
+          <RefreshCw class="w-4 h-4" /> تلاش مجدد برای پرداخت
+        </RouterLink>
         <RouterLink
           to="/user/orders"
           class="px-6 py-2.5 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl font-medium transition text-sm"

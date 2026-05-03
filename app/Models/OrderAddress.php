@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderAddress extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     public $timestamps = true;
 
     protected $fillable = [

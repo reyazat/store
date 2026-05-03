@@ -19,13 +19,13 @@ class AdminOrderListResource extends JsonResource
                 'name'  => $this->user->name,
                 'email' => $this->user->email,
             ] : null),
-            'customer_name'  => $this->user?->name,
+            'customer_name'  => $this->whenLoaded('user', fn () => $this->user?->name),
             'status'         => $this->status,
             'status_label'   => $statusModel?->label ?? $this->status,
             'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'total'          => $this->total,
-            'items_count'    => $this->whenLoaded('items', fn () => $this->items->count()),
+            'items_count'    => $this->whenLoaded('items', fn () => $this->items->count(), 0),
             'created_at'     => $this->created_at,
         ];
     }

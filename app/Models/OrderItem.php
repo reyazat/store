@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends AbstractModel
 {
+    protected bool $usesGlobalScopes = false;
+
     protected $fillable = [
         'order_id',
         'listing_id',
