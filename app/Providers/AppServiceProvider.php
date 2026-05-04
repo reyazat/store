@@ -112,16 +112,23 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function configureRateLimiting(): void
     {
-        // API rate limiter - 60 requests per minute per user/IP
+        // API rate limiter - 120 requests per minute per user/IP
+        // Increased for e-commerce initial page load (multiple concurrent requests)
         RateLimiter::for('api', static function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
+            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        });
+
+        // Public API rate limiter - higher limit for read-only public routes
+        // Used by homepage, product listings, etc. that make many concurrent requests
+        RateLimiter::for('api.public', static function (Request $request) {
+            return Limit::perMinute(300)->by($request->ip());
         });
 
         // Global rate limiter - stricter limit for unauthenticated users
         RateLimiter::for('global', static function (Request $request) {
             return $request->user()
-                ? Limit::perMinute(120)->by($request->user()->id)
-                : Limit::perMinute(30)->by($request->ip());
+                ? Limit::perMinute(200)->by($request->user()->id)
+                : Limit::perMinute(60)->by($request->ip());
         });
 
         // Sync rate limiter - very strict to prevent abuse of external API

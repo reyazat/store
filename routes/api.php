@@ -4,26 +4,32 @@ use Illuminate\Support\Facades\Route;
 
 
 Route::prefix('v1')->group(function () {
-  Route::get('/sliders', [\App\Http\Controllers\API\SliderController::class, 'index']);
-  Route::get('/site-features', [\App\Http\Controllers\API\SiteFeatureController::class, 'index']);
-  Route::get('/promo-banners', [\App\Http\Controllers\API\PromoBannerController::class, 'index']);
-  Route::get('/site-settings', [\App\Http\Controllers\API\SiteSettingController::class, 'index']);
-  Route::get('/nav-links/{group}', [\App\Http\Controllers\API\NavLinkController::class, 'byGroup']);
+
+  // Public read-only routes with higher rate limit (300 req/min)
+  // These are used heavily on initial page load
+  Route::middleware(['throttle:api.public'])->group(function () {
+    Route::get('/sliders', [\App\Http\Controllers\API\SliderController::class, 'index']);
+    Route::get('/site-features', [\App\Http\Controllers\API\SiteFeatureController::class, 'index']);
+    Route::get('/promo-banners', [\App\Http\Controllers\API\PromoBannerController::class, 'index']);
+    Route::get('/site-settings', [\App\Http\Controllers\API\SiteSettingController::class, 'index']);
+    Route::get('/nav-links/{group}', [\App\Http\Controllers\API\NavLinkController::class, 'byGroup']);
+
+    Route::prefix('products')->group(function () {
+      Route::get('/', [\App\Http\Controllers\API\ProductController::class, 'index']);
+      Route::get('/search', [\App\Http\Controllers\API\ProductController::class, 'index']);
+      Route::get('/autocomplete', [\App\Http\Controllers\API\ProductController::class, 'autocomplete']);
+      Route::get('/{product}', [\App\Http\Controllers\API\ProductController::class, 'show']);
+    });
+
+    Route::prefix('categories')->group(function () {
+      Route::get('/', [\App\Http\Controllers\API\CategoryController::class, 'index']);
+      Route::get('/search', [\App\Http\Controllers\API\CategoryController::class, 'index']);
+      Route::get('/header', [\App\Http\Controllers\API\CategoryController::class, 'headerCategories']);
+      Route::get('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'show']);
+    });
+  });
+
   Route::post('/newsletter/subscribe', [\App\Http\Controllers\API\NewsletterController::class, 'subscribe']);
-
-  Route::prefix('products')->group(function () {
-    Route::get('/', [\App\Http\Controllers\API\ProductController::class, 'index']);
-    Route::get('/search', [\App\Http\Controllers\API\ProductController::class, 'index']);
-    Route::get('/autocomplete', [\App\Http\Controllers\API\ProductController::class, 'autocomplete']);
-    Route::get('/{product}', [\App\Http\Controllers\API\ProductController::class, 'show']);
-  });
-
-  Route::prefix('categories')->group(function () {
-    Route::get('/', [\App\Http\Controllers\API\CategoryController::class, 'index']);
-    Route::get('/search', [\App\Http\Controllers\API\CategoryController::class, 'index']);
-    Route::get('/header', [\App\Http\Controllers\API\CategoryController::class, 'headerCategories']);
-    Route::get('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'show']);
-  });
 
   Route::prefix('tax-classes')->group(function () {
     Route::get('/', [\App\Http\Controllers\API\TaxClassController::class, 'index']);
