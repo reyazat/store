@@ -75,37 +75,72 @@ const submitOrder = async () => {
   if (!selectedDriver.value || !selectedAddressId.value) return
   isSubmitting.value = true
   errorMsg.value     = ''
+
+  let orderId: number | null = null
+
   try {
+    // Step 1: Create order
     const orderRes = await cartService.createOrder(selectedAddressId.value)
     if (!orderRes.success) throw new Error(orderRes.message)
 
-    const orderId: number = orderRes.data.id
-    createdOrderId.value  = orderId
+    orderId = orderRes.data.id
+    createdOrderId.value = orderId
 
-    const payRes = await cartService.initiatePayment(orderId, selectedDriver.value)
-
-    cartStore.clearCart()
+    // Step 2: Initiate payment (cart NOT cleared yet)
+    // Use orderRes.data.id directly to avoid TypeScript null check error
+    const payRes = await cartService.initiatePayment(orderRes.data.id, selectedDriver.value)
 
     if (!payRes.success) {
-      router.push(`/user/orders/${orderId}`)
+      // Payment initiation failed - order created but payment failed
+      // Keep cart intact so user can retry
+      errorMsg.value = payRes.message || 'خطا در ایجاد درگاه پرداخت. لطفاً دوباره تلاش کنید.'
+      isSubmitting.value = false
       return
     }
 
+    // Step 3: Payment initiated successfully - now clear cart
+    await cartStore.clearCart()
+
+    // Step 4: Redirect based on payment type
     if (payRes.redirect_url) {
+      // ZarinPal: redirect to gateway
       window.location.href = payRes.redirect_url
     } else if (payRes.instructions) {
+      // Card-to-card: go to receipt upload step
       transactionId.value    = payRes.transaction.id
       cardInstructions.value = payRes.instructions
       step.value             = 'receipt'
     } else {
+      // Unexpected: go to order detail
       router.push(`/user/orders/${orderId}`)
     }
   } catch (e: any) {
-    if (createdOrderId.value) {
-      router.push(`/user/orders/${createdOrderId.value}`)
-      return
+    console.error('Checkout error:', {
+      status: e.response?.status,
+      data: e.response?.data,
+      message: e.message,
+    })
+
+    // Handle specific error cases
+    if (e.response?.status === 422) {
+      const serverMessage = e.response?.data?.message || ''
+      if (serverMessage.includes('پرداخت')) {
+        errorMsg.value = 'مشکل در ایجاد درگاه پرداخت. لطفاً روش پرداخت دیگری انتخاب کنید یا دوباره تلاش کنید.'
+      } else if (serverMessage.includes('درایور')) {
+        errorMsg.value = 'روش پرداخت انتخابی در دسترس نیست. لطفاً با پشتیبانی تماس بگیرید.'
+      } else {
+        errorMsg.value = serverMessage || 'خطا در پردازش پرداخت. لطفاً دوباره تلاش کنید.'
+      }
+    } else if (e.response?.status === 403) {
+      errorMsg.value = 'دسترسی غیرمجاز. لطفاً دوباره وارد شوید.'
+    } else {
+      errorMsg.value = e.response?.data?.message || e.message || 'خطا در ثبت سفارش. لطفاً دوباره تلاش کنید.'
     }
-    errorMsg.value = e.response?.data?.message || e.message || 'خطا در ثبت سفارش'
+
+    // If order was created but payment failed, show option to go to order
+    if (orderId) {
+      errorMsg.value += ` (سفارش #${orderId} ایجاد شد. می‌توانید از بخش سفارش‌ها پرداخت را تکمیل کنید.)`
+    }
   } finally {
     isSubmitting.value = false
   }
@@ -150,9 +185,28 @@ const stepTitle: Record<Step, string> = {
     <template v-else>
       <CheckoutSteps :current="step" />
 
-      <div v-if="errorMsg" class="mb-5 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-start gap-2">
-        <span class="mt-0.5">⚠️</span>
-        <span>{{ errorMsg }}</span>
+      <!-- Error message with actions -->
+      <div v-if="errorMsg" class="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
+        <div class="flex items-start gap-3">
+          <span class="mt-0.5 text-lg">⚠️</span>
+          <div class="flex-1">
+            <p class="text-red-700 text-sm font-medium mb-2">{{ errorMsg }}</p>
+            <div v-if="createdOrderId" class="flex flex-wrap gap-2 mt-3">
+              <button
+                @click="step = 'payment'; errorMsg = ''"
+                class="px-4 py-2 bg-white border border-red-300 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+              >
+                تلاش مجدد پرداخت
+              </button>
+              <RouterLink
+                :to="`/user/orders/${createdOrderId}`"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition"
+              >
+                مشاهده سفارش #{{ createdOrderId }}
+              </RouterLink>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div v-if="isLoading" class="grid lg:grid-cols-3 gap-8">

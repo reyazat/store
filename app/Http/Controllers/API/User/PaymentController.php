@@ -152,14 +152,15 @@ class PaymentController extends Controller
         $result = $this->verifyAction->execute($transaction, $request->all());
 
         $orderId = $transaction->order_id;
+        $orderNumber = $transaction->order->order_number;
 
         if ($result['success']) {
-            return redirect(config('app.frontend_url') . "/payment/result?status=success&order_id={$orderId}&ref_id=" . urlencode($result['ref_id'] ?? ''));
+            return redirect(config('app.frontend_url') . "/payment/result?status=success&order_id={$orderId}&order_number=" . urlencode($orderNumber) . "&ref_id=" . urlencode($result['ref_id'] ?? ''));
         }
 
         $cancelled = str_contains($status, 'NOK') || $status === '';
         $queryStatus = $cancelled ? 'cancelled' : 'failed';
 
-        return redirect(config('app.frontend_url') . "/payment/result?status={$queryStatus}&order_id={$orderId}");
+        return redirect(config('app.frontend_url') . "/payment/result?status={$queryStatus}&order_id={$orderId}&order_number=" . urlencode($orderNumber));
     }
 }

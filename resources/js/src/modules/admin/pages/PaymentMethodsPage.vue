@@ -72,8 +72,15 @@ const toggleActive = async (method: AdminPaymentMethod) => {
     const idx = methods.value.findIndex(m => m.id === method.id)
     if (idx !== -1) methods.value[idx] = updated
     showMsg(true, updated.is_active ? `روش "${updated.label}" فعال شد` : `روش "${updated.label}" غیرفعال شد`)
-  } catch {
-    showMsg(false, 'خطا در تغییر وضعیت')
+  } catch (e: any) {
+    // Handle validation errors
+    const errors = e.response?.data?.errors
+    if (errors && typeof errors === 'object') {
+      const firstError = Object.values(errors).flat()[0] as string
+      showMsg(false, firstError || 'خطا در تغییر وضعیت')
+    } else {
+      showMsg(false, e.response?.data?.message || 'خطا در تغییر وضعیت')
+    }
   }
 }
 
@@ -94,8 +101,14 @@ const saveMethod = async (method: AdminPaymentMethod) => {
     const idx = methods.value.findIndex(m => m.id === method.id)
     if (idx !== -1) methods.value[idx] = updated
     showMsg(true, 'تنظیمات ذخیره شد')
-  } catch {
-    showMsg(false, 'خطا در ذخیره تنظیمات')
+  } catch (e: any) {
+    const errors = e.response?.data?.errors
+    if (errors && typeof errors === 'object') {
+      const messages = Object.values(errors).flat().join(' | ')
+      showMsg(false, messages || 'خطا در ذخیره تنظیمات')
+    } else {
+      showMsg(false, e.response?.data?.message || 'خطا در ذخیره تنظیمات')
+    }
   } finally {
     savingId.value = null
   }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { Heart, ShoppingCart, Trash2, Check } from 'lucide-vue-next'
+import { Heart, ShoppingCart, Trash2 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useWishlistStore } from '@/stores/wishlist'
 import { formatPrice } from '@shared/utils/format'
@@ -28,32 +28,19 @@ const authStore      = useAuthStore()
 const wishlistStore  = useWishlistStore()
 
 const showQuickModal = ref(false)
-const wishlistMsg    = ref<'added' | 'removed' | 'auth' | null>(null)
 const isWishlistLoading = ref(false)
 
 const isInWishlist = computed(() => wishlistStore.has(props.product.id))
 
-let msgTimer: ReturnType<typeof setTimeout> | null = null
-
-const showMsg = (type: 'added' | 'removed' | 'auth') => {
-  if (msgTimer) clearTimeout(msgTimer)
-  wishlistMsg.value = type
-  msgTimer = setTimeout(() => { wishlistMsg.value = null }, 2200)
-}
-
 const handleWishlist = async () => {
-  if (!authStore.isAuthenticated) {
-    showMsg('auth')
-    return
-  }
+  if (!authStore.isAuthenticated) return
   if (props.showRemoveFromWishlist) {
     emit('removeFromWishlist', props.product.id)
     return
   }
   isWishlistLoading.value = true
   try {
-    const result = await wishlistStore.toggle(props.product.id)
-    showMsg(result)
+    await wishlistStore.toggle(props.product.id)
   } catch {
     /* silently fail */
   } finally {
@@ -68,24 +55,6 @@ const handleWishlist = async () => {
     v-if="viewMode === 'grid'"
     class="relative bg-white rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-lg transition-all duration-300 group overflow-hidden flex flex-col"
   >
-    <!-- Wishlist inline feedback toast -->
-    <Transition name="toast">
-      <div
-        v-if="wishlistMsg"
-        :class="[
-          'absolute top-2 inset-x-2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shadow-md pointer-events-none',
-          wishlistMsg === 'added'   ? 'bg-green-500 text-white' : '',
-          wishlistMsg === 'removed' ? 'bg-secondary-600 text-white' : '',
-          wishlistMsg === 'auth'    ? 'bg-amber-500 text-white' : '',
-        ]"
-      >
-        <Check v-if="wishlistMsg !== 'auth'" class="w-3.5 h-3.5 flex-shrink-0" />
-        <span v-if="wishlistMsg === 'added'">به علاقه‌مندی‌ها اضافه شد</span>
-        <span v-else-if="wishlistMsg === 'removed'">از علاقه‌مندی‌ها حذف شد</span>
-        <span v-else>ابتدا وارد شوید</span>
-      </div>
-    </Transition>
-
     <RouterLink :to="`/products/${product.slug}`" class="block relative">
       <div class="relative aspect-square bg-secondary-50 overflow-hidden">
         <img
@@ -171,24 +140,6 @@ const handleWishlist = async () => {
     v-else
     class="relative bg-white rounded-xl border border-secondary-100 hover:border-primary-200 hover:shadow-md transition-all duration-300 group overflow-hidden"
   >
-    <!-- Wishlist inline feedback toast -->
-    <Transition name="toast">
-      <div
-        v-if="wishlistMsg"
-        :class="[
-          'absolute top-2 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shadow-md pointer-events-none whitespace-nowrap',
-          wishlistMsg === 'added'   ? 'bg-green-500 text-white' : '',
-          wishlistMsg === 'removed' ? 'bg-secondary-600 text-white' : '',
-          wishlistMsg === 'auth'    ? 'bg-amber-500 text-white' : '',
-        ]"
-      >
-        <Check v-if="wishlistMsg !== 'auth'" class="w-3.5 h-3.5 flex-shrink-0" />
-        <span v-if="wishlistMsg === 'added'">به علاقه‌مندی‌ها اضافه شد</span>
-        <span v-else-if="wishlistMsg === 'removed'">از علاقه‌مندی‌ها حذف شد</span>
-        <span v-else>ابتدا وارد شوید</span>
-      </div>
-    </Transition>
-
     <div class="flex gap-4 p-4">
       <!-- Image -->
       <RouterLink :to="`/products/${product.slug}`" class="block relative flex-shrink-0">
@@ -284,14 +235,3 @@ const handleWishlist = async () => {
   />
 </template>
 
-<style scoped>
-.toast-enter-active,
-.toast-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-.toast-enter-from,
-.toast-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
-}
-</style>

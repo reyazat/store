@@ -107,7 +107,7 @@ const { links: serviceLinks } = useNavLinks('footer_service')
               </li>
             </template>
             <template v-else>
-              <li><RouterLink to="/user/orders" class="text-secondary-400 hover:text-primary-400 transition">پیگیری سفارش</RouterLink></li>
+              <li><RouterLink to="/order-tracking" class="text-secondary-400 hover:text-primary-400 transition">پیگیری سفارش</RouterLink></li>
               <li><RouterLink to="/user/addresses" class="text-secondary-400 hover:text-primary-400 transition">آدرس‌های من</RouterLink></li>
               <li><RouterLink to="/user/wishlist" class="text-secondary-400 hover:text-primary-400 transition">لیست علاقه‌مندی‌ها</RouterLink></li>
               <li><a href="/faq" class="text-secondary-400 hover:text-primary-400 transition">سوالات متداول</a></li>

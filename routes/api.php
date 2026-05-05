@@ -27,6 +27,9 @@ Route::prefix('v1')->group(function () {
       Route::get('/header', [\App\Http\Controllers\API\CategoryController::class, 'headerCategories']);
       Route::get('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'show']);
     });
+
+    // Public order tracking - no authentication required
+    Route::post('/orders/track', [\App\Http\Controllers\API\OrderTrackingController::class, 'track']);
   });
 
   Route::post('/newsletter/subscribe', [\App\Http\Controllers\API\NewsletterController::class, 'subscribe']);

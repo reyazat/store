@@ -78,7 +78,7 @@ onMounted(loadCategories)
             </span>
           </div>
           <div class="flex items-center gap-4">
-            <RouterLink to="/user/orders" class="hover:text-primary-300 transition hidden sm:block">
+            <RouterLink to="/order-tracking" class="hover:text-primary-300 transition hidden sm:block">
               پیگیری سفارش
             </RouterLink>
             <template v-if="authStore.isAuthenticated">
@@ -354,6 +354,11 @@ onMounted(loadCategories)
             </RouterLink>
           </li>
           <hr class="my-2" />
+          <li>
+            <RouterLink to="/order-tracking" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
+              🔍 پیگیری سفارش
+            </RouterLink>
+          </li>
           <li>
             <RouterLink to="/user/dashboard" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
               👤 حساب کاربری

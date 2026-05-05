@@ -5,8 +5,8 @@ import { Heart, ShoppingCart, Minus, Plus, Package, Truck, CheckCircle } from 'l
 import { Breadcrumb } from '@shared/components'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { useWishlistStore } from '@/stores/wishlist'
 import { productService } from '../services'
-import { userService } from '@modules/user/services'
 import { formatPrice } from '@shared/utils/format'
 import { useProductVariants } from '../composables/useProductVariants'
 import VariantSelector from '../components/VariantSelector.vue'
@@ -15,6 +15,9 @@ import type { Product } from '../types'
 const route = useRoute()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const wishlistStore = useWishlistStore()
+
+const isInWishlist = computed(() => product.value ? wishlistStore.has(product.value.id) : false)
 
 const product = ref<Product | null>(null)
 const isLoading = ref(true)
@@ -92,18 +95,12 @@ const addToCart = () => {
   })
 }
 
-const addToWishlist = async () => {
-  if (!authStore.isAuthenticated) {
-    alert('لطفاً ابتدا وارد شوید')
-    return
-  }
-  if (!product.value) return
+const toggleWishlist = async () => {
+  if (!authStore.isAuthenticated || !product.value) return
   try {
-    await userService.addToWishlist(product.value.id)
-    alert('محصول به لیست علاقه‌مندی‌ها اضافه شد')
+    await wishlistStore.toggle(product.value.id)
   } catch (error) {
-    console.error('Failed to add to wishlist:', error)
-    alert('خطا در افزودن به لیست علاقه‌مندی‌ها')
+    console.error('Failed to toggle wishlist:', error)
   }
 }
 
@@ -239,12 +236,17 @@ onMounted(fetchProduct)
               <ShoppingCart class="w-5 h-5" />
               {{ hasVariants && !isVariantSelected ? 'لطفاً گزینه‌ها را انتخاب کنید' : 'افزودن به سبد خرید' }}
             </button>
-            <button 
-              @click="addToWishlist"
-              class="p-3 border rounded-lg hover:bg-gray-100 hover:text-red-500 hover:border-red-200 transition"
-              title="افزودن به علاقه‌مندی‌ها"
+            <button
+              @click="toggleWishlist"
+              :class="[
+                'p-3 border rounded-lg transition',
+                isInWishlist
+                  ? 'bg-red-50 border-red-200 text-red-500'
+                  : 'hover:bg-gray-100 hover:text-red-500 hover:border-red-200',
+              ]"
+              :title="isInWishlist ? 'حذف از علاقه‌مندی‌ها' : 'افزودن به علاقه‌مندی‌ها'"
             >
-              <Heart class="w-5 h-5" />
+              <Heart :class="['w-5 h-5', isInWishlist ? 'fill-current' : '']" />
             </button>
           </div>
           
