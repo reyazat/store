@@ -42,7 +42,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'APL-IP15P-128',
                 'short_description' => 'جدیدترین آیفون با تراشه A17 Pro',
                 'description' => 'آیفون 15 پرو با تراشه A17 Pro، دوربین پیشرفته، و طراحی تیتانیومی. بهترین تجربه کاربری در دنیای موبایل.',
-                'main_image' => 'products/iphone-15-pro.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1696446701796-da61225697cc?w=800&q=80',
                 'manufacturer_id' => $apple->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 187.0,
@@ -54,9 +54,9 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$electronics->id, $mobileCategory->id],
                 'images' => [
-                    'products/iphone-15-pro-1.jpg',
-                    'products/iphone-15-pro-2.jpg',
-                    'products/iphone-15-pro-3.jpg',
+                    'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800&q=80',
+                    'https://images.unsplash.com/photo-1696430284878-1c9b7f4e5c5a?w=800&q=80',
+                    'https://images.unsplash.com/photo-1696430284878-1c9b7f4e5c5a?w=800&q=80',
                 ],
             ],
             [
@@ -65,7 +65,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'SAM-GS24U-256',
                 'short_description' => 'قدرتمندترین گلکسی با S Pen',
                 'description' => 'گلکسی S24 اولترا با قلم S Pen، دوربین 200 مگاپیکسلی، و پردازنده اسنپدراگون 8 نسل 3.',
-                'main_image' => 'products/galaxy-s24-ultra.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1610945265078-3858a0828671?w=800&q=80',
                 'manufacturer_id' => $samsung->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 234.0,
@@ -77,8 +77,8 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$electronics->id, $mobileCategory->id],
                 'images' => [
-                    'products/galaxy-s24-ultra-1.jpg',
-                    'products/galaxy-s24-ultra-2.jpg',
+                    'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=800&q=80',
+                    'https://images.unsplash.com/photo-1610945264803-c22b62d2a7b3?w=800&q=80',
                 ],
             ],
             [
@@ -87,7 +87,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'APL-MBP14-M3',
                 'short_description' => 'لپ‌تاپ حرفه‌ای با تراشه M3',
                 'description' => 'مک‌بوک پرو 14 اینچی با تراشه M3، صفحه نمایش Liquid Retina XDR، و عمر باتری فوق‌العاده.',
-                'main_image' => 'products/macbook-pro-14.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&q=80',
                 'manufacturer_id' => $apple->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 1600.0,
@@ -99,8 +99,8 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$electronics->id, $laptopCategory->id],
                 'images' => [
-                    'products/macbook-pro-14-1.jpg',
-                    'products/macbook-pro-14-2.jpg',
+                    'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?w=800&q=80',
+                    'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=800&q=80',
                 ],
             ],
             [
@@ -109,7 +109,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'NIKE-AM90-WHT',
                 'short_description' => 'کلاسیک مدرن با طراحی خاص',
                 'description' => 'نایک ایر مکس 90 با طراحی کلاسیک، راحتی بی‌نظیر، و کیفیت ساخت عالی. مناسب برای استفاده روزمره و ورزش.',
-                'main_image' => 'products/nike-air-max-90.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&q=80',
                 'manufacturer_id' => $nike->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 320.0,
@@ -121,8 +121,8 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$fashion->id, $mensCategory->id],
                 'images' => [
-                    'products/nike-air-max-90-1.jpg',
-                    'products/nike-air-max-90-2.jpg',
+                    'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800&q=80',
+                    'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=800&q=80',
                 ],
             ],
             [
@@ -131,7 +131,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'ADI-UB22-BLK',
                 'short_description' => 'کفش دویدن با فناوری Boost',
                 'description' => 'آدیداس اولترابوست 22 با فناوری Boost برای راحتی حداکثری، مناسب برای دویدن و استفاده روزمره.',
-                'main_image' => 'products/adidas-ultraboost-22.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=800&q=80',
                 'manufacturer_id' => $adidas->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 340.0,
@@ -143,7 +143,7 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$fashion->id, $mensCategory->id],
                 'images' => [
-                    'products/adidas-ultraboost-22-1.jpg',
+                    'https://images.unsplash.com/photo-1605408499391-6368c628ef42?w=800&q=80',
                 ],
             ],
             [
@@ -152,7 +152,7 @@ class ProductSeeder extends Seeder
                 'base_sku' => 'SONY-WH1KXM5-BLK',
                 'short_description' => 'بهترین هدست نویز کنسلینگ',
                 'description' => 'هدست سونی WH-1000XM5 با کیفیت صدای فوق‌العاده، نویز کنسلینگ پیشرفته، و عمر باتری 30 ساعته.',
-                'main_image' => 'products/sony-wh-1000xm5.jpg',
+                'main_image' => 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&q=80',
                 'manufacturer_id' => $sony->id,
                 'tax_class_id' => $standardTax->id,
                 'weight' => 250.0,
@@ -164,8 +164,8 @@ class ProductSeeder extends Seeder
                 'status' => 1,
                 'categories' => [$electronics->id],
                 'images' => [
-                    'products/sony-wh-1000xm5-1.jpg',
-                    'products/sony-wh-1000xm5-2.jpg',
+                    'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&q=80',
+                    'https://images.unsplash.com/photo-1487215078519-e21cc028cb29?w=800&q=80',
                 ],
             ],
         ];

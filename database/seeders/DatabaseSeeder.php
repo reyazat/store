@@ -37,7 +37,7 @@ class DatabaseSeeder extends Seeder
             $this->call([
                 OrgRolePermissionSeeder::class,
                 UserSeeder::class,
-                EcommerceSeeder::class,      // E-commerce demo data
+                ProductionSeeder::class,     // Production-ready data
             ]);
         }
 

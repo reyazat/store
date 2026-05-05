@@ -28,11 +28,11 @@ class VariantOptionValueSeeder extends Seeder
         $whiteColor = $colorOption ? OptionValue::where('option_id', $colorOption->id)->where('value', 'White')->first() : null;
         $blueColor = $colorOption ? OptionValue::where('option_id', $colorOption->id)->where('value', 'Blue')->first() : null;
 
-        $size7 = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', '7')->first() : null;
-        $size8 = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', '8')->first() : null;
-        $size9 = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', '9')->first() : null;
-        $size10 = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', '10')->first() : null;
-        $size11 = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', '11')->first() : null;
+        $sizeS = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', 'S')->first() : null;
+        $sizeM = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', 'M')->first() : null;
+        $sizeL = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', 'L')->first() : null;
+        $sizeXL = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', 'XL')->first() : null;
+        $sizeXXL = $sizeOption ? OptionValue::where('option_id', $sizeOption->id)->where('value', 'XXL')->first() : null;
 
         $storage128 = $storageOption ? OptionValue::where('option_id', $storageOption->id)->where('value', '128GB')->first() : null;
         $storage256 = $storageOption ? OptionValue::where('option_id', $storageOption->id)->where('value', '256GB')->first() : null;
@@ -58,24 +58,24 @@ class VariantOptionValueSeeder extends Seeder
             'MBP14M3PROSSD1TB' => ['storage' => $storage1TB],
             'MBP14M3PROSSD2TB' => ['storage' => $storage2TB],
 
-            'NIKEAM90S7WH' => ['color' => $whiteColor, 'size' => $size7],
-            'NIKEAM90S8WH' => ['color' => $whiteColor, 'size' => $size8],
-            'NIKEAM90S9WH' => ['color' => $whiteColor, 'size' => $size9],
-            'NIKEAM90S10WH' => ['color' => $whiteColor, 'size' => $size10],
-            'NIKEAM90S11WH' => ['color' => $whiteColor, 'size' => $size11],
-            'NIKEAM90S7BK' => ['color' => $blackColor, 'size' => $size7],
-            'NIKEAM90S8BK' => ['color' => $blackColor, 'size' => $size8],
-            'NIKEAM90S9BK' => ['color' => $blackColor, 'size' => $size9],
-            'NIKEAM90S10BK' => ['color' => $blackColor, 'size' => $size10],
+            'NIKEAM90S7WH' => ['color' => $whiteColor, 'size' => $sizeS],
+            'NIKEAM90S8WH' => ['color' => $whiteColor, 'size' => $sizeM],
+            'NIKEAM90S9WH' => ['color' => $whiteColor, 'size' => $sizeL],
+            'NIKEAM90S10WH' => ['color' => $whiteColor, 'size' => $sizeXL],
+            'NIKEAM90S11WH' => ['color' => $whiteColor, 'size' => $sizeXXL],
+            'NIKEAM90S7BK' => ['color' => $blackColor, 'size' => $sizeS],
+            'NIKEAM90S8BK' => ['color' => $blackColor, 'size' => $sizeM],
+            'NIKEAM90S9BK' => ['color' => $blackColor, 'size' => $sizeL],
+            'NIKEAM90S10BK' => ['color' => $blackColor, 'size' => $sizeXL],
 
-            'ADIDASUB22S7BK' => ['color' => $blackColor, 'size' => $size7],
-            'ADIDASUB22S8BK' => ['color' => $blackColor, 'size' => $size8],
-            'ADIDASUB22S9BK' => ['color' => $blackColor, 'size' => $size9],
-            'ADIDASUB22S10BK' => ['color' => $blackColor, 'size' => $size10],
-            'ADIDASUB22S11BK' => ['color' => $blackColor, 'size' => $size11],
-            'ADIDASUB22S7WH' => ['color' => $whiteColor, 'size' => $size7],
-            'ADIDASUB22S8WH' => ['color' => $whiteColor, 'size' => $size8],
-            'ADIDASUB22S9WH' => ['color' => $whiteColor, 'size' => $size9],
+            'ADIDASUB22S7BK' => ['color' => $blackColor, 'size' => $sizeS],
+            'ADIDASUB22S8BK' => ['color' => $blackColor, 'size' => $sizeM],
+            'ADIDASUB22S9BK' => ['color' => $blackColor, 'size' => $sizeL],
+            'ADIDASUB22S10BK' => ['color' => $blackColor, 'size' => $sizeXL],
+            'ADIDASUB22S11BK' => ['color' => $blackColor, 'size' => $sizeXXL],
+            'ADIDASUB22S7WH' => ['color' => $whiteColor, 'size' => $sizeS],
+            'ADIDASUB22S8WH' => ['color' => $whiteColor, 'size' => $sizeM],
+            'ADIDASUB22S9WH' => ['color' => $whiteColor, 'size' => $sizeL],
 
             'SONYWH1000XM5BK' => ['color' => $blackColor],
             'SONYWH1000XM5WH' => ['color' => $whiteColor],
