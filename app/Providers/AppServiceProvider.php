@@ -36,6 +36,10 @@ use App\Repositories\Contracts\SiteSettingRepositoryInterface;
 use App\Repositories\Eloquents\SiteSettingRepository;
 use App\Repositories\Contracts\NavLinkRepositoryInterface;
 use App\Repositories\Eloquents\NavLinkRepository;
+use App\Repositories\Contracts\FaqRepositoryInterface;
+use App\Repositories\Eloquents\FaqRepository;
+use App\Repositories\Contracts\ProductReviewRepositoryInterface;
+use App\Repositories\Eloquents\ProductReviewRepository;
 use App\Repositories\Eloquents\UserRepository;
 use IamApi\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Cache\RateLimiting\Limit;
@@ -68,6 +72,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(NewsletterSubscriberRepositoryInterface::class, NewsletterSubscriberRepository::class);
         $this->app->bind(SiteSettingRepositoryInterface::class, SiteSettingRepository::class);
         $this->app->bind(NavLinkRepositoryInterface::class, NavLinkRepository::class);
+        $this->app->bind(FaqRepositoryInterface::class, FaqRepository::class);
+        $this->app->bind(ProductReviewRepositoryInterface::class, ProductReviewRepository::class);
     }
 
     /**

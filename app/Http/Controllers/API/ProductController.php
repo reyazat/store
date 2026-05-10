@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Actions\Product\ShowProductAction;
 use App\Actions\Product\SearchProductAction;
+use App\Actions\Product\SimilarProductsAction;
 use App\Actions\Product\ProductAutocompleteAction;
 use App\Actions\Product\StoreProductAction;
 use App\Actions\Product\UpdateProductAction;
@@ -24,12 +25,13 @@ use Throwable;
 class ProductController extends Controller
 {
     public function __construct(
-        private readonly SearchProductAction      $searchAction,
-        private readonly ShowProductAction        $showAction,
+        private readonly SearchProductAction       $searchAction,
+        private readonly ShowProductAction         $showAction,
+        private readonly SimilarProductsAction     $similarAction,
         private readonly ProductAutocompleteAction $autocompleteAction,
-        private readonly StoreProductAction       $storeAction,
-        private readonly UpdateProductAction      $updateAction,
-        private readonly DestroyProductAction     $destroyAction,
+        private readonly StoreProductAction        $storeAction,
+        private readonly UpdateProductAction       $updateAction,
+        private readonly DestroyProductAction      $destroyAction,
     ) {}
 
     public function index(ProductSearchRequest $request): JsonResponse
@@ -71,6 +73,18 @@ class ProductController extends Controller
         return response()->json([
             'success' => true,
             'data' => new ProductDetailResource($product),
+        ]);
+    }
+
+    public function similar(Product $product): JsonResponse
+    {
+        $product->loadMissing('categories');
+
+        $similar = $this->similarAction->execute($product);
+
+        return response()->json([
+            'success' => true,
+            'data'    => ProductListResource::collection($similar),
         ]);
     }
 

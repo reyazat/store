@@ -1,30 +1,26 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ChevronLeft, ChevronRight, Star, Clock, TrendingUp, Grid3X3 } from 'lucide-vue-next'
-import { ProductCard } from '@shared/components'
+import { ChevronLeft, ChevronRight, Star, Clock, TrendingUp } from 'lucide-vue-next'
 import CategorySection from '../components/CategorySection.vue'
 import DiscountProductsSection from '../components/DiscountProductsSection.vue'
+import ProductsSection from '../components/ProductsSection.vue'
+import ServicesBar from '../components/ServicesBar.vue'
+import PromoBannersSection from '../components/PromoBannersSection.vue'
+import NewsletterSection from '../components/NewsletterSection.vue'
 import { homeService, type SiteFeature, type PromoBanner } from '../services'
-import { resolveIcon } from '@shared/utils/icons'
 import type { Product, Category } from '@shared/types'
 
 const featuredProducts = ref<Product[]>([])
 const newProducts = ref<Product[]>([])
 const discountedProducts = ref<Product[]>([])
+const specialOfferProducts = ref<Product[]>([])
 const categories = ref<Category[]>([])
 const siteFeatures = ref<SiteFeature[]>([])
 const promoBanners = ref<PromoBanner[]>([])
 const isLoading = ref(true)
 
-// Newsletter form state
-const newsletterEmail = ref('')
-const newsletterSubmitting = ref(false)
-const newsletterMessage = ref<{ type: 'success' | 'error'; text: string } | null>(null)
-
-// Slider state
-const currentSlide = ref(0)
-const slides = ref<Array<{
+type Slide = {
   id: number
   title: string
   subtitle?: string
@@ -32,7 +28,10 @@ const slides = ref<Array<{
   link?: string
   button_text?: string
   button_link?: string
-}>>([])
+}
+
+const currentSlide = ref(0)
+const slides = ref<Slide[]>([])
 
 let slideInterval: ReturnType<typeof setInterval> | null = null
 
@@ -45,31 +44,36 @@ function startAutoSlide() {
   }
 }
 
-const bannerGradientClass = (banner: PromoBanner): string => {
-  const from = banner.gradient_from ? `from-${banner.gradient_from}` : 'from-primary-500'
-  const to = banner.gradient_to ? `to-${banner.gradient_to}` : 'to-primary-700'
-  return `bg-gradient-to-br ${from} ${to}`
-}
-
 onMounted(async () => {
   try {
-    const [productsRes, discountedRes, categoriesRes, slidersData, features, banners, newestRes] = await Promise.all([
+    const [
+      productsRes,
+      discountedRes,
+      topSubcategoriesRes,
+      slidersData,
+      features,
+      banners,
+      newestRes,
+      specialOfferRes,
+    ] = await Promise.all([
       homeService.getFeaturedProducts(),
       homeService.getDiscountedProducts(8),
-      homeService.getCategories(),
+      homeService.getTopSubcategories(),
       homeService.getSliders(),
       homeService.getSiteFeatures(),
       homeService.getPromoBanners('home'),
       homeService.getNewestProducts(10),
+      homeService.getSpecialOfferProducts(8),
     ])
 
     featuredProducts.value = productsRes.data || []
     newProducts.value = newestRes.data || []
     discountedProducts.value = discountedRes.data || []
-    categories.value = categoriesRes.data || []
+    categories.value = topSubcategoriesRes.data || []
     slides.value = slidersData
     siteFeatures.value = features
     promoBanners.value = banners
+    specialOfferProducts.value = specialOfferRes.data || []
   } catch (error) {
     console.error('Failed to load home data:', error)
   } finally {
@@ -77,36 +81,6 @@ onMounted(async () => {
     startAutoSlide()
   }
 })
-
-const quickCategoriesRef = ref<HTMLElement | null>(null)
-
-const scrollCategories = (dir: 'right' | 'left') => {
-  if (!quickCategoriesRef.value) return
-  quickCategoriesRef.value.scrollBy({ left: dir === 'left' ? -240 : 240, behavior: 'smooth' })
-}
-
-const submitNewsletter = async (event: Event) => {
-  event.preventDefault()
-  newsletterMessage.value = null
-
-  if (!newsletterEmail.value) {
-    newsletterMessage.value = { type: 'error', text: 'لطفاً ایمیل را وارد کنید.' }
-    return
-  }
-
-  newsletterSubmitting.value = true
-  try {
-    await homeService.subscribeNewsletter(newsletterEmail.value, 'home')
-    newsletterMessage.value = { type: 'success', text: 'عضویت شما با موفقیت ثبت شد!' }
-    newsletterEmail.value = ''
-  } catch (error: unknown) {
-    const message = (error as { response?: { data?: { message?: string } } })
-      ?.response?.data?.message ?? 'خطا در ثبت عضویت. لطفاً دوباره تلاش کنید.'
-    newsletterMessage.value = { type: 'error', text: message }
-  } finally {
-    newsletterSubmitting.value = false
-  }
-}
 
 const hasSiteFeatures = computed(() => siteFeatures.value.length > 0)
 const hasPromoBanners = computed(() => promoBanners.value.length > 0)
@@ -213,297 +187,56 @@ const hasPromoBanners = computed(() => promoBanners.value.length > 0)
     
     <!-- Quick Categories -->
     <section class="py-6 bg-white shadow-sm">
-      <div class="relative container mx-auto px-4">
-
-        <!-- Scroll Right Arrow -->
-        <button
-          @click="scrollCategories('right')"
-          class="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white border border-secondary-200 rounded-full shadow flex items-center justify-center hover:bg-secondary-50 transition"
-          aria-label="قبلی"
-        >
-          <ChevronRight class="w-5 h-5 text-secondary-600" />
-        </button>
-
-        <!-- Scrollable row -->
-        <div
-          ref="quickCategoriesRef"
-          class="flex items-start justify-start gap-4 overflow-x-auto px-10 scrollbar-hide scroll-smooth"
-        >
-          <!-- Loading skeletons -->
-          <template v-if="isLoading">
-            <div v-for="i in 8" :key="i" class="flex-shrink-0 flex flex-col items-center gap-2 w-24 animate-pulse">
-              <div class="w-20 h-20 rounded-full bg-secondary-100"></div>
-              <div class="h-3 w-14 bg-secondary-100 rounded"></div>
-            </div>
-          </template>
-
-          <!-- API categories -->
-          <template v-else-if="categories.length">
-            <RouterLink
-              v-for="cat in categories"
-              :key="cat.id"
-              :to="`/categories/${cat.slug}`"
-              class="flex-shrink-0 flex flex-col items-center gap-2 w-24 group"
-            >
-              <div class="w-20 h-20 rounded-full border-2 border-primary-200 group-hover:border-primary-500 bg-white overflow-hidden flex items-center justify-center transition shadow-sm">
-                <img
-                  v-if="cat.image"
-                  :src="cat.image"
-                  :alt="cat.name"
-                  class="w-full h-full object-cover"
-                />
-                <span v-else class="text-3xl select-none">🗂️</span>
-              </div>
-              <span class="text-xs font-medium text-center text-secondary-700 group-hover:text-primary-600 leading-tight line-clamp-2 transition">
-                {{ cat.name }}
-              </span>
-            </RouterLink>
-          </template>
-        </div>
-
-        <!-- Scroll Left Arrow -->
-        <button
-          @click="scrollCategories('left')"
-          class="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-9 h-9 bg-white border border-secondary-200 rounded-full shadow flex items-center justify-center hover:bg-secondary-50 transition"
-          aria-label="بعدی"
-        >
-          <ChevronLeft class="w-5 h-5 text-secondary-600" />
-        </button>
-
-      </div>
-    </section>
-    
-    <!-- Services Bar (dynamic) -->
-    <section v-if="hasSiteFeatures || isLoading" class="py-6 bg-white border-t">
       <div class="container mx-auto px-4">
-        <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div v-for="i in 4" :key="i" class="flex items-center gap-3 p-4 rounded-xl bg-secondary-50 animate-pulse">
-            <div class="w-12 h-12 bg-secondary-100 rounded-full"></div>
-            <div class="flex-1 space-y-2">
-              <div class="h-3 w-20 bg-secondary-100 rounded"></div>
-              <div class="h-3 w-28 bg-secondary-100 rounded"></div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div
-            v-for="feature in siteFeatures"
-            :key="feature.id"
-            class="flex items-center gap-3 p-4 rounded-xl bg-secondary-50"
-          >
-            <div class="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-              <component :is="resolveIcon(feature.icon)" class="w-6 h-6 text-primary-600" />
-            </div>
-            <div>
-              <h4 class="font-bold text-secondary-800">{{ feature.title }}</h4>
-              <p v-if="feature.description" class="text-sm text-secondary-500">{{ feature.description }}</p>
-            </div>
-          </div>
-        </div>
+        <CategorySection :categories="categories" :loading="isLoading" />
       </div>
     </section>
-    
-    <!-- Categories Section -->
-    <section class="py-8">
-      <div class="container mx-auto px-4">
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl md:text-2xl font-bold text-secondary-800 flex items-center gap-2">
-              <Grid3X3 class="w-6 h-6 text-primary-500" />
-              دسته‌بندی محصولات
-            </h2>
-            <RouterLink to="/categories" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 text-sm">
-              مشاهده همه
-              <ChevronLeft class="w-4 h-4" />
-            </RouterLink>
-          </div>
-          <CategorySection :categories="categories" :loading="isLoading" />
-        </div>
-      </div>
-    </section>
-    
-    <!-- Discount Products Section -->
+
+    <!-- Services Bar -->
+    <ServicesBar v-if="hasSiteFeatures || isLoading" :features="siteFeatures" :loading="isLoading" />
+
+    <!-- Discount Products -->
     <section class="py-4">
       <div class="container mx-auto px-4">
-        <DiscountProductsSection
-          :products="discountedProducts"
-          :loading="isLoading"
-        />
+        <DiscountProductsSection :products="discountedProducts" :loading="isLoading" />
       </div>
     </section>
-    
+
     <!-- Featured Products -->
-    <section class="py-8">
-      <div class="container mx-auto px-4">
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl md:text-2xl font-bold text-secondary-800 flex items-center gap-2">
-              <Star class="w-6 h-6 text-amber-500" />
-              محصولات پرفروش
-            </h2>
-            <RouterLink to="/products" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 text-sm">
-              مشاهده همه
-              <ChevronLeft class="w-4 h-4" />
-            </RouterLink>
-          </div>
-          
-          <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div v-for="i in 5" :key="i" class="animate-pulse">
-              <div class="aspect-square bg-secondary-100 rounded-xl mb-3"></div>
-              <div class="h-4 bg-secondary-100 rounded mb-2"></div>
-              <div class="h-4 bg-secondary-100 rounded w-2/3"></div>
-            </div>
-          </div>
-          
-          <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <ProductCard 
-              v-for="product in featuredProducts.slice(0, 5)" 
-              :key="product.id" 
-              :product="product" 
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Promotional Banners (dynamic) -->
-    <section v-if="hasPromoBanners" class="py-4">
-      <div class="container mx-auto px-4">
-        <div class="grid md:grid-cols-3 gap-4">
-          <component
-            :is="banner.link ? RouterLink : 'div'"
-            v-for="banner in promoBanners"
-            :key="banner.id"
-            :to="banner.link || undefined"
-            :class="[
-              bannerGradientClass(banner),
-              'rounded-2xl p-6 text-white relative overflow-hidden group cursor-pointer block',
-            ]"
-          >
-            <div class="relative z-10">
-              <component :is="resolveIcon(banner.icon)" class="w-10 h-10 mb-3 opacity-80" />
-              <h3 class="text-xl font-bold mb-1">{{ banner.title }}</h3>
-              <p v-if="banner.subtitle" class="text-white/80 text-sm mb-4">{{ banner.subtitle }}</p>
-              <span
-                v-if="banner.cta_text"
-                class="text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all"
-              >
-                {{ banner.cta_text }} <ChevronLeft class="w-4 h-4" />
-              </span>
-            </div>
-            <div class="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full group-hover:scale-150 transition-transform"></div>
-          </component>
-        </div>
-      </div>
-    </section>
-    
+    <ProductsSection
+      title="محصولات پرفروش"
+      :icon="Star"
+      icon-class="text-amber-500"
+      :products="featuredProducts"
+      view-all-link="/products"
+      :loading="isLoading"
+    />
+
+    <!-- Promotional Banners -->
+    <PromoBannersSection v-if="hasPromoBanners" :banners="promoBanners" />
+
     <!-- New Products -->
-    <section class="py-8">
-      <div class="container mx-auto px-4">
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl md:text-2xl font-bold text-secondary-800 flex items-center gap-2">
-              <Clock class="w-6 h-6 text-primary-500" />
-              جدیدترین محصولات
-            </h2>
-            <RouterLink to="/products?sort=newest" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 text-sm">
-              مشاهده همه
-              <ChevronLeft class="w-4 h-4" />
-            </RouterLink>
-          </div>
-          
-          <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div v-for="i in 5" :key="i" class="animate-pulse">
-              <div class="aspect-square bg-secondary-100 rounded-xl mb-3"></div>
-              <div class="h-4 bg-secondary-100 rounded mb-2"></div>
-              <div class="h-4 bg-secondary-100 rounded w-2/3"></div>
-            </div>
-          </div>
-          
-          <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <ProductCard 
-              v-for="product in newProducts.slice(0, 5)" 
-              :key="product.id" 
-              :product="product" 
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-    
-    <!-- Trending Section -->
-    <section class="py-8">
-      <div class="container mx-auto px-4">
-        <div class="bg-white rounded-2xl shadow-sm p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl md:text-2xl font-bold text-secondary-800 flex items-center gap-2">
-              <TrendingUp class="w-6 h-6 text-emerald-500" />
-              پیشنهاد ویژه اتکا
-            </h2>
-            <RouterLink to="/products" class="text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1 text-sm">
-              مشاهده همه
-              <ChevronLeft class="w-4 h-4" />
-            </RouterLink>
-          </div>
-          
-          <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <div v-for="i in 5" :key="i" class="animate-pulse">
-              <div class="aspect-square bg-secondary-100 rounded-xl mb-3"></div>
-              <div class="h-4 bg-secondary-100 rounded mb-2"></div>
-              <div class="h-4 bg-secondary-100 rounded w-2/3"></div>
-            </div>
-          </div>
-          
-          <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            <ProductCard 
-              v-for="product in featuredProducts.slice(0, 5)" 
-              :key="product.id" 
-              :product="product" 
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-    
+    <ProductsSection
+      title="جدیدترین محصولات"
+      :icon="Clock"
+      icon-class="text-primary-500"
+      :products="newProducts"
+      view-all-link="/products?sort=newest"
+      :loading="isLoading"
+    />
+
+    <!-- Special Offers -->
+    <ProductsSection
+      title="پیشنهاد ویژه اتکا"
+      :icon="TrendingUp"
+      icon-class="text-emerald-500"
+      :products="specialOfferProducts"
+      view-all-link="/products"
+      :loading="isLoading"
+    />
+
     <!-- Newsletter -->
-    <section class="py-12 bg-gradient-to-l from-primary-600 to-primary-800">
-      <div class="container mx-auto px-4">
-        <div class="max-w-2xl mx-auto text-center text-white">
-          <h2 class="text-2xl md:text-3xl font-bold mb-4">از تخفیف‌ها باخبر شوید!</h2>
-          <p class="text-primary-100 mb-6">با عضویت در خبرنامه، از جدیدترین تخفیف‌ها و محصولات مطلع شوید.</p>
-          <form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto" @submit="submitNewsletter" novalidate>
-            <label for="newsletter-email" class="sr-only">ایمیل خبرنامه</label>
-            <input
-              id="newsletter-email"
-              v-model="newsletterEmail"
-              type="email"
-              required
-              :disabled="newsletterSubmitting"
-              placeholder="ایمیل خود را وارد کنید"
-              class="flex-1 px-5 py-3 rounded-full text-secondary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 disabled:opacity-60"
-            />
-            <button
-              type="submit"
-              :disabled="newsletterSubmitting"
-              class="px-8 py-3 bg-white text-primary-600 rounded-full font-bold hover:bg-primary-50 transition disabled:opacity-60"
-            >
-              {{ newsletterSubmitting ? 'در حال ارسال...' : 'عضویت' }}
-            </button>
-          </form>
-          <p
-            v-if="newsletterMessage"
-            :class="[
-              'mt-4 text-sm',
-              newsletterMessage.type === 'success' ? 'text-emerald-100' : 'text-red-200',
-            ]"
-            role="status"
-            aria-live="polite"
-          >
-            {{ newsletterMessage.text }}
-          </p>
-        </div>
-      </div>
-    </section>
+    <NewsletterSection />
   </div>
 </template>
 
@@ -516,14 +249,5 @@ const hasPromoBanners = computed(() => promoBanners.value.length > 0)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
-}
-
-.scrollbar-hide {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 </style>

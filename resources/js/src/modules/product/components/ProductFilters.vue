@@ -7,6 +7,7 @@ import type { Category } from '@shared/types'
 export interface FiltersState {
   search: string
   category_slug: string | null
+  manufacturer_slug: string | null
   manufacturer_ids: number[]
   min_price: number | null
   max_price: number | null
@@ -45,7 +46,9 @@ const toggleBrand = (id: number) => {
     next.add(id)
   }
   local.value.manufacturer_ids = Array.from(next)
+  local.value.manufacturer_slug = null
   commit()
+  emit('apply')
 }
 
 const commit = () => {
@@ -60,17 +63,20 @@ const applyPriceRange = () => {
 const handleCategoryChange = (slug: string) => {
   local.value.category_slug = slug || null
   commit()
+  emit('apply')
 }
 
 const handleToggle = (key: 'has_discount' | 'in_stock') => {
   local.value[key] = !local.value[key]
   commit()
+  emit('apply')
 }
 
 const reset = () => {
   local.value = {
     search: '',
     category_slug: null,
+    manufacturer_slug: null,
     manufacturer_ids: [],
     min_price: null,
     max_price: null,
@@ -83,6 +89,7 @@ const reset = () => {
 
 const hasActive = computed(() =>
   local.value.category_slug !== null ||
+  local.value.manufacturer_slug !== null ||
   local.value.manufacturer_ids.length > 0 ||
   local.value.min_price !== null ||
   local.value.max_price !== null ||

@@ -27,6 +27,7 @@ class ProductionSeeder extends Seeder
             ProductionCategorySeeder::class,    // 5-6 main categories with real images
             ProductionManufacturerSeeder::class, // 4-5 known manufacturers
             ProductionProductSeeder::class,     // 8-12 real products with Unsplash images
+            SliderSeeder::class,                // Homepage sliders with online images
             ProductionSiteContentSeeder::class, // Homepage banners/features
         ]);
 

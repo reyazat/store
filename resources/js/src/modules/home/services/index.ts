@@ -46,10 +46,16 @@ export const homeService = {
     return response.data
   },
 
-  async getCategories() {
-    const response = await api.get('/categories', {
-      params: { limit: 20 }
+  async getSpecialOfferProducts(limit = 8) {
+    const response = await api.get('/products', {
+      params: { special_offer: true, limit }
     })
+    return response.data
+  },
+
+  
+  async getTopSubcategories() {
+    const response = await api.get('/categories/top-subcategories')
     return response.data
   },
 

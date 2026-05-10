@@ -92,9 +92,20 @@ class CategoryController extends Controller
         ]);
     }
 
-    public function headerCategories(): JsonResponse
+    
+    public function hierarchical(): JsonResponse
     {
-        $categories = $this->categoryService->getHeaderCategories(6);
+        $categories = $this->categoryService->getHierarchicalCategories();
+
+        return response()->json([
+            'success' => true,
+            'data' => $categories,
+        ]);
+    }
+
+    public function topSubcategories(): JsonResponse
+    {
+        $categories = $this->categoryService->getTopSubcategories(10);
 
         return response()->json([
             'success' => true,

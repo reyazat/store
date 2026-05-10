@@ -7,17 +7,17 @@ import { useAuthStore } from '@/stores/auth'
 import { useSiteSettings } from '@shared/composables/useSiteSettings'
 import { useNavLinks } from '@shared/composables/useNavLinks'
 import SearchAutocomplete from '@shared/components/SearchAutocomplete.vue'
-import api from '@shared/utils/api'
-import type { Category } from '@shared/types'
+import { categoryService, type HierarchicalCategory } from '@modules/category/services'
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const isMenuOpen = ref(false)
 const isSearchOpen = ref(false)
 const isCategoryMenuOpen = ref(false)
-const categories = ref<Category[]>([])
+const categories = ref<HierarchicalCategory[]>([])
 const isLoadingCategories = ref(true)
 const categoryError = ref<string | null>(null)
+const expandedCategories = ref<Set<number>>(new Set())
 
 const { settings } = useSiteSettings()
 const { links: headerLinks } = useNavLinks('header')
@@ -26,7 +26,15 @@ const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
 
-const getCategoryIcon = (category: Category): string => {
+const toggleMobileCategory = (categoryId: number) => {
+  if (expandedCategories.value.has(categoryId)) {
+    expandedCategories.value.delete(categoryId)
+  } else {
+    expandedCategories.value.add(categoryId)
+  }
+}
+
+const getCategoryIcon = (category: HierarchicalCategory): string => {
   if (category.icon) return category.icon
   const iconMap: Record<string, string> = {
     'electronics': '📱',
@@ -45,8 +53,8 @@ const loadCategories = async () => {
   isLoadingCategories.value = true
   categoryError.value = null
   try {
-    const response = await api.get('/categories/header')
-    categories.value = response.data?.data || []
+    const response = await categoryService.getHierarchicalCategories()
+    categories.value = response.data || []
   } catch (error: any) {
     console.error('Failed to load header categories:', error)
     categoryError.value = error.response?.data?.message || 'خطا در بارگذاری دسته‌بندی‌ها'
@@ -210,65 +218,96 @@ onMounted(loadCategories)
               <ChevronDown class="w-4 h-4" :class="{ 'rotate-180': isCategoryMenuOpen }" />
             </button>
             
-            <!-- Dropdown Menu -->
+            <!-- Dropdown Menu - Mega Menu -->
             <div
               v-show="isCategoryMenuOpen"
-              class="absolute top-full right-0 w-64 bg-white shadow-xl rounded-b-lg border border-secondary-100 py-2 z-50"
+              class="absolute top-full right-0 w-screen max-w-4xl bg-white shadow-2xl rounded-b-lg border border-secondary-100 z-50"
+              @mouseenter="isCategoryMenuOpen = true"
+              @mouseleave="isCategoryMenuOpen = false"
             >
               <!-- Loading State -->
-              <div v-if="isLoadingCategories" class="px-4 py-3">
-                <div class="animate-pulse space-y-3">
-                  <div v-for="i in 6" :key="i" class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-secondary-200 rounded-lg"></div>
-                    <div class="h-4 bg-secondary-200 rounded w-24"></div>
+              <div v-if="isLoadingCategories" class="p-8">
+                <div class="animate-pulse">
+                  <div class="grid grid-cols-3 gap-8">
+                    <div v-for="i in 3" :key="i" class="space-y-4">
+                      <div class="h-6 bg-secondary-200 rounded w-32"></div>
+                      <div class="space-y-2">
+                        <div v-for="j in 4" :key="j" class="h-4 bg-secondary-200 rounded w-24"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <!-- Error State -->
-              <div v-else-if="categoryError" class="px-4 py-3 text-center">
-                <p class="text-sm text-red-500 mb-2">{{ categoryError }}</p>
+              <div v-else-if="categoryError" class="p-8 text-center">
+                <p class="text-sm text-red-500 mb-4">{{ categoryError }}</p>
                 <button
                   @click="loadCategories"
-                  class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                  class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
                 >
                   تلاش مجدد
                 </button>
               </div>
 
-              <!-- Categories -->
+              <!-- Mega Menu Content -->
               <template v-else-if="categories.length > 0">
-                <RouterLink
-                  v-for="cat in categories"
-                  :key="cat.id"
-                  :to="`/categories/${cat.slug}`"
-                  class="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary-50 transition group"
-                  @click="isCategoryMenuOpen = false"
-                >
-                  <span class="text-xl flex-shrink-0">{{ getCategoryIcon(cat) }}</span>
-                  <span class="flex-1 text-secondary-700 group-hover:text-primary-600 transition">{{ cat.name }}</span>
-                  <span
-                    v-if="cat.products_count !== undefined"
-                    class="text-xs text-secondary-400 bg-secondary-100 group-hover:bg-primary-50 group-hover:text-primary-500 px-1.5 py-0.5 rounded-full transition flex-shrink-0"
-                  >
-                    {{ cat.products_count }}
-                  </span>
-                </RouterLink>
+                <div class="p-8">
+                  <div class="grid grid-cols-3 gap-8">
+                    <div
+                      v-for="category in categories"
+                      :key="category.id"
+                      class="space-y-4"
+                    >
+                      <h4 class="font-bold text-secondary-800 flex items-center gap-2">
+                        <span class="text-lg">{{ getCategoryIcon(category) }}</span>
+                        {{ category.name }}
+                      </h4>
+                      
+                      <div v-if="category.children && category.children.length > 0" class="space-y-2">
+                        <RouterLink
+                          v-for="subcategory in category.children"
+                          :key="subcategory.id"
+                          :to="{ path: '/products', query: { category_slug: subcategory.slug } }"
+                          class="flex items-center justify-between p-2 rounded-lg text-sm text-secondary-700 hover:bg-primary-50 hover:text-primary-600 transition group"
+                          @click="isCategoryMenuOpen = false"
+                        >
+                          <span class="flex-1">{{ subcategory.name }}</span>
+                          <span
+                            v-if="subcategory.products_count > 0"
+                            class="text-xs text-secondary-400 bg-secondary-100 group-hover:bg-primary-100 group-hover:text-primary-600 px-2 py-1 rounded-full transition"
+                          >
+                            {{ subcategory.products_count }}
+                          </span>
+                        </RouterLink>
+                      </div>
+                      
+                      <div v-else class="text-sm text-secondary-500 italic">
+                        زیرمجموعه‌ای یافت نشد
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- View All Categories Link -->
+                  <div class="mt-6 pt-6 border-t border-secondary-100 text-center">
+                    <RouterLink
+                      to="/categories"
+                      class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
+                      @click="isCategoryMenuOpen = false"
+                    >
+                      <span>مشاهده همه دسته‌بندی‌ها</span>
+                    </RouterLink>
+                  </div>
+                </div>
               </template>
 
               <!-- Empty State -->
-              <div v-else class="px-4 py-3 text-sm text-secondary-500 text-center">
-                دسته‌بندی یافت نشد
+              <div v-else class="p-8 text-center">
+                <div class="w-16 h-16 bg-secondary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                  <span class="text-2xl">📦</span>
+                </div>
+                <p class="text-secondary-500">دسته‌بندی یافت نشد</p>
               </div>
-
-              <hr class="my-2" />
-              <RouterLink
-                to="/categories"
-                class="flex items-center gap-3 px-4 py-3 text-primary-600 hover:bg-primary-50 transition font-medium"
-                @click="isCategoryMenuOpen = false"
-              >
-                مشاهده همه دسته‌بندی‌ها
-              </RouterLink>
             </div>
           </div>
           
@@ -296,6 +335,9 @@ onMounted(loadCategories)
             </RouterLink>
             <RouterLink to="/brands" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
               برندها
+            </RouterLink>
+            <RouterLink to="/faq" class="px-4 h-12 flex items-center text-secondary-700 hover:text-primary-600 hover:bg-secondary-50 transition font-medium">
+              سوالات متداول
             </RouterLink>
           </template>
           
@@ -334,9 +376,92 @@ onMounted(loadCategories)
             </RouterLink>
           </li>
           <li>
-            <RouterLink to="/categories" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
-              📦 دسته‌بندی‌ها
-            </RouterLink>
+            <div class="border-t border-secondary-100 pt-2 mt-2">
+              <button
+                @click="toggleMobileCategory(-1)"
+                class="flex items-center justify-between w-full px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50"
+              >
+                <div class="flex items-center gap-3">
+                  <Grid3X3 class="w-5 h-5" />
+                  <span>دسته‌بندی کالاها</span>
+                </div>
+                <ChevronDown 
+                  :class="{ 'rotate-180': expandedCategories.has(-1) }" 
+                  class="w-4 h-4 transition-transform" 
+                />
+              </button>
+              
+              <!-- Mobile Categories -->
+              <div v-if="expandedCategories.has(-1)" class="mt-2 space-y-1">
+                <!-- Loading State -->
+                <div v-if="isLoadingCategories" class="px-4 py-3">
+                  <div class="animate-pulse space-y-3">
+                    <div v-for="i in 3" :key="i" class="space-y-2">
+                      <div class="h-5 bg-secondary-200 rounded w-24"></div>
+                      <div class="space-y-1">
+                        <div v-for="j in 3" :key="j" class="h-3 bg-secondary-200 rounded w-20 ml-4"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Categories -->
+                <template v-else-if="categories.length > 0">
+                  <div
+                    v-for="category in categories"
+                    :key="category.id"
+                    class="border-b border-secondary-100 last:border-b-0"
+                  >
+                    <button
+                      @click="toggleMobileCategory(category.id)"
+                      class="flex items-center justify-between w-full px-4 py-3 hover:bg-primary-50 transition"
+                    >
+                      <div class="flex items-center gap-2">
+                        <span class="text-sm">{{ getCategoryIcon(category) }}</span>
+                        <span class="text-sm font-medium text-secondary-700">{{ category.name }}</span>
+                      </div>
+                      <div class="flex items-center gap-2">
+                        <span class="text-xs text-secondary-500">{{ category.children_count }} زیرمجموعه</span>
+                        <ChevronDown 
+                          :class="{ 'rotate-180': expandedCategories.has(category.id) }" 
+                          class="w-3 h-3 text-secondary-400 transition-transform" 
+                        />
+                      </div>
+                    </button>
+                    
+                    <!-- Subcategories -->
+                    <div v-if="expandedCategories.has(category.id)" class="bg-secondary-50">
+                      <RouterLink
+                        v-for="subcategory in category.children"
+                        :key="subcategory.id"
+                        :to="{ path: '/products', query: { category_slug: subcategory.slug } }"
+                        class="flex items-center justify-between px-8 py-2 text-sm text-secondary-600 hover:bg-secondary-100 transition"
+                        @click="isMenuOpen = false"
+                      >
+                        <span>{{ subcategory.name }}</span>
+                        <span
+                          v-if="subcategory.products_count > 0"
+                          class="text-xs text-secondary-400 bg-white px-2 py-1 rounded-full"
+                        >
+                          {{ subcategory.products_count }}
+                        </span>
+                      </RouterLink>
+                    </div>
+                  </div>
+                </template>
+                
+                <!-- Error State -->
+                <div v-else-if="categoryError" class="px-4 py-3 text-center">
+                  <p class="text-sm text-red-500 mb-2">{{ categoryError }}</p>
+                  <button
+                    @click="loadCategories"
+                    class="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                  >
+                    تلاش مجدد
+                  </button>
+                </div>
+              </div>
+            </div>
           </li>
           <li>
             <RouterLink to="/products" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
@@ -367,6 +492,22 @@ onMounted(loadCategories)
           <li>
             <RouterLink to="/user/orders" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
               📋 سفارشات من
+            </RouterLink>
+          </li>
+          <hr class="my-2" />
+          <li>
+            <RouterLink to="/faq" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
+              ❓ سوالات متداول
+            </RouterLink>
+          </li>
+          <li>
+            <RouterLink to="/terms" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
+              📄 قوانین و مقررات
+            </RouterLink>
+          </li>
+          <li>
+            <RouterLink to="/privacy" class="flex items-center gap-3 px-4 py-3 rounded-lg text-secondary-700 hover:bg-secondary-50" @click="isMenuOpen = false">
+              🔒 حریم خصوصی
             </RouterLink>
           </li>
         </ul>

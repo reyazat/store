@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Repositories\Contracts\CategoryRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 class CategoryRepository implements CategoryRepositoryInterface
 {
@@ -39,17 +40,30 @@ class CategoryRepository implements CategoryRepositoryInterface
         return Category::query()->find($id);
     }
 
-    public function getHeaderCategories(int $limit = 6): Collection
+    
+    public function getTopSubcategories(int $limit = 10): Collection
     {
         return Category::query()
-            ->whereNull('parent_id')
+            ->whereNotNull('parent_id') // Only subcategories
             ->where('status', 1)
             ->withCount(['products' => function ($query) {
                 $query->where('status', 1);
             }])
+            ->with(['parent' => function ($query) {
+                $query->select('id', 'name', 'slug');
+            }])
+            ->addSelect(['total_sales' => function ($query) {
+                $query->selectRaw('COALESCE(SUM(oi.quantity), 0)')
+                    ->from('order_items as oi')
+                    ->join('orders as o', 'oi.order_id', '=', 'o.id')
+                    ->join('products as p', 'oi.product_id', '=', 'p.id')
+                    ->join('category_product as cp', 'p.id', '=', 'cp.product_id')
+                    ->where('cp.category_id', '=', DB::raw('categories.id'))
+                    ->where('o.status', 'completed');
+            }])
             ->orderByDesc('products_count')
-            ->orderBy('sorted')
-            ->limit($limit)
+            ->orderByDesc('total_sales')
+            ->take($limit)
             ->get();
     }
 }

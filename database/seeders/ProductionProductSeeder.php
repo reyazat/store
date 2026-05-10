@@ -45,6 +45,10 @@ class ProductionProductSeeder extends Seeder
                 'categories' => [$electronics?->id, $mobileCat?->id],
                 'weight' => 187,
                 'status' => 1,
+                'sorted' => 100,
+                'discount_percent' => 10,
+                'discount_start_at' => now(),
+                'discount_end_at' => now()->addDays(30),
                 'price' => 65000000,
                 'stock' => 10,
                 'images' => [
@@ -64,6 +68,10 @@ class ProductionProductSeeder extends Seeder
                 'categories' => [$electronics?->id, $mobileCat?->id],
                 'weight' => 234,
                 'status' => 1,
+                'sorted' => 90,
+                'discount_percent' => 15,
+                'discount_start_at' => now(),
+                'discount_end_at' => now()->addDays(25),
                 'price' => 58000000,
                 'stock' => 15,
                 'images' => [
@@ -82,6 +90,7 @@ class ProductionProductSeeder extends Seeder
                 'categories' => [$electronics?->id, $mobileCat?->id],
                 'weight' => 193,
                 'status' => 1,
+                'sorted' => 70,
                 'price' => 28000000,
                 'stock' => 20,
                 'images' => [],
@@ -98,6 +107,7 @@ class ProductionProductSeeder extends Seeder
                 'categories' => [$electronics?->id, $laptopCat?->id],
                 'weight' => 1600,
                 'status' => 1,
+                'sorted' => 95,
                 'price' => 85000000,
                 'stock' => 5,
                 'images' => [

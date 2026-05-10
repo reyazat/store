@@ -18,7 +18,9 @@ import {
   Link,
   CreditCard,
   ListChecks,
-  ClipboardList
+  ClipboardList,
+  HelpCircle,
+  MessageSquare
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
@@ -39,6 +41,8 @@ const menuItems = [
   { name: 'لینک‌ها',          icon: Link,              path: '/admin/nav-links' },
   { name: 'روش‌های پرداخت',   icon: CreditCard,        path: '/admin/payment-methods' },
   { name: 'وضعیت‌های سفارش', icon: ListChecks,        path: '/admin/order-statuses' },
+  { name: 'سوالات متداول',    icon: HelpCircle,        path: '/admin/faqs' },
+  { name: 'نظرات کاربران',    icon: MessageSquare,     path: '/admin/reviews' },
   { name: 'لاگ‌های فعالیت',   icon: ClipboardList,     path: '/admin/audit-logs' },
   { name: 'تنظیمات',          icon: Settings,          path: '/admin/site-settings' },
 ]

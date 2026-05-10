@@ -24,6 +24,7 @@ class ProductSearchRequest extends FormRequest
             'category_slug' => ['nullable', 'string', 'exists:categories,slug'],
             'manufacturer_slug' => ['nullable', 'string', 'exists:manufacturers,slug'],
             'featured' => ['nullable', 'in:true,false,1,0'],
+            'special_offer' => ['nullable', 'in:true,false,1,0'],
             'has_discount' => ['nullable', 'in:true,false,1,0'],
             'sort_by_discount' => ['nullable', 'string', 'in:asc,desc'],
             'min_price' => ['nullable', 'numeric', 'min:0'],
@@ -46,7 +47,7 @@ class ProductSearchRequest extends FormRequest
         }
 
         // Normalize boolean string values to actual booleans
-        $booleanFields = ['featured', 'has_discount', 'in_stock'];
+        $booleanFields = ['featured', 'special_offer', 'has_discount', 'in_stock'];
         foreach ($booleanFields as $field) {
             if (isset($filters[$field])) {
                 $filters[$field] = in_array($filters[$field], [true, 'true', 1, '1'], true);

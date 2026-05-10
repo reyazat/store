@@ -32,6 +32,7 @@ class EcommerceSeeder extends Seeder
             ListingSeeder::class,            // Product listings (make products available)
             ListingVariantSeeder::class,     // Listing variants with stock and pricing
             SiteSettingSeeder::class,        // Site settings (logo, contact, social)
+            SliderSeeder::class,             // Homepage sliders
             SiteFeatureSeeder::class,        // Homepage services strip
             PromoBannerSeeder::class,        // Homepage promotional banners
         ]);

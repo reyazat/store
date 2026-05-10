@@ -25,6 +25,7 @@ const showMobileFilters = ref(false)
 const filters = ref<FiltersState>({
   search: '',
   category_slug: null,
+  manufacturer_slug: null,
   manufacturer_ids: [],
   min_price: null,
   max_price: null,
@@ -49,6 +50,7 @@ const syncFiltersFromQuery = () => {
   filters.value = {
     search: (q.q as string) || '',
     category_slug: (q.category_slug as string) || null,
+    manufacturer_slug: (q.manufacturer_slug as string) || null,
     manufacturer_ids: q.manufacturer_ids
       ? String(q.manufacturer_ids).split(',').map(Number).filter(Boolean)
       : [],
@@ -64,6 +66,7 @@ const buildQueryFromFilters = (): Record<string, string | undefined> => {
   const q: Record<string, string | undefined> = {}
   if (filters.value.search) q.q = filters.value.search
   if (filters.value.category_slug) q.category_slug = filters.value.category_slug
+  if (filters.value.manufacturer_slug) q.manufacturer_slug = filters.value.manufacturer_slug
   if (filters.value.manufacturer_ids.length)
     q.manufacturer_ids = filters.value.manufacturer_ids.join(',')
   if (filters.value.min_price != null) q.min_price = String(filters.value.min_price)
@@ -83,6 +86,7 @@ const fetchProducts = async () => {
       per_page: 24,
       search: filters.value.search || undefined,
       category_slug: filters.value.category_slug || undefined,
+      manufacturer_slug: filters.value.manufacturer_slug || undefined,
       manufacturer_ids: filters.value.manufacturer_ids.length ? filters.value.manufacturer_ids : undefined,
       min_price: filters.value.min_price ?? undefined,
       max_price: filters.value.max_price ?? undefined,
@@ -127,6 +131,7 @@ const resetFilters = () => {
   filters.value = {
     search: '',
     category_slug: null,
+    manufacturer_slug: null,
     manufacturer_ids: [],
     min_price: null,
     max_price: null,
@@ -149,6 +154,7 @@ const changePage = (page: number) => {
 
 const hasActiveFilters = computed(() =>
   filters.value.category_slug !== null ||
+  filters.value.manufacturer_slug !== null ||
   filters.value.manufacturer_ids.length > 0 ||
   filters.value.min_price !== null ||
   filters.value.max_price !== null ||
@@ -157,14 +163,26 @@ const hasActiveFilters = computed(() =>
   filters.value.search.length > 0
 )
 
-onMounted(() => {
+const resolveManufacturerSlug = async () => {
+  const slug = filters.value.manufacturer_slug
+  if (!slug || !brands.value.length) return
+  const brand = brands.value.find((b) => b.slug === slug)
+  if (brand && !filters.value.manufacturer_ids.includes(brand.id)) {
+    filters.value.manufacturer_ids = [...filters.value.manufacturer_ids, brand.id]
+  }
+  filters.value.manufacturer_slug = null
+}
+
+onMounted(async () => {
   syncFiltersFromQuery()
-  fetchFilterData()
+  await fetchFilterData()
+  await resolveManufacturerSlug()
   fetchProducts()
 })
 
-watch(() => route.query, () => {
+watch(() => route.query, async () => {
   syncFiltersFromQuery()
+  await resolveManufacturerSlug()
   fetchProducts()
 }, { deep: true })
 </script>
@@ -297,6 +315,13 @@ watch(() => route.query, () => {
           >
             {{ categories.find((c) => c.slug === filters.category_slug)?.name || filters.category_slug }}
             <button type="button" class="hover:text-primary-900" @click="filters.category_slug = null; applyFilters()">✕</button>
+          </span>
+          <span
+            v-if="filters.manufacturer_slug"
+            class="inline-flex items-center gap-1 px-3 py-1 bg-primary-50 text-primary-700 rounded-full text-sm"
+          >
+            {{ brands.find((b) => b.slug === filters.manufacturer_slug)?.name || filters.manufacturer_slug }}
+            <button type="button" class="hover:text-primary-900" @click="filters.manufacturer_slug = null; applyFilters()">✕</button>
           </span>
           <span
             v-for="mid in filters.manufacturer_ids"

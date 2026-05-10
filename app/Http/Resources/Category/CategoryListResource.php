@@ -14,15 +14,16 @@ class CategoryListResource extends JsonResource
     public function toArray(Request $request): array
     {
         return [
-            'id'             => $this->id,
-            'parent_id'      => $this->parent_id,
-            'name'           => $this->name,
-            'slug'           => $this->slug,
-            'image'          => $this->image,
-            'icon'           => $this->icon,
-            'products_count' => $this->whenCounted('products'),
-            'status'         => $this->status,
-            'created_at'     => $this->created_at?->toDateTimeString(),
+            'id'                  => $this->id,
+            'parent_id'           => $this->parent_id,
+            'name'                => $this->name,
+            'slug'                => $this->slug,
+            'image'               => $this->image,
+            'icon'                => $this->icon,
+            'products_count'      => $this->when(isset($this->total_products_count), $this->total_products_count, $this->whenCounted('products')),
+            'direct_products_count' => $this->when(isset($this->direct_products_count), $this->direct_products_count, 0),
+            'status'              => $this->status,
+            'created_at'          => $this->created_at?->toDateTimeString(),
         ];
     }
 }

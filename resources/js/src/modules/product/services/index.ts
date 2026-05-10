@@ -28,6 +28,18 @@ export interface ProductFilters {
   sort?: ProductSort
 }
 
+export interface ProductListItem {
+  id: number
+  name: string
+  slug: string
+  main_image: string | null
+  manufacturer: string | null
+  price: number
+  old_price: number | null
+  discount_percent: number | null
+  stock: number
+}
+
 export const productService = {
   async getProducts(filters: ProductFilters = {}) {
     const response = await api.get('/products', { params: filters })
@@ -37,5 +49,10 @@ export const productService = {
   async getProduct(slug: string) {
     const response = await api.get(`/products/${slug}`)
     return response.data
+  },
+
+  async getSimilarProducts(slug: string): Promise<ProductListItem[]> {
+    const response = await api.get(`/products/${slug}/similar`)
+    return response.data?.data || []
   },
 }

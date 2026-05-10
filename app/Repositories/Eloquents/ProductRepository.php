@@ -20,6 +20,13 @@ class ProductRepository implements ProductRepositoryInterface
     {
         $query = Product::query();
 
+        // Only show active products unless an explicit status filter is provided (admin context)
+        if (!array_key_exists('status', $filters) || $filters['status'] === null) {
+            $query->where('status', 1);
+        } elseif ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($builder) use ($search) {
@@ -27,10 +34,6 @@ class ProductRepository implements ProductRepositoryInterface
                     ->orWhere('slug', 'like', "%$search%")
                     ->orWhere('base_sku', 'like', "%$search%");
             });
-        }
-
-        if (array_key_exists('status', $filters) && $filters['status'] !== null) {
-            $query->where('status', $filters['status']);
         }
 
         if (!empty($filters['manufacturer_id'])) {
@@ -137,6 +140,14 @@ class ProductRepository implements ProductRepositoryInterface
         // Featured flag: prioritize products with sorted > 0
         if (!empty($filters['featured'])) {
             $query->where('sorted', '>', 0);
+        }
+
+        // Special offer flag: products with high discount or special sorting
+        if (!empty($filters['special_offer'])) {
+            $query->where(function ($q) {
+                $q->where('discount_percent', '>=', 15)
+                  ->orWhere('sorted', '>=', 50);
+            });
         }
 
         $perPage = $filters['per_page'] ?? $filters['limit'] ?? 15;

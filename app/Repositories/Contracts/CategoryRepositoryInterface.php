@@ -12,5 +12,5 @@ interface CategoryRepositoryInterface
 
     public function findById(int $id): ?Category;
 
-    public function getHeaderCategories(int $limit = 6): Collection;
+    public function getTopSubcategories(int $limit = 10): Collection;
 }

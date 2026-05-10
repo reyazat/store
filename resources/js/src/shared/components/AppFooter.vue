@@ -110,8 +110,9 @@ const { links: serviceLinks } = useNavLinks('footer_service')
               <li><RouterLink to="/order-tracking" class="text-secondary-400 hover:text-primary-400 transition">پیگیری سفارش</RouterLink></li>
               <li><RouterLink to="/user/addresses" class="text-secondary-400 hover:text-primary-400 transition">آدرس‌های من</RouterLink></li>
               <li><RouterLink to="/user/wishlist" class="text-secondary-400 hover:text-primary-400 transition">لیست علاقه‌مندی‌ها</RouterLink></li>
-              <li><a href="/faq" class="text-secondary-400 hover:text-primary-400 transition">سوالات متداول</a></li>
-              <li><a href="/terms" class="text-secondary-400 hover:text-primary-400 transition">قوانین و مقررات</a></li>
+              <li><RouterLink to="/faq" class="text-secondary-400 hover:text-primary-400 transition">سوالات متداول</RouterLink></li>
+              <li><RouterLink to="/terms" class="text-secondary-400 hover:text-primary-400 transition">قوانین و مقررات</RouterLink></li>
+              <li><RouterLink to="/privacy" class="text-secondary-400 hover:text-primary-400 transition">حریم خصوصی</RouterLink></li>
             </template>
           </ul>
         </div>
@@ -157,7 +158,9 @@ const { links: serviceLinks } = useNavLinks('footer_service')
         <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-secondary-400">
           <p>© {{ new Date().getFullYear() }} {{ settings.copyright_text || 'شرکت تجارت الکترونیک و فناوری اتکا. تمامی حقوق محفوظ است.' }}</p>
           <div class="flex items-center gap-4">
-            <span>طراحی و توسعه با ❤️</span>
+            <RouterLink to="/terms" class="hover:text-secondary-300 transition">قوانین و مقررات</RouterLink>
+            <RouterLink to="/privacy" class="hover:text-secondary-300 transition">حریم خصوصی</RouterLink>
+            <RouterLink to="/faq" class="hover:text-secondary-300 transition">سوالات متداول</RouterLink>
           </div>
         </div>
       </div>

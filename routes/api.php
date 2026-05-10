@@ -18,13 +18,16 @@ Route::prefix('v1')->group(function () {
       Route::get('/', [\App\Http\Controllers\API\ProductController::class, 'index']);
       Route::get('/search', [\App\Http\Controllers\API\ProductController::class, 'index']);
       Route::get('/autocomplete', [\App\Http\Controllers\API\ProductController::class, 'autocomplete']);
+      Route::get('/{product}/similar', [\App\Http\Controllers\API\ProductController::class, 'similar']);
+      Route::get('/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'index']);
       Route::get('/{product}', [\App\Http\Controllers\API\ProductController::class, 'show']);
     });
 
     Route::prefix('categories')->group(function () {
       Route::get('/', [\App\Http\Controllers\API\CategoryController::class, 'index']);
       Route::get('/search', [\App\Http\Controllers\API\CategoryController::class, 'index']);
-      Route::get('/header', [\App\Http\Controllers\API\CategoryController::class, 'headerCategories']);
+      Route::get('/hierarchical', [\App\Http\Controllers\API\CategoryController::class, 'hierarchical']);
+      Route::get('/top-subcategories', [\App\Http\Controllers\API\CategoryController::class, 'topSubcategories']);
       Route::get('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'show']);
     });
 
@@ -33,6 +36,8 @@ Route::prefix('v1')->group(function () {
   });
 
   Route::post('/newsletter/subscribe', [\App\Http\Controllers\API\NewsletterController::class, 'subscribe']);
+
+  Route::get('/faqs', [\App\Http\Controllers\API\FaqController::class, 'index']);
 
   Route::prefix('tax-classes')->group(function () {
     Route::get('/', [\App\Http\Controllers\API\TaxClassController::class, 'index']);
@@ -79,6 +84,7 @@ Route::prefix('v1')->group(function () {
 
 Route::middleware(['auth:api'])->prefix('v1')->group(function () {
   Route::prefix('products')->group(function () {
+    Route::post('/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'store']);
     Route::post('/', [\App\Http\Controllers\API\ProductController::class, 'store']);
     Route::put('/{product}', [\App\Http\Controllers\API\ProductController::class, 'update']);
     Route::delete('/{product}', [\App\Http\Controllers\API\ProductController::class, 'destroy']);
@@ -242,6 +248,19 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::post('/order-statuses', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'store']);
   Route::put('/order-statuses/{orderStatus}', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'update']);
   Route::delete('/order-statuses/{orderStatus}', [\App\Http\Controllers\API\Admin\OrderStatusController::class, 'destroy']);
+
+  // Reviews Management
+  Route::get('/reviews', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'index']);
+  Route::post('/reviews/{review}/approve', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'approve']);
+  Route::post('/reviews/{review}/reject', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'reject']);
+  Route::delete('/reviews/{review}', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'destroy']);
+
+  // FAQs Management
+  Route::get('/faqs', [\App\Http\Controllers\API\Admin\FaqController::class, 'index']);
+  Route::post('/faqs', [\App\Http\Controllers\API\Admin\FaqController::class, 'store']);
+  Route::get('/faqs/{faq}', [\App\Http\Controllers\API\Admin\FaqController::class, 'show']);
+  Route::put('/faqs/{faq}', [\App\Http\Controllers\API\Admin\FaqController::class, 'update']);
+  Route::delete('/faqs/{faq}', [\App\Http\Controllers\API\Admin\FaqController::class, 'destroy']);
 
   // IAM User Management
   Route::get('/users', [\App\Http\Controllers\API\Admin\UserController::class, 'index']);

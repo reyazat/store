@@ -26,9 +26,47 @@ class CategoryService
         return $this->categoryRepository->findById($id);
     }
 
-    public function getHeaderCategories(int $limit = 6): Collection
+    
+    public function getHierarchicalCategories(): array
     {
-        return $this->categoryRepository->getHeaderCategories($limit);
+        $categories = Category::query()
+        ->with(['children' => function ($query) {
+            $query->where('status', 1)->orderBy('name');
+        }])
+        ->whereNull('parent_id')
+        ->where('status', 1)
+        ->withCount('children')
+        ->orderByDesc('children_count')
+        ->orderBy('name')
+        ->get();
+
+        return $categories->map(function ($category) {
+            $hasSubcategories = $category->children->count() > 0;
+            
+            return [
+                'id' => $category->id,
+                'name' => $category->name,
+                'slug' => $category->slug,
+                'image' => $category->image,
+                'icon' => $category->icon,
+                'children_count' => $category->children_count,
+                'direct_products_count' => $hasSubcategories ? 0 : $category->products()->count(),
+                'children' => $category->children->map(function ($child) {
+                    return [
+                        'id' => $child->id,
+                        'name' => $child->name,
+                        'slug' => $child->slug,
+                        'image' => $child->image,
+                        'products_count' => $child->products()->count(),
+                    ];
+                }),
+            ];
+        })->toArray();
+    }
+
+    public function getTopSubcategories(int $limit = 10): Collection
+    {
+        return $this->categoryRepository->getTopSubcategories($limit);
     }
 
     /**
