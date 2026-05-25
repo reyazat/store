@@ -43,7 +43,9 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "exclude-from-classmap": [
-            "vendor/vreyazat/iam-service/src/Database/seeders/"
+            "vendor/vreyazat/iam-service/src/Database/seeders/DatabaseSeeder.php",
+            "vendor/vreyazat/iam-service/src/Database/seeders/DevelopmentSeeder.php",
+            "vendor/vreyazat/iam-service/src/Database/seeders/UserSeeder.php"
         ]
     },
     "autoload-dev": {

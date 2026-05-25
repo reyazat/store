@@ -21,10 +21,10 @@ return new class extends Migration
             $table->string('main_image');
             $table->foreignId('manufacturer_id')->nullable();
             $table->foreignId('tax_class_id');
-            $table->decimal('weight', 10, 3);
-            $table->decimal('length', 10, 3);
-            $table->decimal('width', 10, 3);
-            $table->decimal('height', 10, 3);
+            $table->decimal('weight', 10, 3)->nullable();
+            $table->decimal('length', 10, 3)->nullable();
+            $table->decimal('width', 10, 3)->nullable();
+            $table->decimal('height', 10, 3)->nullable();
             $table->date('date_available')->nullable();
             $table->string('meta_title')->nullable();
             $table->text('meta_description')->nullable();

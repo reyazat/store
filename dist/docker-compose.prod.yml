@@ -1,0 +1,94 @@
+name: etkala
+
+services:
+  app:
+    image: etkala-app:${ETKALA_VERSION:-latest}
+    container_name: etkala-app
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ./.env.etkala
+    depends_on:
+      mysql:
+        condition: service_healthy
+    expose:
+      - "80"
+    volumes:
+      - etkala_storage:/var/www/html/storage/app/public
+    networks:
+      - etkala_internal
+      - npm_proxy
+
+  queue:
+    image: etkala-app:${ETKALA_VERSION:-latest}
+    container_name: etkala-queue
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ./.env.etkala
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - etkala_storage:/var/www/html/storage/app/public
+    networks:
+      - etkala_internal
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  scheduler:
+    image: etkala-app:${ETKALA_VERSION:-latest}
+    container_name: etkala-scheduler
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ./.env.etkala
+    command: sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - etkala_storage:/var/www/html/storage/app/public
+    networks:
+      - etkala_internal
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  mysql:
+    image: mysql:8.4
+    container_name: etkala-mysql
+    pull_policy: never
+    restart: unless-stopped
+    env_file:
+      - ./.env.mysql
+    command: --default-authentication-plugin=mysql_native_password --innodb_buffer_pool_size=512M
+    volumes:
+      - etkala_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - etkala_internal
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+volumes:
+  etkala_storage:
+  etkala_mysql_data:
+
+networks:
+  etkala_internal:
+    driver: bridge
+
+  npm_proxy:
+    external: true

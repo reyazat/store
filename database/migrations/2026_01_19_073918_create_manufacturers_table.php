@@ -15,13 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('name', 255);
             $table->string('slug', 255)->unique();
+            $table->text('description')->nullable();
+            $table->string('logo')->nullable();
             $table->string('image')->nullable();
+            $table->string('website')->nullable();
             $table->unsignedTinyInteger('status')->default(1);
+            $table->unsignedSmallInteger('sort_order')->default(0);
             $table->timestamps();
             $table->softDeletes();
 
             $table->index('name'); // برای جستجوی سریع بر اساس نام
             $table->index('status'); // برای فیلتر کردن بر اساس وضعیت
+            $table->index('sort_order'); // برای مرتب‌سازی
         });
     }
 

@@ -17,6 +17,15 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Trust all proxies (required when behind nginx-proxy-manager)
+        // '**' means trust any IP (safe for Docker internal networks)
+        $middleware->trustProxies(at: '**', headers: 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT |
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+        );
+
         // Register global middleware (applied to all routes)
         $middleware->append(\App\Http\Middleware\ForceJsonResponse::class);
         $middleware->append(\App\Http\Middleware\SetLocaleMiddleware::class);
