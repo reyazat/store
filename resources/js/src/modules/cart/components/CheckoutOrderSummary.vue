@@ -54,9 +54,9 @@ const hasItems = computed(() => cartStore.items.length > 0)
         <span>جمع اقلام ({{ cartStore.itemsCount }} عدد)</span>
         <span>{{ formatPrice(cartStore.total) }} تومان</span>
       </div>
-      <div class="flex justify-between text-green-600">
+      <div class="flex justify-between text-gray-500">
         <span>هزینه ارسال</span>
-        <span>رایگان</span>
+        <span class="text-xs">در مرحله بعد محاسبه می‌شود</span>
       </div>
       <div class="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
         <span>مبلغ قابل پرداخت</span>

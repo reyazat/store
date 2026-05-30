@@ -39,8 +39,14 @@ const updateProfile = async () => {
   try {
     await userService.updateProfile(user.value)
     message.value = 'پروفایل با موفقیت به‌روزرسانی شد'
-  } catch (err) {
-    error.value = 'خطا در به‌روزرسانی پروفایل'
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: { data?: Record<string, string[]>; message?: string } } }
+    const data = e.response?.data
+    if (data?.data && typeof data.data === 'object') {
+      error.value = (Object.values(data.data).flat() as string[]).join('، ')
+    } else {
+      error.value = data?.message || 'خطا در به‌روزرسانی پروفایل'
+    }
   } finally {
     isSaving.value = false
   }
@@ -60,8 +66,14 @@ const changePassword = async () => {
     await userService.changePassword(passwords.value)
     message.value = 'رمز عبور با موفقیت تغییر کرد'
     passwords.value = { current_password: '', new_password: '', new_password_confirmation: '' }
-  } catch (err) {
-    error.value = 'خطا در تغییر رمز عبور'
+  } catch (err: unknown) {
+    const e = err as { response?: { data?: { data?: Record<string, string[]>; message?: string } } }
+    const data = e.response?.data
+    if (data?.data && typeof data.data === 'object') {
+      error.value = (Object.values(data.data).flat() as string[]).join('، ')
+    } else {
+      error.value = data?.message || 'خطا در تغییر رمز عبور'
+    }
   } finally {
     isChangingPassword.value = false
   }

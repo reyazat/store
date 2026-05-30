@@ -10,6 +10,7 @@ export const useWishlistStore = defineStore('wishlist', () => {
   const isInitialized = ref(false)
 
   const productIds = computed(() => new Set(entryMap.value.keys()))
+  const count = computed(() => entryMap.value.size)
 
   const init = async () => {
     if (!authStore.isAuthenticated || isInitialized.value) return
@@ -43,5 +44,5 @@ export const useWishlistStore = defineStore('wishlist', () => {
     entryMap.value.delete(productId)
   }
 
-  return { entryMap, productIds, isInitialized, init, has, toggle, removeByProductId }
+  return { entryMap, productIds, count, isInitialized, init, has, toggle, removeByProductId }
 })

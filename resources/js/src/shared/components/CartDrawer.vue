@@ -2,12 +2,9 @@
 import { RouterLink } from 'vue-router'
 import { X, Minus, Plus, Trash2 } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
+import { formatPrice } from '@shared/utils/format'
 
 const cartStore = useCartStore()
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price)
-}
 </script>
 
 <template>
@@ -33,6 +30,7 @@ const formatPrice = (price: number) => {
           <button 
             @click="cartStore.closeDrawer"
             class="p-2 hover:bg-gray-100 rounded-full"
+            aria-label="بستن سبد خرید"
           >
             <X class="w-5 h-5" />
           </button>
@@ -70,19 +68,22 @@ const formatPrice = (price: number) => {
                   <button 
                     @click="cartStore.updateQuantity(item.id, item.quantity - 1)"
                     class="p-1 hover:bg-gray-200 rounded"
+                    :aria-label="`کاهش تعداد ${item.name}`"
                   >
                     <Minus class="w-4 h-4" />
                   </button>
-                  <span class="w-8 text-center">{{ item.quantity }}</span>
+                  <span class="w-8 text-center" :aria-label="`تعداد: ${item.quantity}`">{{ item.quantity }}</span>
                   <button 
                     @click="cartStore.updateQuantity(item.id, item.quantity + 1)"
                     class="p-1 hover:bg-gray-200 rounded"
+                    :aria-label="`افزایش تعداد ${item.name}`"
                   >
                     <Plus class="w-4 h-4" />
                   </button>
                   <button 
                     @click="cartStore.removeItem(item.id)"
                     class="p-1 hover:bg-red-100 text-red-600 rounded mr-auto"
+                    :aria-label="`حذف ${item.name} از سبد خرید`"
                   >
                     <Trash2 class="w-4 h-4" />
                   </button>
@@ -103,7 +104,7 @@ const formatPrice = (price: number) => {
             class="block w-full bg-primary-600 text-white text-center py-3 rounded-lg hover:bg-primary-700 transition"
             @click="cartStore.closeDrawer"
           >
-            ادامه خرید
+            تکمیل خرید
           </RouterLink>
         </div>
       </div>

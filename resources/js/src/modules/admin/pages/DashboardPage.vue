@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { ShoppingCart, Users, Package, DollarSign, TrendingUp } from 'lucide-vue-next'
 import api from '@shared/utils/api'
+import { formatPrice } from '@shared/utils/format'
 
 interface DashboardStats {
   total_orders: number
@@ -12,8 +13,18 @@ interface DashboardStats {
   revenue_today: number
 }
 
+interface RecentOrder {
+  id: number
+  order_number: string
+  customer_name: string
+  total: number
+  status: string
+  status_label: string
+  created_at: string
+}
+
 const stats = ref<DashboardStats | null>(null)
-const recentOrders = ref<any[]>([])
+const recentOrders = ref<RecentOrder[]>([])
 const isLoading = ref(true)
 
 onMounted(async () => {
@@ -27,10 +38,6 @@ onMounted(async () => {
     isLoading.value = false
   }
 })
-
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price)
-}
 
 const statCards = [
   { title: 'کل سفارشات', key: 'total_orders', icon: ShoppingCart, color: 'bg-blue-500' },

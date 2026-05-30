@@ -11,6 +11,12 @@ const isSaving = ref(false)
 const isDeleting = ref<number | null>(null)
 const editingLink = ref<NavLink | null>(null)
 const activeGroup = ref<NavLinkGroup>('header')
+const actionError = ref<string | null>(null)
+
+function showError(msg: string) {
+  actionError.value = msg
+  setTimeout(() => (actionError.value = null), 4000)
+}
 
 const groupLabels: Record<NavLinkGroup, string> = {
   header:          'منوی اصلی (هدر)',
@@ -88,7 +94,7 @@ const save = async () => {
     }
     closeModal()
   } catch {
-    // handled silently
+    showError('خطا در ذخیره لینک')
   } finally {
     isSaving.value = false
   }
@@ -101,7 +107,7 @@ const remove = async (link: NavLink) => {
     await navLinkService.delete(link.id)
     links.value = links.value.filter(l => l.id !== link.id)
   } catch {
-    // handled silently
+    showError('خطا در حذف لینک')
   } finally {
     isDeleting.value = null
   }
@@ -113,7 +119,7 @@ const toggleActive = async (link: NavLink) => {
     const index = links.value.findIndex(l => l.id === link.id)
     if (index !== -1) links.value[index] = updated
   } catch {
-    // handled silently
+    showError('خطا در تغییر وضعیت لینک')
   }
 }
 
@@ -133,6 +139,13 @@ onMounted(loadLinks)
         لینک جدید
       </button>
     </div>
+
+    <!-- Error Alert -->
+    <Transition name="fade">
+      <div v-if="actionError" class="flex items-center gap-2 mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+        {{ actionError }}
+      </div>
+    </Transition>
 
     <!-- Group Tabs -->
     <div class="flex gap-2 mb-4 flex-wrap">
@@ -333,3 +346,8 @@ onMounted(loadLinks)
     </Teleport>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>

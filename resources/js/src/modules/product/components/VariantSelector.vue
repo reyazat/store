@@ -102,6 +102,8 @@ const getColorClass = (value: string): string => {
 </template>
 
 <style scoped>
+@reference "../../../../../css/app.css";
+
 .variant-option {
   @apply transition-all;
 }

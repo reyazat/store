@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next'
 import { productService } from '../services'
@@ -10,15 +10,22 @@ const props = defineProps<{
   productSlug: string
 }>()
 
-const items = ref<ProductListItem[]>([])
+const items  = ref<ProductListItem[]>([])
+const source = ref<'manual' | 'algorithm'>('algorithm')
 const isLoading = ref(false)
 const scrollContainer = ref<HTMLElement | null>(null)
+
+const sectionTitle = computed(() =>
+  source.value === 'manual' ? 'محصولات مرتبط' : 'محصولات مشابه'
+)
 
 const load = async (slug: string) => {
   if (!slug) return
   isLoading.value = true
   try {
-    items.value = await productService.getSimilarProducts(slug)
+    const result   = await productService.getSimilarProducts(slug)
+    items.value    = result.items
+    source.value   = result.source
   } finally {
     isLoading.value = false
   }
@@ -39,7 +46,7 @@ watch(() => props.productSlug, (slug) => load(slug))
 
 <template>
   <section v-if="isLoading || items.length > 0" class="mt-12">
-    <h2 class="text-xl font-bold text-secondary-800 mb-5">محصولات مشابه</h2>
+    <h2 class="text-xl font-bold text-secondary-800 mb-5">{{ sectionTitle }}</h2>
 
     <!-- Loading skeleton -->
     <div v-if="isLoading" class="flex gap-4 overflow-hidden">

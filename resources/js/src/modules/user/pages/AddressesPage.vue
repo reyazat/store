@@ -11,6 +11,7 @@ const addresses = ref<Address[]>([])
 const isLoading = ref(true)
 const showForm = ref(false)
 const editingAddress = ref<Address | null>(null)
+const deleteError = ref<string | null>(null)
 
 const fetchAddresses = async () => {
   isLoading.value = true
@@ -46,12 +47,12 @@ const handleSaved = () => {
 
 const deleteAddress = async (id: number) => {
   if (!confirm('آیا از حذف این آدرس اطمینان دارید؟')) return
-  
+  deleteError.value = null
   try {
     await userService.deleteAddress(id)
     addresses.value = addresses.value.filter(a => a.id !== id)
-  } catch (error) {
-    console.error('Failed to delete address:', error)
+  } catch {
+    deleteError.value = 'خطا در حذف آدرس. لطفاً دوباره تلاش کنید.'
   }
 }
 
@@ -81,6 +82,9 @@ onMounted(fetchAddresses)
           </div>
           
           <div class="p-6">
+            <div v-if="deleteError" class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+              {{ deleteError }}
+            </div>
             <div v-if="isLoading" class="space-y-4">
               <div v-for="i in 2" :key="i" class="animate-pulse p-4 border rounded-lg">
                 <div class="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
@@ -106,10 +110,10 @@ onMounted(fetchAddresses)
                     </span>
                   </div>
                   <div class="flex gap-2">
-                    <button @click="openEditForm(address)" class="p-1 hover:bg-gray-100 rounded">
+                    <button @click="openEditForm(address)" class="p-1 hover:bg-gray-100 rounded" :aria-label="`ویرایش آدرس ${address.title || ''}`">
                       <Edit2 class="w-4 h-4 text-gray-500" />
                     </button>
-                    <button @click="deleteAddress(address.id)" class="p-1 hover:bg-red-100 rounded">
+                    <button @click="deleteAddress(address.id)" class="p-1 hover:bg-red-100 rounded" :aria-label="`حذف آدرس ${address.title || ''}`">
                       <Trash2 class="w-4 h-4 text-red-500" />
                     </button>
                   </div>

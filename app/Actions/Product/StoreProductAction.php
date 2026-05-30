@@ -18,6 +18,7 @@ class StoreProductAction
      */
     public function execute(ProductStoreRequest $request): Product
     {
-        return $this->productService->createProduct($request->validatedData())->load(['categories', 'images', 'variants.optionValues']);
+        return $this->productService->createProduct($request->validatedData())
+            ->load(['categories', 'images', 'relatedProducts', 'variants.optionValues']);
     }
 }

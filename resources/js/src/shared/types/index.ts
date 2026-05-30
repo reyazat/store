@@ -68,6 +68,7 @@ export interface User {
   roles?: string[]
   permissions?: string[]
   is_admin?: boolean
+  is_super_admin?: boolean
 }
 
 export interface LoginCredentials {

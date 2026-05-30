@@ -41,6 +41,13 @@ class CategoryRepository implements CategoryRepositoryInterface
     }
 
     
+    public function reorder(array $orderedIds): void
+    {
+        foreach ($orderedIds as $index => $id) {
+            Category::where('id', $id)->update(['sorted' => $index]);
+        }
+    }
+
     public function getTopSubcategories(int $limit = 10): Collection
     {
         return Category::query()

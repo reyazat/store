@@ -185,7 +185,7 @@ const handleSubmit = async () => {
           <label class="flex items-start gap-2 cursor-pointer">
             <input type="checkbox" class="w-4 h-4 mt-1 rounded border-secondary-300 text-primary-600 focus:ring-primary-500" required />
             <span class="text-sm text-secondary-600">
-              با <a href="#" class="text-primary-600">قوانین و مقررات</a> سایت موافقم
+              با <RouterLink to="/terms" class="text-primary-600">قوانین و مقررات</RouterLink> سایت موافقم
             </span>
           </label>
 

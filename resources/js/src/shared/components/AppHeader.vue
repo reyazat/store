@@ -4,6 +4,7 @@ import { RouterLink } from 'vue-router'
 import { Menu, X, ShoppingCart, Heart, User, Search, ChevronDown, Phone, Headphones, Grid3X3, Truck, Shield, RotateCcw } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
 import { useAuthStore } from '@/stores/auth'
+import { useWishlistStore } from '@/stores/wishlist'
 import { useSiteSettings } from '@shared/composables/useSiteSettings'
 import { useNavLinks } from '@shared/composables/useNavLinks'
 import SearchAutocomplete from '@shared/components/SearchAutocomplete.vue'
@@ -11,6 +12,7 @@ import { categoryService, type HierarchicalCategory } from '@modules/category/se
 
 const cartStore = useCartStore()
 const authStore = useAuthStore()
+const wishlistStore = useWishlistStore()
 const isMenuOpen = ref(false)
 const isSearchOpen = ref(false)
 const isCategoryMenuOpen = ref(false)
@@ -161,12 +163,22 @@ onMounted(loadCategories)
             </RouterLink>
             
             <!-- Wishlist -->
-            <RouterLink 
-              to="/user/wishlist" 
+            <component
+              :is="authStore.isAuthenticated ? RouterLink : 'a'"
+              v-bind="authStore.isAuthenticated
+                ? { to: '/user/wishlist' }
+                : { href: '/login?redirect=/user/wishlist' }"
               class="p-2.5 hover:bg-secondary-100 rounded-xl transition relative"
+              aria-label="لیست علاقه‌مندی‌ها"
             >
               <Heart class="w-6 h-6 text-secondary-600" />
-            </RouterLink>
+              <span
+                v-if="authStore.isAuthenticated && wishlistStore.count > 0"
+                class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold"
+              >
+                {{ wishlistStore.count }}
+              </span>
+            </component>
             
             <!-- Cart -->
             <button 

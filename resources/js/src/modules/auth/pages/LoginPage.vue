@@ -53,11 +53,7 @@ const handleSubmit = async () => {
     await cartStore.mergeGuestCart()
 
     // Redirect based on role
-    if (authStore.isAdmin) {
-      router.push('/admin/dashboard')
-    } else {
-      router.push(redirectTo.value)
-    }
+    router.push(redirectTo.value !== '/' && redirectTo.value ? redirectTo.value : (authStore.isAdmin ? '/admin/dashboard' : '/'))
   } catch (err: any) {
     console.error('Login error:', err)
     if (err.response?.status === 401) {
@@ -140,13 +136,9 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <!-- Remember & Forgot -->
-          <div class="flex items-center justify-between">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500" />
-              <span class="text-sm text-secondary-600">مرا به خاطر بسپار</span>
-            </label>
-            <a href="#" class="text-sm text-primary-600 hover:text-primary-700">فراموشی رمز عبور</a>
+          <!-- Forgot -->
+          <div class="flex justify-end">
+            <RouterLink to="/forgot-password" class="text-sm text-primary-600 hover:text-primary-700">فراموشی رمز عبور؟</RouterLink>
           </div>
 
           <!-- Submit Button -->

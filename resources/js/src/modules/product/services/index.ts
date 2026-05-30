@@ -51,8 +51,11 @@ export const productService = {
     return response.data
   },
 
-  async getSimilarProducts(slug: string): Promise<ProductListItem[]> {
+  async getSimilarProducts(slug: string): Promise<{ items: ProductListItem[]; source: 'manual' | 'algorithm' }> {
     const response = await api.get(`/products/${slug}/similar`)
-    return response.data?.data || []
+    return {
+      items:  response.data?.data   || [],
+      source: response.data?.source ?? 'algorithm',
+    }
   },
 }

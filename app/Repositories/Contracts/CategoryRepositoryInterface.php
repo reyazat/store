@@ -13,4 +13,6 @@ interface CategoryRepositoryInterface
     public function findById(int $id): ?Category;
 
     public function getTopSubcategories(int $limit = 10): Collection;
+
+    public function reorder(array $orderedIds): void;
 }

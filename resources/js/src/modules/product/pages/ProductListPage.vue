@@ -152,6 +152,25 @@ const changePage = (page: number) => {
   router.push({ query: { ...route.query, page: String(page) } })
 }
 
+const pageNumbers = computed<(number | -1)[]>(() => {
+  const total = lastPage.value
+  const current = currentPage.value
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+
+  const pages: (number | -1)[] = [1]
+
+  if (current > 3) pages.push(-1)
+
+  const start = Math.max(2, current - 1)
+  const end = Math.min(total - 1, current + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  if (current < total - 2) pages.push(-1)
+  pages.push(total)
+
+  return pages
+})
+
 const hasActiveFilters = computed(() =>
   filters.value.category_slug !== null ||
   filters.value.manufacturer_slug !== null ||
@@ -412,14 +431,14 @@ watch(() => route.query, async () => {
             قبلی
           </button>
           <button
-            v-for="page in lastPage > 7 ? [1, 2, 3, -1, lastPage - 2, lastPage - 1, lastPage] : lastPage"
-            :key="page"
+            v-for="(page, idx) in pageNumbers"
+            :key="idx"
             type="button"
             :disabled="page === -1"
             :class="[
               'px-3 py-2 rounded-lg border',
               page === currentPage ? 'bg-primary-600 text-white border-primary-600' : 'bg-white hover:bg-secondary-50',
-              page === -1 && 'cursor-default opacity-50',
+              page === -1 ? 'cursor-default opacity-50' : '',
             ]"
             @click="page !== -1 && changePage(page)"
           >

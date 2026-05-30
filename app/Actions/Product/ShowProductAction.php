@@ -13,6 +13,7 @@ class ShowProductAction
             'categories',
             'images',
             'manufacturer',
+            'relatedProducts',
             'options.values',
             'variants' => function ($query) {
                 $query->where('status', 1)
@@ -24,8 +25,11 @@ class ShowProductAction
                     ]);
             },
             'listings' => function ($query) {
-                $query->where('status', 'active');
-            }
+                $query->where('status', 'active')
+                    ->with(['listingVariants' => function ($q) {
+                        $q->where('status', 1);
+                    }]);
+            },
         ]);
     }
 }

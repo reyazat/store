@@ -16,6 +16,6 @@ class UpdateProductAction
     {
         $product = $this->productService->updateProduct($product, $request->validatedData());
 
-        return $product->load(['categories', 'images', 'variants.optionValues']);
+        return $product->load(['categories', 'images', 'relatedProducts', 'variants.optionValues']);
     }
 }

@@ -57,6 +57,8 @@ const closeModal = () => {
 }
 
 const handleSubmit = async () => {
+  if (!form.key.trim()) { showMsg(false, 'کلید وضعیت الزامی است'); return }
+  if (!form.label.trim()) { showMsg(false, 'عنوان وضعیت الزامی است'); return }
   isSaving.value = true
   try {
     if (editingId.value) {
@@ -70,8 +72,9 @@ const handleSubmit = async () => {
       showMsg(true, 'وضعیت جدید ایجاد شد')
     }
     closeModal()
-  } catch (e: any) {
-    showMsg(false, e.response?.data?.message || 'خطا در ذخیره')
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    showMsg(false, msg || 'خطا در ذخیره')
   } finally {
     isSaving.value = false
   }

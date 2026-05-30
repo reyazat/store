@@ -55,9 +55,12 @@ export function useProductVariants(productRef: Ref<Product | null>) {
     return productRef.value?.listings?.[0]?.base_price || 0
   })
 
-  const currentStock = computed(() =>
-    selectedVariant.value?.listing_variant?.stock_quantity ?? 0
-  )
+  const currentStock = computed(() => {
+    if (selectedVariant.value?.listing_variant) {
+      return selectedVariant.value.listing_variant.stock_quantity
+    }
+    return productRef.value?.listings?.[0]?.stock_quantity ?? 0
+  })
 
   const isInStock = computed(() => currentStock.value > 0)
 

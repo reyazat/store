@@ -44,6 +44,7 @@ export interface ProductListing {
   id: number
   vendor_id: number
   base_price: number
+  stock_quantity: number
   min_order_qty: number
   status: string
 }
@@ -87,6 +88,9 @@ export interface Product {
   viewed: number
   sorted: number
   status: number
+  discount_percent: number | null
+  discount_start_at: string | null
+  discount_end_at: string | null
   created_at: string
   updated_at: string
   categories?: ProductCategory[]

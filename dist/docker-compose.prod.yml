@@ -14,7 +14,7 @@ services:
     expose:
       - "80"
     volumes:
-      - etkala_storage:/var/www/html/storage/app/public
+      - etkala_storage:/var/www/html/storage/app
     networks:
       - etkala_internal
       - npm_proxy
@@ -31,7 +31,7 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - etkala_storage:/var/www/html/storage/app/public
+      - etkala_storage:/var/www/html/storage/app
     networks:
       - etkala_internal
     deploy:
@@ -51,7 +51,7 @@ services:
       mysql:
         condition: service_healthy
     volumes:
-      - etkala_storage:/var/www/html/storage/app/public
+      - etkala_storage:/var/www/html/storage/app
     networks:
       - etkala_internal
     deploy:

@@ -5,6 +5,7 @@ namespace App\Http\Resources\Product;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 /**
  * @property-read Product $resource
  * @mixin Product
@@ -38,7 +39,7 @@ class ProductListResource extends JsonResource
             'name' => $this->name,
             'slug' => $this->slug,
             'base_sku' => $this->base_sku,
-            'main_image' => $this->main_image,
+            'main_image' => $this->resolveImageUrl($this->main_image),
             'manufacturer_id' => $this->manufacturer_id,
             'manufacturer' => $manufacturer,
             'tax_class_id' => $this->tax_class_id,
@@ -53,5 +54,18 @@ class ProductListResource extends JsonResource
             'discount_end_at' => $this->discount_end_at?->toDateTimeString(),
             'stock' => $totalStock,
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

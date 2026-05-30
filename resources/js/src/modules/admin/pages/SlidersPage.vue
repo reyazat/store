@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Edit2, Trash2, GripVertical, Eye, EyeOff, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-vue-next'
+import { Plus, Edit2, Trash2, Eye, EyeOff, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-vue-next'
 import { sliderService } from '../services/sliderService'
 import type { Slider, SliderFormData } from '../types/slider'
 
@@ -196,7 +196,6 @@ function showSuccess(msg: string) {
         <table class="w-full">
           <thead class="bg-secondary-50 border-b border-secondary-200">
             <tr>
-              <th class="px-4 py-3 text-right text-xs font-medium text-secondary-500 w-8"></th>
               <th class="px-4 py-3 text-right text-xs font-medium text-secondary-500">تصویر</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-secondary-500">عنوان</th>
               <th class="px-4 py-3 text-right text-xs font-medium text-secondary-500">زیرعنوان</th>
@@ -208,9 +207,6 @@ function showSuccess(msg: string) {
           </thead>
           <tbody class="divide-y divide-secondary-100">
             <tr v-for="slider in sliders" :key="slider.id" class="hover:bg-secondary-50 transition">
-              <td class="px-4 py-3">
-                <GripVertical class="w-4 h-4 text-secondary-300 cursor-grab" />
-              </td>
               <td class="px-4 py-3">
                 <div class="w-20 h-12 rounded-lg overflow-hidden bg-secondary-100 flex items-center justify-center">
                   <img

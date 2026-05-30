@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ChevronLeft, ChevronRight, Star, Clock, TrendingUp } from 'lucide-vue-next'
 import CategorySection from '../components/CategorySection.vue'
@@ -82,6 +82,10 @@ onMounted(async () => {
   }
 })
 
+onUnmounted(() => {
+  if (slideInterval) clearInterval(slideInterval)
+})
+
 const hasSiteFeatures = computed(() => siteFeatures.value.length > 0)
 const hasPromoBanners = computed(() => promoBanners.value.length > 0)
 </script>
@@ -157,12 +161,15 @@ const hasPromoBanners = computed(() => promoBanners.value.length > 0)
         </transition-group>
 
         <!-- Dots -->
-        <div v-if="slides.length > 1" class="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+        <div v-if="slides.length > 1" class="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 z-20" role="tablist" aria-label="اسلایدها">
           <button
             v-for="(slide, index) in slides"
             :key="slide.id"
             @click="currentSlide = index"
             :class="['h-2.5 rounded-full transition-all duration-300', currentSlide === index ? 'bg-white w-7' : 'bg-white/50 w-2.5']"
+            :aria-label="`اسلاید ${index + 1}: ${slide.title}`"
+            :aria-current="currentSlide === index ? 'true' : undefined"
+            role="tab"
           ></button>
         </div>
 
@@ -171,12 +178,14 @@ const hasPromoBanners = computed(() => promoBanners.value.length > 0)
           <button
             @click="currentSlide = (currentSlide - 1 + slides.length) % slides.length"
             class="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition"
+            aria-label="اسلاید قبلی"
           >
             <ChevronRight class="w-6 h-6" />
           </button>
           <button
             @click="currentSlide = (currentSlide + 1) % slides.length"
             class="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 bg-white/20 hover:bg-white/40 backdrop-blur-sm text-white rounded-full flex items-center justify-center transition"
+            aria-label="اسلاید بعدی"
           >
             <ChevronLeft class="w-6 h-6" />
           </button>

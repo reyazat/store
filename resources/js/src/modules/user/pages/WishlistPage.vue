@@ -16,14 +16,17 @@ interface WishlistItem {
 const wishlistStore = useWishlistStore()
 const wishlist      = ref<WishlistItem[]>([])
 const isLoading     = ref(true)
+const errorMsg      = ref<string | null>(null)
+const removeError   = ref<string | null>(null)
 
 const fetchWishlist = async () => {
   isLoading.value = true
+  errorMsg.value = null
   try {
     const response = await userService.getWishlist()
     wishlist.value = response.data || []
   } catch {
-    /* silently fail */
+    errorMsg.value = 'خطا در بارگذاری لیست علاقه‌مندی‌ها'
   } finally {
     isLoading.value = false
   }
@@ -32,11 +35,15 @@ const fetchWishlist = async () => {
 const handleRemove = async (productId: number) => {
   const item = wishlist.value.find(w => w.product.id === productId)
   if (!item) return
+  removeError.value = null
   try {
     await userService.removeFromWishlist(item.id)
     wishlist.value = wishlist.value.filter(w => w.product.id !== productId)
     wishlistStore.removeByProductId(productId)
-  } catch { /* silently fail */ }
+  } catch {
+    removeError.value = 'خطا در حذف از لیست علاقه‌مندی‌ها'
+    setTimeout(() => (removeError.value = null), 3000)
+  }
 }
 
 onMounted(fetchWishlist)
@@ -52,6 +59,18 @@ onMounted(fetchWishlist)
       <UserSidebar />
 
       <div class="lg:col-span-3">
+        <!-- Load Error -->
+        <div v-if="errorMsg" class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4">
+          {{ errorMsg }}
+        </div>
+
+        <!-- Remove Error -->
+        <Transition name="fade">
+          <div v-if="removeError" class="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-4">
+            {{ removeError }}
+          </div>
+        </Transition>
+
         <!-- Loading skeletons -->
         <div v-if="isLoading" class="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div v-for="i in 6" :key="i" class="bg-white rounded-xl animate-pulse">
@@ -96,3 +115,8 @@ onMounted(fetchWishlist)
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>

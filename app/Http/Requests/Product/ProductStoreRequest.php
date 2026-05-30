@@ -19,7 +19,8 @@ class ProductStoreRequest extends FormRequest
             'base_sku' => ['required', 'string', 'max:255', 'unique:products,base_sku'],
             'short_description' => ['nullable', 'string'],
             'description' => ['nullable', 'string'],
-            'main_image' => ['required', 'string', 'max:255'],
+            'main_image'      => ['nullable', 'string', 'max:255'],
+            'main_image_file' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'manufacturer_id' => ['nullable', 'integer', 'exists:manufacturers,id'],
             'tax_class_id' => ['required', 'integer', 'exists:tax_classes,id'],
             'weight' => ['required', 'numeric', 'min:0'],
@@ -36,9 +37,12 @@ class ProductStoreRequest extends FormRequest
             'options' => ['nullable', 'array'],
             'options.*.option_id' => ['required', 'integer', 'exists:options,id'],
             'options.*.required' => ['nullable', 'boolean'],
-            'images' => ['nullable', 'array'],
-            'images.*.file_name' => ['required', 'string', 'max:255'],
-            'images.*.sorted' => ['nullable', 'integer', 'min:0'],
+            'images'            => ['nullable', 'array'],
+            'images.*.file'     => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'images.*.file_name' => ['nullable', 'string', 'max:255'],
+            'images.*.sorted'   => ['nullable', 'integer', 'min:0'],
+            'related_product_ids'   => ['nullable', 'array'],
+            'related_product_ids.*' => ['integer', 'exists:products,id'],
             'variants' => ['nullable', 'array'],
             'variants.*.sku' => ['required', 'string', 'max:255'],
             'variants.*.barcode' => ['nullable', 'string', 'max:255'],
@@ -54,6 +58,15 @@ class ProductStoreRequest extends FormRequest
             'discount_start_at' => ['nullable', 'date'],
             'discount_end_at' => ['nullable', 'date', 'after_or_equal:discount_start_at'],
         ];
+    }
+
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            if (empty($this->input('main_image')) && !$this->hasFile('main_image_file')) {
+                $validator->errors()->add('main_image_file', 'تصویر اصلی محصول الزامی است');
+            }
+        });
     }
 
     public function validatedData(): array

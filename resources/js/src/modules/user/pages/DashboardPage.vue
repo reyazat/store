@@ -7,12 +7,22 @@ import { userService } from '../services'
 import { formatPrice, formatDate } from '@shared/utils/format'
 import UserSidebar from '../components/UserSidebar.vue'
 
+interface RecentOrder {
+  id: number
+  order_number: string
+  status: string
+  status_label: string
+  status_color: string
+  total: number
+  created_at: string
+}
+
 const stats = ref({
   ordersCount: 0,
   addressesCount: 0,
   wishlistCount: 0,
 })
-const recentOrders = ref<any[]>([])
+const recentOrders = ref<RecentOrder[]>([])
 const isLoading = ref(true)
 
 onMounted(async () => {
@@ -36,27 +46,6 @@ onMounted(async () => {
   }
 })
 
-const getStatusColor = (status: string) => {
-  const colors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800',
-    processing: 'bg-blue-100 text-blue-800',
-    shipped: 'bg-purple-100 text-purple-800',
-    delivered: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
-
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    pending: 'در انتظار',
-    processing: 'در حال پردازش',
-    shipped: 'ارسال شده',
-    delivered: 'تحویل داده شده',
-    cancelled: 'لغو شده',
-  }
-  return texts[status] || status
-}
 </script>
 
 <template>
@@ -140,10 +129,13 @@ const getStatusText = (status: string) => {
                   <p class="font-medium">{{ order.order_number }}</p>
                   <p class="text-sm text-gray-500">{{ formatDate(order.created_at) }}</p>
                 </div>
-                <div class="text-left">
+                <div class="text-end">
                   <p class="font-medium">{{ formatPrice(order.total) }} تومان</p>
-                  <span :class="['inline-block px-2 py-1 text-xs rounded', getStatusColor(order.status)]">
-                    {{ getStatusText(order.status) }}
+                  <span
+                    class="inline-block px-2 py-1 text-xs rounded font-medium mt-1"
+                    :style="{ backgroundColor: order.status_color + '22', color: order.status_color }"
+                  >
+                    {{ order.status_label }}
                   </span>
                 </div>
               </RouterLink>

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { CheckCircle, XCircle, AlertCircle, ShoppingBag, RefreshCw, PackageSearch, Copy, Check } from 'lucide-vue-next'
-import { ref } from 'vue'
 
 const route = useRoute()
 

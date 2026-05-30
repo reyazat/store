@@ -5,6 +5,7 @@ namespace App\Http\Resources\Product;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
 /**
  * @property-read Product $resource
  * @mixin Product
@@ -20,7 +21,7 @@ class ProductDetailResource extends JsonResource
             'base_sku' => $this->base_sku,
             'short_description' => $this->short_description,
             'description' => $this->description,
-            'main_image' => $this->main_image,
+            'main_image' => $this->resolveImageUrl($this->main_image),
             'manufacturer_id' => $this->manufacturer_id,
             'manufacturer' => $this->whenLoaded('manufacturer', fn () => [
                 'id' => $this->manufacturer->id,
@@ -48,10 +49,16 @@ class ProductDetailResource extends JsonResource
                 'name' => $category->name,
                 'slug' => $category->slug,
             ])),
+            'related_products' => $this->whenLoaded('relatedProducts', fn () => $this->relatedProducts->map(fn ($related) => [
+                'id'         => $related->id,
+                'name'       => $related->name,
+                'slug'       => $related->slug,
+                'main_image' => $this->resolveImageUrl($related->main_image),
+            ])->values()),
             'images' => $this->whenLoaded('images', fn () => $this->images->sortBy('sorted')->map(fn ($image) => [
-                'id' => $image->id,
-                'file_name' => $image->file_name,
-                'sorted' => $image->sorted,
+                'id'        => $image->id,
+                'file_name' => $this->resolveImageUrl($image->file_name),
+                'sorted'    => $image->sorted,
             ])->values()),
             'options' => $this->whenLoaded('options', fn () => $this->options->sortBy('sorted')->map(fn ($option) => [
                 'id' => $option->id,
@@ -92,9 +99,25 @@ class ProductDetailResource extends JsonResource
                 'id' => $listing->id,
                 'vendor_id' => $listing->vendor_id,
                 'base_price' => $listing->base_price,
+                'stock_quantity' => $listing->relationLoaded('listingVariants')
+                    ? $listing->listingVariants->where('status', 1)->sum('stock_quantity')
+                    : 0,
                 'min_order_qty' => $listing->min_order_qty,
                 'status' => $listing->status,
             ])->values()),
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

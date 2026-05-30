@@ -33,7 +33,10 @@ const isWishlistLoading = ref(false)
 const isInWishlist = computed(() => wishlistStore.has(props.product.id))
 
 const handleWishlist = async () => {
-  if (!authStore.isAuthenticated) return
+  if (!authStore.isAuthenticated) {
+    router.push('/login')
+    return
+  }
   if (props.showRemoveFromWishlist) {
     emit('removeFromWishlist', props.product.id)
     return

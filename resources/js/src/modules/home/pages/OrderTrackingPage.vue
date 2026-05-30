@@ -14,6 +14,7 @@ import {
   PackageSearch,
 } from 'lucide-vue-next'
 import { orderTrackingService, type OrderTrackingResult, type TrackingTimelineItem } from '@shared/services/orderTracking'
+import { formatPrice, formatDate } from '@shared/utils/format'
 
 const route = useRoute()
 const router = useRouter()
@@ -84,20 +85,6 @@ const getStepStatusColor = (step: TrackingTimelineItem) => {
   return 'bg-gray-200 border-gray-200'
 }
 
-const formatPrice = (price: number) => {
-  return new Intl.NumberFormat('fa-IR').format(price)
-}
-
-const formatDate = (date: string | null) => {
-  if (!date) return '-'
-  return new Date(date).toLocaleDateString('fa-IR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 </script>
 
 <template>
@@ -171,7 +158,7 @@ const formatDate = (date: string | null) => {
               </div>
               <div class="text-left">
                 <p class="text-sm text-gray-500 mb-1">تاریخ ثبت</p>
-                <p class="text-sm font-medium text-gray-900">{{ formatDate(orderData.created_at) }}</p>
+                <p class="text-sm font-medium text-gray-900">{{ orderData.created_at ? formatDate(orderData.created_at) : '-' }}</p>
               </div>
             </div>
           </div>

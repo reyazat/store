@@ -12,9 +12,10 @@ use Throwable;
 
 class CategoryService
 {
-    public function __construct(private readonly CategoryRepositoryInterface $categoryRepository)
-    {
-    }
+    public function __construct(
+        private readonly CategoryRepositoryInterface $categoryRepository,
+        private readonly CategoryImageService        $imageService,
+    ) {}
 
     public function getCategories(array $filters = []): LengthAwarePaginator
     {
@@ -75,6 +76,8 @@ class CategoryService
     public function createCategory(array $data): Category
     {
         return DB::transaction(function () use ($data) {
+            $data = $this->resolveImage($data);
+
             return Category::query()->create($this->categoryAttributes($data));
         });
     }
@@ -85,6 +88,11 @@ class CategoryService
     public function updateCategory(Category $category, array $data): Category
     {
         return DB::transaction(function () use ($category, $data) {
+            if (!empty($data['image_file'])) {
+                $this->imageService->delete($category->image);
+            }
+
+            $data = $this->resolveImage($data);
             $category->update($this->categoryAttributes($data));
 
             return $category->refresh();
@@ -96,6 +104,15 @@ class CategoryService
         Category::query()->whereKey($category->getKey())->delete();
     }
 
+    private function resolveImage(array $data): array
+    {
+        if (!empty($data['image_file'])) {
+            $data['image'] = $this->imageService->store($data['image_file']);
+        }
+
+        return $data;
+    }
+
     private function categoryAttributes(array $data): array
     {
         return Arr::only($data, [
@@ -104,9 +121,11 @@ class CategoryService
             'slug',
             'description',
             'image',
+            'icon',
             'meta_title',
             'meta_description',
             'status',
+            'sorted',
         ]);
     }
 }

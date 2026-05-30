@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { Search, Eye, Lock, Unlock, X, CheckCircle, XCircle, ShieldAlert, Shield } from 'lucide-vue-next'
+import { formatDate } from '@shared/utils/format'
 import { useAdminList } from '../composables/useAdminList'
 import { iamService } from '../services/iamService'
 import type { IamUser } from '../types/iam'
@@ -86,11 +87,6 @@ const statusClass = (status: string) => {
     suspended: 'bg-red-100 text-red-700',
   }
   return map[status] ?? 'bg-secondary-100 text-secondary-500'
-}
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return '—'
-  return new Intl.DateTimeFormat('fa-IR', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(iso))
 }
 
 const detailUser = computed(() => selectedUser.value)

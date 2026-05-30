@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Star, CheckCircle, XCircle, Trash2, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-vue-next'
+import { Star, CheckCircle, XCircle, Trash2, ExternalLink, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-vue-next'
 import { reviewService } from '@/modules/product/services/reviewService'
 import type { ProductReview, AdminReviewMeta } from '@/modules/product/services/reviewService'
+import { formatDate } from '@shared/utils/format'
 
 const reviews = ref<ProductReview[]>([])
 const meta = ref<AdminReviewMeta>({ current_page: 1, last_page: 1, per_page: 20, total: 0 })
 const isLoading = ref(false)
 const actionLoading = ref<number | null>(null)
+const actionError = ref<string | null>(null)
 
 const statusLabel: Record<string, { text: string; class: string }> = {
   pending:  { text: 'در انتظار',  class: 'bg-amber-100 text-amber-700' },
@@ -29,10 +31,14 @@ const load = async (page = 1) => {
 
 const approve = async (review: ProductReview) => {
   actionLoading.value = review.id
+  actionError.value = null
   try {
     const updated = await reviewService.approve(review.id)
     const idx = reviews.value.findIndex(r => r.id === review.id)
     if (idx !== -1) reviews.value[idx] = updated
+  } catch {
+    actionError.value = 'خطا در تأیید نظر'
+    setTimeout(() => (actionError.value = null), 3000)
   } finally {
     actionLoading.value = null
   }
@@ -40,10 +46,14 @@ const approve = async (review: ProductReview) => {
 
 const reject = async (review: ProductReview) => {
   actionLoading.value = review.id
+  actionError.value = null
   try {
     const updated = await reviewService.reject(review.id)
     const idx = reviews.value.findIndex(r => r.id === review.id)
     if (idx !== -1) reviews.value[idx] = updated
+  } catch {
+    actionError.value = 'خطا در رد نظر'
+    setTimeout(() => (actionError.value = null), 3000)
   } finally {
     actionLoading.value = null
   }
@@ -52,17 +62,18 @@ const reject = async (review: ProductReview) => {
 const destroy = async (review: ProductReview) => {
   if (!confirm(`آیا از حذف نظر "${review.user?.name ?? 'کاربر'}" مطمئن هستید؟`)) return
   actionLoading.value = review.id
+  actionError.value = null
   try {
     await reviewService.destroy(review.id)
     reviews.value = reviews.value.filter(r => r.id !== review.id)
     meta.value.total -= 1
+  } catch {
+    actionError.value = 'خطا در حذف نظر'
+    setTimeout(() => (actionError.value = null), 3000)
   } finally {
     actionLoading.value = null
   }
 }
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' })
 
 onMounted(() => load())
 </script>
@@ -76,6 +87,14 @@ onMounted(() => load())
         <p class="text-sm text-secondary-500 mt-1">{{ meta.total }} نظر ثبت شده</p>
       </div>
     </div>
+
+    <!-- Action Error -->
+    <Transition name="fade">
+      <div v-if="actionError" class="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+        <AlertCircle class="w-4 h-4 flex-shrink-0" />
+        {{ actionError }}
+      </div>
+    </Transition>
 
     <!-- Loading -->
     <div v-if="isLoading" class="space-y-3">
@@ -222,3 +241,8 @@ onMounted(() => load())
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+</style>

@@ -4,7 +4,15 @@ set -e
 cd /var/www/html
 
 echo "Setting up storage directories..."
-mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache
+mkdir -p \
+    storage/app/public \
+    storage/app/public/uploads \
+    storage/app/temp \
+    storage/app/backups \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 
@@ -26,7 +34,7 @@ fi
 # Run migrations if requested (disabled by default)
 if [ "${RUN_MIGRATIONS:-false}" = "true" ] && [ -n "${APP_KEY:-}" ]; then
     echo "Running database migrations..."
-    php artisan migrate --force --no-interaction || true
+    php artisan migrate --force --no-interaction
 fi
 
 echo "Entrypoint setup complete."

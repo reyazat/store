@@ -16,14 +16,17 @@ class CategoryUpdateRequest extends FormRequest
         $categoryId = $this->route('category')?->getKey() ?? $this->route('categoryID');
 
         return [
-            'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'name' => ['sometimes', 'required', 'string', 'max:255', "unique:categories,name,$categoryId"],
-            'slug' => ['sometimes', 'required', 'string', 'max:255', "unique:categories,slug,$categoryId"],
-            'description' => ['nullable', 'string'],
-            'image' => ['nullable', 'string', 'max:255'],
-            'meta_title' => ['nullable', 'string', 'max:255'],
+            'parent_id'        => ['nullable', 'integer', 'exists:categories,id'],
+            'name'             => ['sometimes', 'required', 'string', 'max:255', "unique:categories,name,$categoryId"],
+            'slug'             => ['sometimes', 'required', 'string', 'max:255', "unique:categories,slug,$categoryId"],
+            'description'      => ['nullable', 'string'],
+            'image'            => ['nullable', 'string', 'max:255'],
+            'image_file'       => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'icon'             => ['nullable', 'string', 'max:50'],
+            'meta_title'       => ['nullable', 'string', 'max:255'],
             'meta_description' => ['nullable', 'string'],
-            'status' => ['nullable', 'integer', 'in:0,1'],
+            'status'           => ['nullable', 'integer', 'in:0,1'],
+            'sorted'           => ['nullable', 'integer', 'min:0'],
         ];
     }
 

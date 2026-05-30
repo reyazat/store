@@ -78,13 +78,12 @@ class ProductController extends Controller
 
     public function similar(Product $product): JsonResponse
     {
-        $product->loadMissing('categories');
-
-        $similar = $this->similarAction->execute($product);
+        $result = $this->similarAction->execute($product);
 
         return response()->json([
             'success' => true,
-            'data'    => ProductListResource::collection($similar),
+            'source'  => $result['source'],
+            'data'    => ProductListResource::collection($result['items']),
         ]);
     }
 

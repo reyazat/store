@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { Plus, Edit, Trash2, Search, X, Save, AlertCircle, Check } from 'lucide-vue-next'
+import { formatPrice, formatDate } from '@shared/utils/format'
 import { useAdminList } from '../composables/useAdminList'
 import { couponService, type AdminCoupon, type CouponFormData } from '../services/couponService'
 import AdminPagination from '../components/AdminPagination.vue'
@@ -105,8 +106,6 @@ const handleDelete = async (coupon: AdminCoupon) => {
   }
 }
 
-const formatPrice = (price: number) => new Intl.NumberFormat('fa-IR').format(price)
-
 const couponDisplayValue = (coupon: AdminCoupon) =>
   coupon.type === 'percentage'
     ? `${coupon.value}٪`
@@ -167,6 +166,7 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
       <select
         v-model="filters.per_page"
         class="h-10 px-3 rounded-lg border border-secondary-200 focus:border-primary-500 text-sm text-secondary-700"
+        @change="reload"
       >
         <option :value="20">۲۰ در صفحه</option>
         <option :value="50">۵۰ در صفحه</option>
@@ -218,7 +218,7 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
                 {{ coupon.used_count }}
                 <span v-if="coupon.usage_limit" class="text-secondary-400">/ {{ coupon.usage_limit }}</span>
               </td>
-              <td class="px-6 py-4 text-sm text-secondary-500">{{ coupon.expires_at || '—' }}</td>
+              <td class="px-6 py-4 text-sm text-secondary-500">{{ formatDate(coupon.expires_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <span
                   :class="coupon.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"

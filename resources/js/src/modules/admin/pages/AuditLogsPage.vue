@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { Search, Eye, X, Calendar, User, Globe, FileText } from 'lucide-vue-next'
+import { formatDateTime } from '@shared/utils/format'
 import { useAdminList } from '../composables/useAdminList'
 import { iamService } from '../services/iamService'
 import type { AuditLog } from '../types/iam'
@@ -33,14 +34,6 @@ const openDetail = async (log: AuditLog) => {
 const closeDetail = () => {
   isDetailOpen.value = false
   selectedLog.value = null
-}
-
-const formatDate = (iso: string | null) => {
-  if (!iso) return '—'
-  return new Intl.DateTimeFormat('fa-IR', {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  }).format(new Date(iso))
 }
 
 const eventClass = (event: string | null) => {
@@ -125,6 +118,7 @@ const formatProperties = (props: Record<string, unknown>): string => {
       <select
         v-model="filters.per_page"
         class="h-10 px-3 rounded-lg border border-secondary-200 focus:border-primary-500 text-sm text-secondary-700"
+        @change="reload"
       >
         <option :value="20">۲۰ در صفحه</option>
         <option :value="50">۵۰ در صفحه</option>
@@ -186,7 +180,7 @@ const formatProperties = (props: Record<string, unknown>): string => {
               <td class="px-6 py-4 text-sm text-secondary-500 font-mono text-xs">
                 {{ (log.properties?.ip as string) || '—' }}
               </td>
-              <td class="px-6 py-4 text-sm text-secondary-500">{{ formatDate(log.created_at) }}</td>
+              <td class="px-6 py-4 text-sm text-secondary-500">{{ formatDateTime(log.created_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <button
                   class="p-1.5 hover:bg-secondary-100 rounded-lg transition"

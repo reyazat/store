@@ -13,6 +13,8 @@ import { useWishlistStore } from '@/stores/wishlist'
 import { productService } from '../services'
 import { formatPrice } from '@shared/utils/format'
 import { useProductVariants } from '../composables/useProductVariants'
+import { usePageMeta } from '@shared/composables/usePageMeta'
+import { useSiteSettings } from '@shared/composables/useSiteSettings'
 import VariantSelector from '../components/VariantSelector.vue'
 import RelatedProducts from '../components/RelatedProducts.vue'
 import ProductReviews from '../components/ProductReviews.vue'
@@ -22,6 +24,7 @@ const route = useRoute()
 const cartStore = useCartStore()
 const authStore = useAuthStore()
 const wishlistStore = useWishlistStore()
+const { settings } = useSiteSettings()
 
 const product = ref<Product | null>(null)
 const isLoading = ref(true)
@@ -55,8 +58,7 @@ const originalPrice = computed(() => {
 const discountPercent = computed((): number | null => {
   const p = product.value
   if (!p) return null
-  const d = (p as any).discount_percent
-  return d && d > 0 ? d : null
+  return p.discount_percent && p.discount_percent > 0 ? p.discount_percent : null
 })
 
 const breadcrumbItems = computed(() => {
@@ -72,9 +74,24 @@ const breadcrumbItems = computed(() => {
   return items
 })
 
+const pageMetaTitle = computed(() =>
+  product.value?.meta_title ?? product.value?.name ?? null
+)
+const pageMetaDescription = computed(() =>
+  product.value?.meta_description ?? product.value?.short_description ?? null
+)
+
+const siteName = computed(() => settings.value.site_name)
+
+usePageMeta({
+  title:       pageMetaTitle,
+  description: pageMetaDescription,
+  siteName,
+})
+
 const canAddToCart = computed(() => {
   if (hasVariants.value) return isInStock.value && isVariantSelected.value
-  return !!(product.value?.listings?.length)
+  return isInStock.value && !!(product.value?.listings?.length)
 })
 
 const fetchProduct = async () => {
@@ -181,7 +198,7 @@ onMounted(fetchProduct)
               </span>
               <!-- Out of stock overlay -->
               <div
-                v-if="hasVariants && !isInStock"
+                v-if="!isInStock"
                 class="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl"
               >
                 <span class="text-white text-lg font-bold">ناموجود</span>
@@ -242,7 +259,7 @@ onMounted(fetchProduct)
             <!-- Stock badge -->
             <div class="flex items-center gap-2">
               <span
-                v-if="!hasVariants || isInStock"
+                v-if="isInStock"
                 class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full"
               >
                 <CheckCircle class="w-3.5 h-3.5" />
@@ -255,7 +272,7 @@ onMounted(fetchProduct)
                 <Package class="w-3.5 h-3.5" />
                 ناموجود
               </span>
-              <span v-if="hasVariants && isInStock && currentStock <= 5" class="text-xs text-amber-600">
+              <span v-if="isInStock && currentStock <= 5" class="text-xs text-amber-600">
                 (فقط {{ currentStock }} عدد باقی‌مانده)
               </span>
             </div>
@@ -335,7 +352,7 @@ onMounted(fetchProduct)
                 </button>
                 <span class="w-10 text-center text-sm font-semibold">{{ quantity }}</span>
                 <button
-                  @click="quantity = Math.min(currentStock || 99, quantity + 1)"
+                  @click="quantity = Math.min(currentStock > 0 ? currentStock : 1, quantity + 1)"
                   class="w-9 h-9 flex items-center justify-center hover:bg-secondary-50 transition text-secondary-600 disabled:opacity-40"
                   :disabled="!canAddToCart"
                 >
@@ -461,10 +478,6 @@ onMounted(fetchProduct)
               <span class="text-sm text-secondary-500">وزن</span>
               <span class="text-sm font-medium text-secondary-800">{{ product.weight }} کیلوگرم</span>
             </div>
-            <div class="flex items-center justify-between py-3">
-              <span class="text-sm text-secondary-500">گارانتی</span>
-              <span class="text-sm font-medium text-secondary-800">گارانتی دارد</span>
-            </div>
           </div>
           <p v-else class="text-sm text-secondary-400 text-center py-8">مشخصاتی ثبت نشده است</p>
         </div>
@@ -476,7 +489,7 @@ onMounted(fetchProduct)
           </div>
           <div v-else class="text-center py-12">
             <Star class="w-10 h-10 text-secondary-200 mx-auto mb-3" />
-            <p class="text-sm text-secondary-400">بررسی‌ای برای این محصول ثبت نشده است</p>
+            <p class="text-sm text-secondary-400">توضیحاتی برای این محصول ثبت نشده است</p>
           </div>
         </div>
 

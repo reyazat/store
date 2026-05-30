@@ -90,11 +90,6 @@ Route::middleware(['auth:api'])->prefix('v1')->group(function () {
     Route::delete('/{product}', [\App\Http\Controllers\API\ProductController::class, 'destroy']);
   });
 
-  Route::prefix('categories')->group(function () {
-    Route::post('/', [\App\Http\Controllers\API\CategoryController::class, 'store']);
-    Route::put('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'update']);
-    Route::delete('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'destroy']);
-  });
 
   Route::prefix('tax-classes')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\TaxClassController::class, 'store']);
@@ -254,6 +249,14 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::post('/reviews/{review}/approve', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'approve']);
   Route::post('/reviews/{review}/reject', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'reject']);
   Route::delete('/reviews/{review}', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'destroy']);
+
+  // Categories Management
+  Route::prefix('categories')->group(function () {
+    Route::post('/reorder', [\App\Http\Controllers\API\CategoryController::class, 'reorder']);
+    Route::post('/', [\App\Http\Controllers\API\CategoryController::class, 'store']);
+    Route::put('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'update']);
+    Route::delete('/{category}', [\App\Http\Controllers\API\CategoryController::class, 'destroy']);
+  });
 
   // FAQs Management
   Route::get('/faqs', [\App\Http\Controllers\API\Admin\FaqController::class, 'index']);

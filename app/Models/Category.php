@@ -17,9 +17,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $slug
  * @property string|null $description
  * @property string|null $image
+ * @property string|null $icon
  * @property string|null $meta_title
  * @property string|null $meta_description
  * @property int $status
+ * @property int $sorted
  * @property Carbon $created_at
  * @property Carbon $updated_at
  * @property Carbon|null $deleted_at
@@ -53,14 +55,17 @@ class Category extends AbstractModel
         'slug',
         'description',
         'image',
+        'icon',
         'meta_title',
         'meta_description',
         'status',
+        'sorted',
     ];
 
     protected $casts = [
         'parent_id' => 'integer',
-        'status' => 'integer',
+        'status'    => 'integer',
+        'sorted'    => 'integer',
     ];
 
     public function parent(): BelongsTo

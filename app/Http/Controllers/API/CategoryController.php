@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\API;
 
 use App\Actions\Category\DestroyCategoryAction;
+use App\Actions\Category\ReorderCategoriesAction;
 use App\Actions\Category\SearchCategoryAction;
 use App\Actions\Category\ShowCategoryAction;
 use App\Actions\Category\StoreCategoryAction;
 use App\Actions\Category\UpdateCategoryAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Category\CategoryReorderRequest;
 use App\Http\Requests\Category\CategorySearchRequest;
 use App\Http\Requests\Category\CategoryStoreRequest;
 use App\Http\Requests\Category\CategoryUpdateRequest;
@@ -21,12 +23,13 @@ use Throwable;
 class CategoryController extends Controller
 {
     public function __construct(
-        private readonly SearchCategoryAction $searchAction,
-        private readonly ShowCategoryAction $showAction,
-        private readonly StoreCategoryAction $storeAction,
-        private readonly UpdateCategoryAction $updateAction,
-        private readonly DestroyCategoryAction $destroyAction,
-        private readonly CategoryService $categoryService
+        private readonly SearchCategoryAction    $searchAction,
+        private readonly ShowCategoryAction      $showAction,
+        private readonly StoreCategoryAction     $storeAction,
+        private readonly UpdateCategoryAction    $updateAction,
+        private readonly DestroyCategoryAction   $destroyAction,
+        private readonly ReorderCategoriesAction $reorderAction,
+        private readonly CategoryService         $categoryService
     ) {
     }
 
@@ -110,6 +113,16 @@ class CategoryController extends Controller
         return response()->json([
             'success' => true,
             'data' => CategoryListResource::collection($categories),
+        ]);
+    }
+
+    public function reorder(CategoryReorderRequest $request): JsonResponse
+    {
+        $this->reorderAction->execute($request->orderedIds());
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ترتیب دسته‌بندی‌ها ذخیره شد',
         ]);
     }
 }

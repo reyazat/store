@@ -37,6 +37,8 @@ const fetchOrders = async (page = 1) => {
     lastPage.value    = response.meta?.last_page ?? 1
   } catch {
     errorMsg.value = 'خطا در بارگذاری سفارشات'
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -47,10 +49,7 @@ const loadMore = async () => {
   isLoadingMore.value = false
 }
 
-onMounted(async () => {
-  await fetchOrders(1)
-  isLoading.value = false
-})
+onMounted(() => fetchOrders(1))
 </script>
 
 <template>
@@ -92,7 +91,7 @@ onMounted(async () => {
                 <p class="text-sm text-gray-500">{{ formatDate(order.created_at) }}</p>
                 <p class="text-sm text-gray-500">{{ order.items_count }} محصول</p>
               </div>
-              <div class="text-left">
+              <div class="text-end">
                 <p class="font-bold text-primary-600">{{ formatPrice(order.total) }} تومان</p>
                 <span
                   class="inline-block px-2 py-1 text-xs rounded mt-1 font-medium"
