@@ -3,24 +3,42 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class ProductImageService
 {
+    public function __construct(
+        private readonly ImageUploadService $imageUploadService
+    ) {}
+
+    /**
+     * Store main product image with validation
+     */
     public function storeMainImage(UploadedFile $file): string
     {
-        return $file->store('products/main', 'public');
+        return $this->imageUploadService->store($file, 'products/main');
     }
 
+    /**
+     * Store gallery image with validation
+     */
     public function storeGalleryImage(UploadedFile $file): string
     {
-        return $file->store('products/gallery', 'public');
+        return $this->imageUploadService->store($file, 'products/gallery');
     }
 
+    /**
+     * Delete an image
+     */
     public function delete(?string $storagePath): void
     {
-        if ($storagePath && Storage::disk('public')->exists($storagePath)) {
-            Storage::disk('public')->delete($storagePath);
-        }
+        $this->imageUploadService->delete($storagePath);
+    }
+
+    /**
+     * Get full URL for image
+     */
+    public function getUrl(?string $path): ?string
+    {
+        return $this->imageUploadService->getUrl($path);
     }
 }

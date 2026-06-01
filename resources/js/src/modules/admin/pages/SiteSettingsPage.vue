@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { Save, Store, Phone, Share2, Info, Image as ImageIcon, Truck, Bell, CreditCard } from 'lucide-vue-next'
 import { siteSettingService } from '../services/siteSettingService'
 import type { SiteSettings } from '../types/siteSetting'
@@ -124,6 +124,15 @@ const save = async () => {
 }
 
 onMounted(loadSettings)
+
+onUnmounted(() => {
+  if (logoPreview.value && logoPreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(logoPreview.value)
+  }
+  if (faviconPreview.value && faviconPreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(faviconPreview.value)
+  }
+})
 </script>
 
 <template>

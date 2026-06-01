@@ -1,4 +1,4 @@
-import { reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
 import { categoryService, type AdminCategoryDetail, type CategoryFormData } from '../services/categoryService'
 
 const COMMON_ICONS = ['📱', '💻', '🏠', '👕', '💄', '⚽', '📚', '🧸', '🔧', '🎮', '🍕', '🚗', '✈️', '🎵', '📷', '🌿']
@@ -50,9 +50,12 @@ export function useCategoryForm() {
   const isEditing   = ref(false)
   const isSubmitting = ref(false)
   const editingSlug  = ref<string | null>(null)
+  const editingId    = ref<number | null>(null)
+  const editingChildrenIds = ref<number[]>([])
+  const editingParent = ref<{ id: number; name: string; slug: string } | null>(null)
   const imagePreview = ref<string | null>(null)
   const errors       = reactive<Record<string, string>>({})
-  const parentOptions = ref<Array<{ id: number; name: string; slug: string }>>([])
+  const parentOptions = ref<Array<{ id: number; name: string; slug: string; parent_id: number | null; level: number }>>([])
 
   const form = reactive<CategoryFormData>(makeEmptyForm())
 
@@ -107,9 +110,14 @@ export function useCategoryForm() {
     resetForm()
     isEditing.value   = true
     editingSlug.value = slug
-    await loadParentOptions()
 
     const detail: AdminCategoryDetail = await categoryService.getById(slug)
+    editingId.value = detail.id
+    editingChildrenIds.value = detail.children.map(c => c.id)
+    editingParent.value = detail.parent
+
+    await loadParentOptions()
+
     Object.assign(form, {
       parent_id:        detail.parent_id,
       name:             detail.name,
@@ -127,6 +135,18 @@ export function useCategoryForm() {
     autoSlugEnabled    = false
     isOpen.value       = true
   }
+
+  const availableParentOptions = computed(() => {
+    // When creating (editingId is null), show all categories
+    // When editing, filter out self and children to prevent circular reference
+    if (!isEditing.value || editingId.value === null) {
+      return parentOptions.value
+    }
+    return parentOptions.value.filter(p =>
+      p.id !== editingId.value &&
+      !editingChildrenIds.value.includes(p.id)
+    )
+  })
 
   function close(): void {
     isOpen.value = false
@@ -184,10 +204,13 @@ export function useCategoryForm() {
     isOpen,
     isEditing,
     isSubmitting,
+    editingId,
+    editingParent,
     form,
     errors,
     imagePreview,
     parentOptions,
+    availableParentOptions,
     commonIcons: COMMON_ICONS,
     openCreate,
     openEdit,

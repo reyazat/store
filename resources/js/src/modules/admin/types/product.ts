@@ -21,6 +21,28 @@ export interface AdminProductImage {
   _toDelete?: boolean
 }
 
+export interface AdminOptionValue {
+  id: number
+  value: string
+  sorted: number
+}
+
+export interface AdminOption {
+  id: number
+  name: string
+  slug: string
+  type: string
+  required?: boolean
+  values: AdminOptionValue[]
+}
+
+export interface AdminVariantOptionValue {
+  option_id: number
+  option_name: string | null
+  option_value_id: number
+  value: string | null
+}
+
 export interface AdminProductVariant {
   id?: number
   sku: string
@@ -30,6 +52,23 @@ export interface AdminProductVariant {
   width: number | null
   height: number | null
   status: number
+  option_values: AdminVariantOptionValue[]
+  price: number | null
+  stock: number
+  listing_variant_id?: number | null
+}
+
+export interface AdminProductVariantFormRow {
+  id?: number
+  sku: string
+  barcode: string
+  weight: string | number
+  length: string | number
+  width: string | number
+  height: string | number
+  status: number
+  price: string | number
+  stock: string | number
   option_values: Array<{
     option_id: number
     option_value_id: number
@@ -63,6 +102,8 @@ export interface AdminProductDetail {
   categories: Array<{ id: number; name: string; slug: string }>
   images: AdminProductImage[]
   related_products?: Array<{ id: number; name: string; slug: string; main_image: string | null }>
+  options: AdminOption[]
+  variants: AdminProductVariant[]
 }
 
 export interface AdminProductFormData {
@@ -90,4 +131,6 @@ export interface AdminProductFormData {
   discount_end_at: string
   images: AdminProductImage[]
   related_product_ids: number[]
+  options: Array<{ option_id: number; required: boolean }>
+  variants: AdminProductVariantFormRow[]
 }

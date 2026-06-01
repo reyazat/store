@@ -154,13 +154,24 @@ async function handleSubmit(): Promise<void> {
                 class="w-full h-10 px-3 pr-8 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 text-sm appearance-none text-secondary-700"
               >
                 <option :value="null">— دسته اصلی —</option>
-                <option v-for="p in state.parentOptions.value" :key="p.id" :value="p.id">
-                  {{ p.name }}
+                <option
+                  v-for="p in state.availableParentOptions.value"
+                  :key="p.id"
+                  :value="p.id"
+                  :style="{ paddingRight: `${(p.level * 12) + 8}px` }"
+                >
+                  {{ '　'.repeat(p.level) }}{{ p.name }}
                 </option>
               </select>
               <ChevronDown class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" />
             </div>
             <p v-if="state.errors.parent_id" class="mt-1 text-xs text-red-500">{{ state.errors.parent_id }}</p>
+            <p v-if="state.isEditing.value && state.editingParent.value" class="mt-1 text-xs text-blue-600">
+              والد فعلی: <span class="font-medium">{{ state.editingParent.value.name }}</span>
+            </p>
+            <p v-else-if="state.isEditing.value && !state.editingParent.value" class="mt-1 text-xs text-purple-600">
+              این یک دسته اصلی است
+            </p>
           </div>
 
           <div>

@@ -17,7 +17,7 @@ class CategorySearchRequest extends FormRequest
             'search' => ['nullable', 'string', 'max:255'],
             'status' => ['nullable', 'integer', 'in:0,1'],
             'parent_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:500'],
         ];
     }
 

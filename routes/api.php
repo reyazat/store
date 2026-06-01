@@ -250,6 +250,10 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::post('/reviews/{review}/reject', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'reject']);
   Route::delete('/reviews/{review}', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'destroy']);
 
+  // Products Admin — detail with ALL variants and available options
+  Route::get('/products/available-options', [\App\Http\Controllers\API\Admin\AdminProductController::class, 'availableOptions']);
+  Route::get('/products/{product}', [\App\Http\Controllers\API\Admin\AdminProductController::class, 'show']);
+
   // Categories Management
   Route::prefix('categories')->group(function () {
     Route::post('/reorder', [\App\Http\Controllers\API\CategoryController::class, 'reorder']);

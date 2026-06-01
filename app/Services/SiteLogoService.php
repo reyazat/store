@@ -3,19 +3,34 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class SiteLogoService
 {
+    public function __construct(
+        private readonly ImageUploadService $imageUploadService
+    ) {}
+
+    /**
+     * Store site logo/favicon with validation
+     */
     public function store(UploadedFile $file, string $key): string
     {
-        return $file->store("site/{$key}", 'public');
+        return $this->imageUploadService->store($file, "site/{$key}");
     }
 
+    /**
+     * Delete site logo/favicon
+     */
     public function delete(?string $storagePath): void
     {
-        if ($storagePath && Storage::disk('public')->exists($storagePath)) {
-            Storage::disk('public')->delete($storagePath);
-        }
+        $this->imageUploadService->delete($storagePath);
+    }
+
+    /**
+     * Get full URL for logo/favicon
+     */
+    public function getUrl(?string $path): ?string
+    {
+        return $this->imageUploadService->getUrl($path);
     }
 }

@@ -5,7 +5,6 @@ namespace App\Actions\SiteSetting;
 use App\Repositories\Contracts\SiteSettingRepositoryInterface;
 use App\Services\SiteLogoService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class SiteSettingUploadFileAction
 {
@@ -22,6 +21,6 @@ class SiteSettingUploadFileAction
         $newPath = $this->logoService->store($file, $key);
         $this->repository->updateFile($key, $newPath);
 
-        return Storage::disk('public')->url($newPath);
+        return $this->logoService->getUrl($newPath) ?? '';
     }
 }

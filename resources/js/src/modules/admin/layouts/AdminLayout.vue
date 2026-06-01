@@ -20,7 +20,8 @@ import {
   ListChecks,
   ClipboardList,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  Palette
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
@@ -35,6 +36,7 @@ const menuItems = [
   { name: 'سفارشات',       icon: ShoppingCart,     path: '/admin/orders' },
   { name: 'محصولات',       icon: Package,          path: '/admin/products' },
   { name: 'دسته‌بندی‌ها', icon: FolderTree,       path: '/admin/categories' },
+  { name: 'ویژگی‌ها',      icon: Palette,          path: '/admin/options' },
   { name: 'کاربران',       icon: Users,            path: '/admin/users' },
   { name: 'کوپن‌ها',       icon: Ticket,           path: '/admin/coupons' },
   { name: 'اسلایدر',          icon: GalleryHorizontal, path: '/admin/sliders' },

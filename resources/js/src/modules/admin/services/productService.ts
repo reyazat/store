@@ -1,6 +1,6 @@
 import api from '@shared/utils/api'
 import type { PaginationMeta } from '../composables/useAdminList'
-import type { AdminProductDetail, AdminProductFormData, AdminProductCategory, AdminProductManufacturer } from '../types/product'
+import type { AdminProductDetail, AdminProductFormData, AdminProductCategory, AdminProductManufacturer, AdminOption } from '../types/product'
 
 export interface AdminProduct {
   id: number
@@ -43,6 +43,16 @@ export const productService = {
   async getBySlug(slug: string): Promise<AdminProductDetail> {
     const response = await api.get(`/products/${slug}`)
     return response.data.data
+  },
+
+  async getAdminProductDetail(slug: string): Promise<AdminProductDetail> {
+    const response = await api.get(`/admin/products/${slug}`)
+    return response.data.data
+  },
+
+  async getAvailableOptions(): Promise<AdminOption[]> {
+    const response = await api.get('/admin/products/available-options')
+    return response.data?.data || []
   },
 
   async create(data: AdminProductFormData): Promise<AdminProductDetail> {
@@ -149,6 +159,30 @@ function buildPayload(data: AdminProductFormData): FormData {
     })
 
   data.related_product_ids.forEach(id => fd.append('related_product_ids[]', String(id)))
+
+  data.options.forEach((opt, i) => {
+    fd.append(`options[${i}][option_id]`, String(opt.option_id))
+    fd.append(`options[${i}][required]`,  String(opt.required ? 1 : 0))
+  })
+
+  data.variants.forEach((v, i) => {
+    if (v.id) fd.append(`variants[${i}][id]`, String(v.id))
+    fd.append(`variants[${i}][sku]`,    v.sku)
+    fd.append(`variants[${i}][status]`, String(v.status ?? 1))
+    if (v.barcode)  fd.append(`variants[${i}][barcode]`, v.barcode)
+    if (v.weight)   fd.append(`variants[${i}][weight]`,  String(v.weight))
+    if (v.length)   fd.append(`variants[${i}][length]`,  String(v.length))
+    if (v.width)    fd.append(`variants[${i}][width]`,   String(v.width))
+    if (v.height)   fd.append(`variants[${i}][height]`,  String(v.height))
+    if (v.price !== '' && v.price !== null && v.price !== undefined) {
+      fd.append(`variants[${i}][price]`, String(v.price))
+    }
+    fd.append(`variants[${i}][stock]`, String(v.stock ?? 0))
+    v.option_values.forEach((ov, j) => {
+      fd.append(`variants[${i}][option_values][${j}][option_id]`,       String(ov.option_id))
+      fd.append(`variants[${i}][option_values][${j}][option_value_id]`, String(ov.option_value_id))
+    })
+  })
 
   return fd
 }

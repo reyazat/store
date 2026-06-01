@@ -101,6 +101,7 @@ class CategoryService
 
     public function deleteCategory(Category $category): void
     {
+        $this->imageService->delete($category->image);
         Category::query()->whereKey($category->getKey())->delete();
     }
 

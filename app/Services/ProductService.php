@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Listing;
+use App\Models\ListingVariant;
+use App\Models\Vendor;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use App\Models\Product;
@@ -154,6 +157,8 @@ class ProductService
         }
 
         if (array_key_exists('variants', $data)) {
+            $incomingSkus = collect($data['variants'] ?? [])->pluck('sku')->filter()->all();
+
             foreach (($data['variants'] ?? []) as $variantData) {
                 $variantAttributes = Arr::only($variantData, [
                     'sku',
@@ -179,7 +184,59 @@ class ProductService
 
                     $variant->optionValues()->sync($optionValuesPayload);
                 }
+
+                // Sync price and stock to the default listing_variant
+                if (array_key_exists('price', $variantData) || array_key_exists('stock', $variantData)) {
+                    $listing = $this->getOrCreateDefaultListing($product);
+
+                    ListingVariant::updateOrCreate(
+                        ['listing_id' => $listing->id, 'variant_id' => $variant->id],
+                        [
+                            'price_override' => $variantData['price'] ?? null,
+                            'stock_quantity' => $variantData['stock'] ?? 0,
+                            'status'         => $variantData['status'] ?? 1,
+                        ]
+                    );
+                }
+            }
+
+            // Mark removed variants as inactive (soft approach)
+            if (!empty($incomingSkus)) {
+                $product->variants()
+                    ->whereNotIn('sku', $incomingSkus)
+                    ->update(['status' => 0]);
             }
         }
+    }
+
+    private function getOrCreateDefaultListing(Product $product): Listing
+    {
+        $listing = $product->listings()->orderBy('id')->first();
+
+        if ($listing) {
+            return $listing;
+        }
+
+        $vendor = Vendor::query()->where('is_platform', 1)->orderBy('id')->first()
+            ?? Vendor::query()->orderBy('id')->first();
+
+        if (!$vendor) {
+            $vendor = Vendor::create([
+                'name'            => 'فروشگاه اصلی',
+                'slug'            => 'main-store',
+                'is_platform'     => 1,
+                'commission_rate' => 0,
+                'status'          => 1,
+                'approval_status' => 'approved',
+            ]);
+        }
+
+        return Listing::create([
+            'product_id'    => $product->id,
+            'vendor_id'     => $vendor->id,
+            'status'        => 'active',
+            'base_price'    => 0,
+            'min_order_qty' => 1,
+        ]);
     }
 }

@@ -12,7 +12,7 @@ class CategoryRepository implements CategoryRepositoryInterface
 {
     public function getAll(array $filters = []): LengthAwarePaginator
     {
-        $query = Category::query()->withCount('products');
+        $query = Category::query()->withCount(['products', 'children']);
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -27,7 +27,11 @@ class CategoryRepository implements CategoryRepositoryInterface
         }
 
         if (array_key_exists('parent_id', $filters) && $filters['parent_id'] !== null) {
-            $query->where('parent_id', $filters['parent_id']);
+            if ($filters['parent_id'] === 0 || $filters['parent_id'] === '0') {
+                $query->whereNull('parent_id');
+            } else {
+                $query->where('parent_id', $filters['parent_id']);
+            }
         }
 
         $perPage = $filters['per_page'] ?? 20;

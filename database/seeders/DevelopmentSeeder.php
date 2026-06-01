@@ -18,6 +18,11 @@ class DevelopmentSeeder extends Seeder
             OrgRolePermissionSeeder::class,
         ]);
 
+        // Site content (needed for both dev and production)
+        $this->call([
+            NavLinkSeeder::class,
+        ]);
+
         // Development-specific data
         $this->call([
             OrganizationSeeder::class,

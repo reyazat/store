@@ -22,6 +22,7 @@ class ProductionSeeder extends Seeder
             PaymentMethodSeeder::class,      // Payment methods (disabled by default)
             TaxClassSeeder::class,           // Tax classes
             SiteSettingSeeder::class,        // Site settings
+            NavLinkSeeder::class,            // Navigation links
 
             // Minimal production data
             ProductionCategorySeeder::class,    // 5-6 main categories with real images

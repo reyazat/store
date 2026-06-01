@@ -45,7 +45,7 @@ return [
                     'https://store.tejaratech.ir',
                     'https://tejaratech.ir',
                 ],
-                'img-src' => ["'self'", 'data:', 'https:', 'https://store.tejaratech.ir', 'https://tejaratech.ir'],
+                'img-src' => ["'self'", 'data:', 'blob:', 'https:', 'https://store.tejaratech.ir', 'https://tejaratech.ir'],
                 'font-src' => [
                     "'self'",
                     'data:',

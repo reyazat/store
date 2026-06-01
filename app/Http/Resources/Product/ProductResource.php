@@ -5,6 +5,8 @@ namespace App\Http\Resources\Product;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
+
 /**
  * @property-read Product $resource
  * @mixin Product
@@ -20,7 +22,7 @@ class ProductResource extends JsonResource
             'base_sku' => $this->base_sku,
             'short_description' => $this->short_description,
             'description' => $this->description,
-            'main_image' => $this->main_image,
+            'main_image' => $this->resolveImageUrl($this->main_image),
             'manufacturer_id' => $this->manufacturer_id,
             'tax_class_id' => $this->tax_class_id,
             'weight' => $this->weight,
@@ -38,7 +40,7 @@ class ProductResource extends JsonResource
             'categories' => $this->whenLoaded('categories', fn () => $this->categories->pluck('id')),
             'images' => $this->whenLoaded('images', fn () => $this->images->map(fn ($image) => [
                 'id' => $image->id,
-                'file_name' => $image->file_name,
+                'file_name' => $this->resolveImageUrl($image->file_name),
                 'sorted' => $image->sorted,
             ])),
             'variants' => $this->whenLoaded('variants', fn () => $this->variants->map(fn ($variant) => [
@@ -52,5 +54,18 @@ class ProductResource extends JsonResource
                 'status' => $variant->status,
             ])),
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

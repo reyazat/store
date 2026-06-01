@@ -3,9 +3,10 @@ import { ref, computed, watch } from 'vue'
 import {
   X, Image as ImageIcon, Plus, Trash2, Search,
   AlertCircle, Check, Loader2,
-  Tag, Layers, Percent, Globe, Link2, PackageSearch,
+  Tag, Layers, Percent, Globe, Link2, PackageSearch, Boxes,
 } from 'lucide-vue-next'
-import type { AdminProductFormData, AdminProductCategory } from '../types/product'
+import type { AdminProductFormData, AdminProductCategory, AdminOption } from '../types/product'
+import ProductVariantsTab from './ProductVariantsTab.vue'
 
 interface Props {
   isOpen: boolean
@@ -21,6 +22,7 @@ interface Props {
   relatedProducts: Array<{ id: number; name: string; slug: string; main_image: string | null }>
   relatedSearch: string
   relatedResults: Array<{ id: number; name: string; slug: string; main_image: string | null }>
+  availableOptions: AdminOption[]
 }
 
 const props = defineProps<Props>()
@@ -42,7 +44,7 @@ const emit = defineEmits<{
   (e: 'create-manufacturer', name: string): void
 }>()
 
-type Tab = 'basic' | 'images' | 'categories' | 'discount' | 'seo' | 'related'
+type Tab = 'basic' | 'images' | 'categories' | 'discount' | 'seo' | 'related' | 'variants'
 
 const activeTab = ref<Tab>('basic')
 
@@ -50,6 +52,7 @@ const tabs: Array<{ key: Tab; label: string; icon: typeof Tag; badge?: () => num
   { key: 'basic',      label: 'اطلاعات پایه',   icon: Tag },
   { key: 'images',     label: 'تصاویر',          icon: ImageIcon },
   { key: 'categories', label: 'دسته‌بندی',       icon: Layers },
+  { key: 'variants',   label: 'ورینت‌ها',         icon: Boxes, badge: () => props.form.variants.filter(v => v.status === 1).length },
   { key: 'discount',   label: 'تخفیف',           icon: Percent },
   { key: 'seo',        label: 'سئو',              icon: Globe },
   { key: 'related',    label: 'محصولات مرتبط',   icon: Link2, badge: () => props.relatedProducts.length },
@@ -57,10 +60,12 @@ const tabs: Array<{ key: Tab; label: string; icon: typeof Tag; badge?: () => num
 
 const tabErrors = computed<Record<Tab, boolean>>(() => {
   const e = props.errors
+  const hasVariantError = Object.keys(e).some(k => k.startsWith('variants'))
   return {
     basic:      !!(e.name || e.slug || e.base_sku || e.tax_class_id || e.weight),
     images:     !!e.main_image,
     categories: !!e.category_ids,
+    variants:   hasVariantError,
     discount:   !!(e.discount_percent || e.discount_start_at || e.discount_end_at),
     seo:        false,
     related:    false,
@@ -68,6 +73,8 @@ const tabErrors = computed<Record<Tab, boolean>>(() => {
 })
 
 const hasDiscount = computed(() => props.form.discount_percent !== '' && Number(props.form.discount_percent) > 0)
+
+const visibleImages = computed(() => props.form.images.filter(img => !img._toDelete))
 
 const categorySearch = ref('')
 const newCategoryName = ref('')
@@ -435,7 +442,7 @@ watch(() => props.isOpen, (val) => {
                     </div>
 
                     <div
-                      v-if="form.images.filter(i => !i._toDelete).length === 0"
+                      v-if="visibleImages.length === 0"
                       class="border-2 border-dashed border-secondary-200 rounded-2xl p-8 text-center"
                     >
                       <ImageIcon class="w-10 h-10 text-secondary-200 mx-auto mb-2" />
@@ -444,9 +451,8 @@ watch(() => props.isOpen, (val) => {
 
                     <div v-else class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                       <div
-                        v-for="(img, idx) in form.images"
-                        :key="idx"
-                        v-show="!img._toDelete"
+                        v-for="(img, idx) in visibleImages"
+                        :key="img.id ?? img._preview ?? img.file_name"
                         class="relative aspect-square rounded-xl overflow-hidden bg-secondary-100 group"
                       >
                         <img
@@ -458,7 +464,7 @@ watch(() => props.isOpen, (val) => {
                         <button
                           type="button"
                           class="absolute top-1.5 left-1.5 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                          @click="emit('remove-gallery-image', idx)"
+                          @click="emit('remove-gallery-image', form.images.indexOf(img))"
                         >
                           <X class="w-3 h-3" />
                         </button>
@@ -599,6 +605,15 @@ watch(() => props.isOpen, (val) => {
                       </button>
                     </span>
                   </div>
+                </div>
+
+                <!-- ════ TAB: Variants ════ -->
+                <div v-show="activeTab === 'variants'">
+                  <ProductVariantsTab
+                    :form="form"
+                    :available-options="availableOptions"
+                    :errors="errors"
+                  />
                 </div>
 
                 <!-- ════ TAB: Discount ════ -->

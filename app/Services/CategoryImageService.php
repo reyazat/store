@@ -3,27 +3,34 @@
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class CategoryImageService
 {
+    public function __construct(
+        private readonly ImageUploadService $imageUploadService
+    ) {}
+
+    /**
+     * Store category image with validation
+     */
     public function store(UploadedFile $file): string
     {
-        return $file->store('categories', 'public');
+        return $this->imageUploadService->store($file, 'categories');
     }
 
+    /**
+     * Delete a category image
+     */
     public function delete(?string $storagePath): void
     {
-        if (!$storagePath) {
-            return;
-        }
+        $this->imageUploadService->delete($storagePath);
+    }
 
-        if (str_starts_with($storagePath, 'http://') || str_starts_with($storagePath, 'https://')) {
-            return;
-        }
-
-        if (Storage::disk('public')->exists($storagePath)) {
-            Storage::disk('public')->delete($storagePath);
-        }
+    /**
+     * Get full URL for image
+     */
+    public function getUrl(?string $path): ?string
+    {
+        return $this->imageUploadService->getUrl($path);
     }
 }

@@ -5,30 +5,18 @@ namespace App\Services;
 use App\Models\PromoBanner;
 use App\Repositories\Contracts\PromoBannerRepositoryInterface;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 
 class PromoBannerService
 {
     public function __construct(
-        private readonly PromoBannerRepositoryInterface $bannerRepository
+        private readonly PromoBannerRepositoryInterface $bannerRepository,
+        private readonly ImageUploadService $imageUploadService,
     ) {}
-
-    public function storeImage(UploadedFile $file): string
-    {
-        return $file->store('promo-banners', 'public');
-    }
-
-    public function deleteImage(?string $path): void
-    {
-        if ($path && Storage::disk('public')->exists($path)) {
-            Storage::disk('public')->delete($path);
-        }
-    }
 
     public function create(array $data, ?UploadedFile $image = null): PromoBanner
     {
         if ($image) {
-            $data['image'] = $this->storeImage($image);
+            $data['image'] = $this->imageUploadService->store($image, 'promo-banners');
         }
 
         if (!isset($data['sort_order'])) {
@@ -42,8 +30,8 @@ class PromoBannerService
     public function update(PromoBanner $banner, array $data, ?UploadedFile $image = null): PromoBanner
     {
         if ($image) {
-            $this->deleteImage($banner->image);
-            $data['image'] = $this->storeImage($image);
+            $this->imageUploadService->delete($banner->image);
+            $data['image'] = $this->imageUploadService->store($image, 'promo-banners');
         }
 
         return $this->bannerRepository->update($banner, $data);
@@ -51,7 +39,7 @@ class PromoBannerService
 
     public function delete(PromoBanner $banner): void
     {
-        $this->deleteImage($banner->image);
+        $this->imageUploadService->delete($banner->image);
         $this->bannerRepository->delete($banner);
     }
 }

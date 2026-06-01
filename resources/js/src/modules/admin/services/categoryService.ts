@@ -8,7 +8,10 @@ export interface AdminCategory {
   image: string | null
   icon: string | null
   products_count: number
+  direct_products_count: number
+  children_count: number
   status: number
+  sorted: number
   created_at: string
 }
 
@@ -62,6 +65,7 @@ export interface CategoryFilters {
   parent_id?: number | null
   per_page?: number
   page?: number
+  root_only?: boolean
 }
 
 export const categoryService = {
@@ -112,11 +116,39 @@ export const categoryService = {
     await api.delete(`/admin/categories/${id}`)
   },
 
-  async getParentOptions(): Promise<Array<{ id: number; name: string; slug: string }>> {
+  async getParentOptions(): Promise<Array<{ id: number; name: string; slug: string; parent_id: number | null; level: number }>> {
     const response = await api.get('/categories', { params: { per_page: 200, status: 1 } })
-    return (response.data?.data || [])
-      .filter((c: AdminCategory) => c.parent_id === null)
-      .map((c: AdminCategory) => ({ id: c.id, name: c.name, slug: c.slug }))
+    const categories = response.data?.data || []
+
+    // Build a map for quick lookup
+    const categoryMap = new Map<number, AdminCategory>(categories.map((c: AdminCategory) => [c.id, c]))
+
+    // Calculate level for each category
+    const getLevel = (cat: AdminCategory): number => {
+      let level = 0
+      let currentId: number | null = cat.parent_id
+      while (currentId !== null) {
+        const parent = categoryMap.get(currentId)
+        if (!parent) break
+        level++
+        currentId = parent.parent_id
+      }
+      return level
+    }
+
+    return categories
+      .map((c: AdminCategory) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        parent_id: c.parent_id,
+        level: getLevel(c),
+      }))
+      .sort((a: { level: number; name: string }, b: { level: number; name: string }) => {
+        // Sort by level first, then by name
+        if (a.level !== b.level) return a.level - b.level
+        return a.name.localeCompare(b.name, 'fa')
+      })
   },
 }
 

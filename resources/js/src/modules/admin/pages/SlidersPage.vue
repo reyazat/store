@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { Plus, Edit2, Trash2, Eye, EyeOff, Image as ImageIcon, X, Check, AlertCircle } from 'lucide-vue-next'
 import { sliderService } from '../services/sliderService'
 import type { Slider, SliderFormData } from '../types/slider'
@@ -63,6 +63,9 @@ function openEdit(slider: Slider) {
 }
 
 function closeModal() {
+  if (imagePreview.value && imagePreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(imagePreview.value)
+  }
   showModal.value = false
   editingSlider.value = null
   imagePreview.value = null
@@ -71,11 +74,29 @@ function closeModal() {
 function onImageChange(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
+
+  // Validation: File size (max 5MB)
+  const maxSize = 5 * 1024 * 1024 // 5MB
+  if (file.size > maxSize) {
+    showError('حجم فایل نباید بیشتر از 5 مگابایت باشد')
+    return
+  }
+
+  // Validation: File type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+  if (!allowedTypes.includes(file.type)) {
+    showError('فرمت فایل مجاز نیست. JPG, PNG, WebP مجاز هستند')
+    return
+  }
+
   form.image = file
   imagePreview.value = URL.createObjectURL(file)
 }
 
 function removeImage() {
+  if (imagePreview.value && imagePreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(imagePreview.value)
+  }
   form.image = null
   imagePreview.value = null
 }
@@ -116,7 +137,7 @@ async function toggleActive(slider: Slider) {
       button_link: slider.button_link ?? '',
       sort_order: slider.sort_order,
       is_active: !slider.is_active,
-      image: null,
+      // ❌ Don't send 'image' field - let backend preserve existing image
     })
     const idx = sliders.value.findIndex(s => s.id === slider.id)
     if (idx !== -1) sliders.value[idx] = updated
@@ -145,6 +166,12 @@ function showSuccess(msg: string) {
   successMsg.value = msg
   setTimeout(() => (successMsg.value = null), 3000)
 }
+
+onUnmounted(() => {
+  if (imagePreview.value && imagePreview.value.startsWith('blob:')) {
+    URL.revokeObjectURL(imagePreview.value)
+  }
+})
 </script>
 
 <template>

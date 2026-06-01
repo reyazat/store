@@ -1,6 +1,6 @@
 import { ref, reactive, computed } from 'vue'
 import { productService } from '../services/productService'
-import type { AdminProductDetail, AdminProductFormData, AdminProductCategory, AdminProductManufacturer, AdminProductImage } from '../types/product'
+import type { AdminProductDetail, AdminProductFormData, AdminProductCategory, AdminProductManufacturer, AdminProductImage, AdminOption } from '../types/product'
 
 function slugify(text: string): string {
   return text
@@ -39,6 +39,8 @@ function makeDefaultForm(): AdminProductFormData {
     discount_end_at: '',
     images: [],
     related_product_ids: [],
+    options: [],
+    variants: [],
   }
 }
 
@@ -53,9 +55,10 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
 
   const isEditing = computed(() => editingSlug.value !== null)
 
-  const categories    = ref<AdminProductCategory[]>([])
-  const manufacturers = ref<AdminProductManufacturer[]>([])
-  const taxClasses    = ref<Array<{ id: number; name: string; rate: number }>>([])
+  const categories       = ref<AdminProductCategory[]>([])
+  const manufacturers    = ref<AdminProductManufacturer[]>([])
+  const taxClasses       = ref<Array<{ id: number; name: string; rate: number }>>([])
+  const availableOptions = ref<AdminOption[]>([])
 
   const mainImagePreview  = ref<string | null>(null)
   const relatedProducts   = ref<Array<{ id: number; name: string; slug: string; main_image: string | null }>>([])
@@ -64,14 +67,16 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
   let relatedDebounce: ReturnType<typeof setTimeout> | null = null
 
   async function loadLookups() {
-    const [cats, mans, taxes] = await Promise.all([
+    const [cats, mans, taxes, opts] = await Promise.all([
       productService.getCategories(),
       productService.getManufacturers(),
       productService.getTaxClasses(),
+      productService.getAvailableOptions(),
     ])
-    categories.value    = cats.data
-    manufacturers.value = mans.data
-    taxClasses.value    = taxes
+    categories.value       = cats.data
+    manufacturers.value    = mans.data
+    taxClasses.value       = taxes
+    availableOptions.value = opts
   }
 
   async function openCreate() {
@@ -94,7 +99,7 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
     await loadLookups()
 
     try {
-      const product = await productService.getBySlug(slug)
+      const product = await productService.getAdminProductDetail(slug)
       editingSlug.value = product.slug
 
       Object.assign(form, {
@@ -126,6 +131,26 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
           : '',
         images:              (product.images ?? []).map(img => ({ ...img })),
         related_product_ids: (product.related_products ?? []).map(r => r.id),
+        options: (product.options ?? []).map(opt => ({
+          option_id: opt.id,
+          required:  opt.required ?? false,
+        })),
+        variants: (product.variants ?? []).map(v => ({
+          id:           v.id,
+          sku:          v.sku,
+          barcode:      v.barcode ?? '',
+          weight:       v.weight ?? '',
+          length:       v.length ?? '',
+          width:        v.width ?? '',
+          height:       v.height ?? '',
+          status:       v.status,
+          price:        v.price ?? '',
+          stock:        v.stock ?? 0,
+          option_values: v.option_values.map(ov => ({
+            option_id:       ov.option_id,
+            option_value_id: ov.option_value_id,
+          })),
+        })),
       })
 
       mainImagePreview.value = product.main_image ?? null
@@ -159,6 +184,9 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
   }
 
   function removeMainImage() {
+    if (mainImagePreview.value && mainImagePreview.value.startsWith('blob:')) {
+      URL.revokeObjectURL(mainImagePreview.value)
+    }
     form.main_image      = ''
     form.main_image_file = null
     mainImagePreview.value = null
@@ -180,6 +208,9 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
 
   function removeGalleryImage(index: number) {
     const img = form.images[index]
+    if (img._preview && img._preview.startsWith('blob:')) {
+      URL.revokeObjectURL(img._preview)
+    }
     if (img.id) {
       form.images[index] = { ...img, _toDelete: true }
     } else {
@@ -259,7 +290,7 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
   return {
     isOpen, isSaving, isEditing, editingSlug,
     form, errors, serverError,
-    categories, manufacturers, taxClasses,
+    categories, manufacturers, taxClasses, availableOptions,
     mainImagePreview, relatedProducts, relatedSearch, relatedResults,
     openCreate, openEdit, close,
     autoSlug, onMainImageChange, removeMainImage,

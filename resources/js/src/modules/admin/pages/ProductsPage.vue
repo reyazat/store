@@ -244,6 +244,7 @@ async function handleCreateManufacturer(name: string) {
       :categories="formState.categories.value"
       :manufacturers="formState.manufacturers.value"
       :tax-classes="formState.taxClasses.value"
+      :available-options="formState.availableOptions.value"
       :main-image-preview="formState.mainImagePreview.value"
       :related-products="formState.relatedProducts.value"
       :related-search="formState.relatedSearch.value"

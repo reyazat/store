@@ -13,15 +13,16 @@ use App\Models\Order;
 use App\Models\OrderStatus;
 use App\Models\PaymentMethod;
 use App\Models\PaymentTransaction;
+use App\Services\ImageUploadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class PaymentController extends Controller
 {
     public function __construct(
         private readonly InitiatePaymentAction $initiateAction,
-        private readonly VerifyPaymentAction   $verifyAction
+        private readonly VerifyPaymentAction   $verifyAction,
+        private readonly ImageUploadService    $imageUploadService,
     ) {
     }
 
@@ -114,7 +115,7 @@ class PaymentController extends Controller
             return response()->json(['success' => false, 'message' => 'این تراکنش قابل تایید نیست'], 422);
         }
 
-        $path = $request->file('receipt')->store('receipts', 'public');
+        $path = $this->imageUploadService->store($request->file('receipt'), 'receipts');
 
         $result = $this->verifyAction->execute($transaction, [
             'receipt_path'   => $path,
@@ -122,7 +123,7 @@ class PaymentController extends Controller
         ]);
 
         if (!$result['success']) {
-            Storage::disk('public')->delete($path);
+            $this->imageUploadService->delete($path);
         }
 
         return response()->json([
