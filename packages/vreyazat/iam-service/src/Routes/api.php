@@ -64,6 +64,10 @@ Route::prefix('v1/password')->group(function () {
         ->name('iam.password.forgot');
     Route::post('reset', [PasswordController::class, 'reset'])->name('iam.password.reset');
     Route::get('policy', [PasswordController::class, 'policy'])->name('iam.password.policy');
+    // Force-change is called during login flow using a temp token (user not fully authenticated yet)
+    Route::post('force-change-login', [PasswordController::class, 'forceChangeLogin'])
+        ->middleware('auth:api')
+        ->name('iam.password.force-change-login');
 });
 
 // Public User Routes

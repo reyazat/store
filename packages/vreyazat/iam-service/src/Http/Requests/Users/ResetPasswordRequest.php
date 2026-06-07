@@ -77,31 +77,6 @@ class ResetPasswordRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
-     * Decode base64 encoded passwords from frontend
-     */
-    protected function prepareForValidation(): void
-    {
-        // Decode new_password
-        if ($this->has('new_password') && !empty($this->new_password)) {
-            $decodedPassword = base64_decode($this->new_password, true);
-            
-            if ($decodedPassword !== false) {
-                $this->merge(['new_password' => $decodedPassword]);
-            }
-        }
-
-        // Decode new_password_confirmation
-        if ($this->has('new_password_confirmation') && !empty($this->new_password_confirmation)) {
-            $decodedPasswordConfirmation = base64_decode($this->new_password_confirmation, true);
-            
-            if ($decodedPasswordConfirmation !== false) {
-                $this->merge(['new_password_confirmation' => $decodedPasswordConfirmation]);
-            }
-        }
-    }
-
-    /**
      * Validate password complexity based on policy
      */
     private function validatePasswordComplexity(string $password, Closure $fail, array $policy): void

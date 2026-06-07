@@ -71,12 +71,14 @@ class TokenService
 
             $this->tokenRepository->create($tokenData);
 
-            $ttl = config('jwt.ttl', 60) * 60;
+            // JWT ttl is in minutes, convert to seconds for expires_in
+            $ttl = (int) config('jwt.ttl', 30);
+            $expiresInSeconds = $ttl * 60;
 
             return [
                 'access_token' => $access,
                 'refresh_token' => $refreshPlain,
-                'expires_in' => $ttl,
+                'expires_in' => $expiresInSeconds,
                 'token_type' => 'Bearer',
             ];
         });

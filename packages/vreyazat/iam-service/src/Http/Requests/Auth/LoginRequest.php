@@ -37,22 +37,6 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
-     * Decode base64 encoded password from frontend
-     */
-    protected function prepareForValidation(): void
-    {
-        if ($this->has('password') && !empty($this->password)) {
-            $decodedPassword = base64_decode($this->password, true);
-            
-            // If base64_decode fails, keep the original password
-            if ($decodedPassword !== false) {
-                $this->merge(['password' => $decodedPassword]);
-            }
-        }
-    }
-
-    /**
      * Get the body parameters for API documentation
      */
     public function bodyParameters(): array

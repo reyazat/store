@@ -28,6 +28,8 @@ class VerifyOtpAction
         $identifier = $data['identifier'];
         $code = $data['code'];
         $type = $data['type'];
+        // Determine channel: if not provided, infer from identifier format
+        $channel = $data['channel'] ?? (filter_var($identifier, FILTER_VALIDATE_EMAIL) ? 'email' : 'sms');
 
         // Rate limiting key for verification attempts
         $rateLimitKey = 'otp_verify:' . $identifier . ':' . $type;
@@ -61,8 +63,8 @@ class VerifyOtpAction
                 ];
             }
 
-            // Verify OTP
-            $result = $this->otpService->verify($user, $code, $type);
+            // Verify OTP — pass channel so the correct OTP record is found
+            $result = $this->otpService->verify($user, $code, $type, $channel);
 
             if (!$result['success']) {
                 RateLimiter::hit($rateLimitKey, 900);

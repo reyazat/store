@@ -107,9 +107,14 @@ class SendOtpRequest extends FormRequest
         // Normalize phone number format
         if ($this->has('identifier') && !filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
             $phone = preg_replace('/[^\d+]/', '', $this->identifier);
-            if (!str_starts_with($phone, '+')) {
+
+            // Convert Iranian local format (09XXXXXXXXX) to E.164 (+989XXXXXXXXX)
+            if (preg_match('/^09\d{9}$/', $phone)) {
+                $phone = '+98' . substr($phone, 1);
+            } elseif (!str_starts_with($phone, '+')) {
                 $phone = '+' . $phone;
             }
+
             $this->merge(['identifier' => $phone]);
         }
 

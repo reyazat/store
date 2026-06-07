@@ -94,43 +94,50 @@ Route::middleware(['auth:api'])->prefix('v1')->group(function () {
   });
 
 
-  Route::prefix('tax-classes')->group(function () {
+  // Admin-only routes for managing tax classes
+  Route::middleware(['admin'])->prefix('tax-classes')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\TaxClassController::class, 'store']);
     Route::put('/{taxClass}', [\App\Http\Controllers\API\TaxClassController::class, 'update']);
     Route::delete('/{taxClass}', [\App\Http\Controllers\API\TaxClassController::class, 'destroy']);
   });
 
-  Route::prefix('manufacturers')->group(function () {
+  // Admin-only routes for managing manufacturers
+  Route::middleware(['admin'])->prefix('manufacturers')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\ManufacturerController::class, 'store']);
     Route::put('/{manufacturer}', [\App\Http\Controllers\API\ManufacturerController::class, 'update']);
     Route::delete('/{manufacturer}', [\App\Http\Controllers\API\ManufacturerController::class, 'destroy']);
   });
 
-  Route::prefix('vendors')->group(function () {
+  // Admin-only routes for managing vendors
+  Route::middleware(['admin'])->prefix('vendors')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\VendorController::class, 'store']);
     Route::put('/{vendor}', [\App\Http\Controllers\API\VendorController::class, 'update']);
     Route::delete('/{vendor}', [\App\Http\Controllers\API\VendorController::class, 'destroy']);
   });
 
-  Route::prefix('options')->group(function () {
+  // Admin-only routes for managing product options
+  Route::middleware(['admin'])->prefix('options')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\OptionController::class, 'store']);
     Route::put('/{option}', [\App\Http\Controllers\API\OptionController::class, 'update']);
     Route::delete('/{option}', [\App\Http\Controllers\API\OptionController::class, 'destroy']);
   });
 
-  Route::prefix('option-values')->group(function () {
+  // Admin-only routes for managing option values
+  Route::middleware(['admin'])->prefix('option-values')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\OptionValueController::class, 'store']);
     Route::put('/{optionValue}', [\App\Http\Controllers\API\OptionValueController::class, 'update']);
     Route::delete('/{optionValue}', [\App\Http\Controllers\API\OptionValueController::class, 'destroy']);
   });
 
-  Route::prefix('customer-groups')->group(function () {
+  // Admin-only routes for managing customer groups
+  Route::middleware(['admin'])->prefix('customer-groups')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\CustomerGroupController::class, 'store']);
     Route::put('/{customerGroup}', [\App\Http\Controllers\API\CustomerGroupController::class, 'update']);
     Route::delete('/{customerGroup}', [\App\Http\Controllers\API\CustomerGroupController::class, 'destroy']);
   });
 
-  Route::prefix('listings')->group(function () {
+  // Admin-only routes for managing listings
+  Route::middleware(['admin'])->prefix('listings')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\ListingController::class, 'store']);
     Route::put('/{listing}', [\App\Http\Controllers\API\ListingController::class, 'update']);
     Route::delete('/{listing}', [\App\Http\Controllers\API\ListingController::class, 'destroy']);

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User } from '@shared/types'
+import { clearScheduledRefresh, scheduleTokenRefresh } from '@shared/utils/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -8,7 +9,7 @@ export const useAuthStore = defineStore('auth', () => {
   const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
-  
+
   const isAdmin = computed(() => {
     if (!user.value) return false
     if (user.value.is_super_admin) return true
@@ -49,7 +50,10 @@ export const useAuthStore = defineStore('auth', () => {
     initialized.value = false
     localStorage.removeItem('token')
     localStorage.removeItem('refresh_token')
+    localStorage.removeItem('token_expires_at')
     localStorage.removeItem('user')
+    // Clear any scheduled token refresh
+    clearScheduledRefresh()
   }
 
   const initialize = () => {
@@ -57,6 +61,14 @@ export const useAuthStore = defineStore('auth', () => {
     if (savedUser && token.value) {
       try {
         user.value = JSON.parse(savedUser)
+        // Schedule token refresh if we have a valid token
+        const expiresAt = localStorage.getItem('token_expires_at')
+        if (expiresAt) {
+          const expiresIn = Math.floor((parseInt(expiresAt) - Date.now()) / 1000)
+          if (expiresIn > 60) {
+            scheduleTokenRefresh(expiresIn)
+          }
+        }
       } catch {
         logout()
       }

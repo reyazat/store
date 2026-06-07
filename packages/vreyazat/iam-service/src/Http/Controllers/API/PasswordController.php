@@ -13,6 +13,8 @@ use IamApi\Http\Requests\Users\ForcePasswordChangeRequest;
 use IamApi\Http\Requests\Users\ForgotPasswordRequest;
 use IamApi\Http\Requests\Users\ResetPasswordRequest;
 use IamApi\Http\Resources\AbstractResource;
+use IamApi\Services\AuthService;
+use IamApi\Services\TokenService;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -28,7 +30,9 @@ class PasswordController extends Controller
         private readonly ResetPasswordAction $resetPasswordAction,
         private readonly ForcePasswordChangeAction $forcePasswordChangeAction,
         private readonly CheckPasswordExpiryAction $checkPasswordExpiryAction,
-        private readonly ForgotPasswordAction $forgotPasswordAction
+        private readonly ForgotPasswordAction $forgotPasswordAction,
+        private readonly TokenService $tokenService,
+        private readonly AuthService $authService
     ) {}
 
     /**
@@ -429,5 +433,84 @@ class PasswordController extends Controller
 
         return "Password must be $minLength-$maxLength characters with $requirementsText. " .
                "Cannot reuse last $historyCount passwords. Expires every $expiryDays days.";
+    }
+
+    /**
+     * Force password change during login flow (uses temp token issued at login)
+     *
+     * Called when the user logs in and `must_change_password` is true. The temp token
+     * from the login response must be sent as Bearer token. After a successful change,
+     * a full set of tokens is returned so the frontend can complete the login.
+     *
+     * @authenticated
+     *
+     * @bodyParam new_password string required New password. Example: NewSecure123!
+     * @bodyParam new_password_confirmation string required Confirmation of new password. Example: NewSecure123!
+     *
+     * @response 200 {
+     *   "success": true,
+     *   "message": "Password changed successfully",
+     *   "data": {
+     *     "user": {},
+     *     "tokens": { "access_token": "...", "refresh_token": "...", "expires_in": 900 },
+     *     "password_changed_at": "2024-01-01T12:30:00.000000Z"
+     *   }
+     * }
+     */
+    public function forceChangeLogin(ForcePasswordChangeRequest $request): JsonResponse
+    {
+        /** @var \IamApi\Models\User $user */
+        $user = auth()->user();
+
+        // Ensure the token carries the force_password_change claim
+        $payload = auth()->payload();
+        if (!$payload->get('force_password_change')) {
+            return response()->json(
+                AbstractResource::error('Invalid token for this operation.', null),
+                403
+            );
+        }
+
+        $data = $request->validated();
+        $result = $this->forcePasswordChangeAction->execute([
+            'user' => $user,
+            'new_password' => $data['new_password'],
+        ]);
+
+        if (!$result['success']) {
+            return response()->json(
+                AbstractResource::error($result['message'], $result['data'] ?? null),
+                $result['code'] ?? 400
+            );
+        }
+
+        // Revoke the temp token and issue a real session token
+        auth()->invalidate();
+
+        $tokens = $this->tokenService->issue($user->fresh(), [], [
+            'device_name' => $request->header('User-Agent', 'Unknown Device'),
+        ]);
+
+        if ($user->organization_id) {
+            $user->load('organization');
+        }
+
+        $this->authService->touchLogin($user, $request->ip());
+
+        activity()
+            ->performedOn($user)
+            ->causedBy($user)
+            ->withProperties(['ip' => $request->ip()])
+            ->log('Completed login after forced password change');
+
+        return response()->json(
+            AbstractResource::success(
+                array_merge($result['data'], [
+                    'user' => $user->fresh(),
+                    'tokens' => $tokens,
+                ]),
+                'Password changed and login successful'
+            )
+        );
     }
 }

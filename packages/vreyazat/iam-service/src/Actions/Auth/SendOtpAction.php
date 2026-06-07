@@ -25,17 +25,31 @@ class SendOtpAction
         $type = $data['type'];
         $channel = $data['channel'];
 
-        // Rate limiting key
+        // Rate limiting: max 5 send attempts per identifier+type per 15 minutes
         $rateLimitKey = 'otp_send:' . $identifier . ':' . $type;
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+
+            return [
+                'success' => false,
+                'message' => 'Too many OTP requests. Please try again later.',
+                'code' => 429,
+                'data' => [
+                    'retry_after' => $seconds
+                ]
+            ];
+        }
+
+        // Hit rate limiter before processing to prevent enumeration
+        RateLimiter::hit($rateLimitKey, 900); // 15 minutes window
 
         try {
             // Find user based on identifier and type
             $user = $this->findUserByIdentifier($identifier, $type, $channel);
 
             if (!$user) {
-                // Don't reveal if user exists or not for security
-                RateLimiter::hit($rateLimitKey, 900); // 15 minutes
-
+                // Don't reveal if user exists or not for security (but rate limit is already hit)
                 return [
                     'success' => false,
                     'message' => 'Invalid identifier or user not found.',
@@ -55,8 +69,6 @@ class SendOtpAction
             // Send OTP
             $result = $this->otpService->send($user, $type, $channel);
 
-            RateLimiter::hit($rateLimitKey, 900);
-
             if (!$result['success']) {
                 return [
                     'success' => false,
@@ -64,8 +76,6 @@ class SendOtpAction
                     'code' => 500
                 ];
             }
-
-            // Hit rate limiter on successful sending
 
             return [
                 'success' => true,

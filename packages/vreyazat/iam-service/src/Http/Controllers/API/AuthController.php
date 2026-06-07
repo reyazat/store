@@ -11,7 +11,6 @@ use IamApi\Http\Requests\Auth\RefreshTokenRequest;
 use IamApi\Http\Resources\AbstractResource;
 use IamApi\Http\Resources\Auth\AuthResource;
 use IamApi\Http\Resources\Auth\TokenResource;
-use IamApi\Http\Resources\User\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 
@@ -20,6 +19,7 @@ use Illuminate\Routing\Controller;
  *
  * APIs for user authentication including login, logout, token refresh, and profile retrieval.
  * These endpoints handle JWT-based authentication with refresh token support.
+ * Uses HttpOnly cookies for secure token storage with Double Submit Cookie pattern for CSRF protection.
  */
 class AuthController extends Controller
 {
@@ -35,8 +35,8 @@ class AuthController extends Controller
     /**
      * Login with email and password
      *
-     * Authenticate a user with their email and password. Returns JWT access token and refresh token.
-     * Rate limited to prevent brute force attacks. May require CAPTCHA after multiple failed attempts.
+     * Authenticate a user with their email and password. Returns JWT access token and refresh token
+     * in HttpOnly cookies for enhanced security. Also sets a CSRF token cookie for Double Submit pattern.
      *
      * @unauthenticated
      *
@@ -75,12 +75,8 @@ class AuthController extends Controller
      *       "created_at": "2024-01-01T00:00:00.000000Z",
      *       "updated_at": "2024-01-01T12:00:00.000000Z"
      *     },
-     *     "tokens": {
-     *       "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-     *       "refresh_token": "def50200e8d4f5c8a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7",
-     *       "token_type": "bearer",
-     *       "expires_in": 900
-     *     }
+     *     "csrf_token": "abc123...",
+     *     "expires_in": 1800
      *   }
      * }
      *
@@ -128,37 +124,41 @@ class AuthController extends Controller
 
         // Check if MFA or other action is required
         if (isset($result['data']['action_required'])) {
+            // For MFA, we still return temp token in body (shorter lived)
             return response()->json(
                 AbstractResource::success($result['data'], $result['message'])
             );
         }
 
+        // Load user organization (if exists — Super Admin doesn't have one)
+        $user = $result['data']['user'];
+        if ($user->organization_id) {
+            $user->load('organization');
+        }
+
+        // Return tokens in response body (Bearer token strategy)
         return response()->json(
-            AbstractResource::success(
-                new AuthResource($result['data']),
-                $result['message']
-            )
+            AbstractResource::success([
+                'user'   => $user,
+                'tokens' => $result['data']['tokens'],
+            ], $result['message'])
         );
     }
 
     /**
      * Refresh JWT token
      *
-     * Refresh an expired or near-expired JWT access token using a valid refresh token.
-     * This endpoint allows users to maintain their session without re-entering credentials.
+     * Refresh an expired or near-expired JWT access token using a valid refresh token
+     * from HttpOnly cookie. Returns new tokens in cookies.
      *
      * @unauthenticated
-     *
-     * @bodyParam refresh_token string required The refresh token received during login. Example: def50200e8d4f5c8a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7
      *
      * @response 200 {
      *   "success": true,
      *   "message": "Token refreshed successfully",
      *   "data": {
-     *     "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-     *     "refresh_token": "def50200f9e5g6d8h7i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3",
-     *     "token_type": "bearer",
-     *     "expires_in": 900
+     *     "csrf_token": "abc123...",
+     *     "expires_in": 1800
      *   }
      * }
      *
@@ -167,18 +167,20 @@ class AuthController extends Controller
      *   "message": "Invalid or expired refresh token",
      *   "data": null
      * }
-     *
-     * @response 422 {
-     *   "success": false,
-     *   "message": "Validation failed",
-     *   "data": {
-     *     "refresh_token": ["The refresh token field is required."]
-     *   }
-     * }
      */
     public function refresh(RefreshTokenRequest $request): JsonResponse
     {
-        $result = $this->refreshAction->execute($request->validated());
+        // Accept refresh_token from request body (Bearer token strategy)
+        $refreshToken = $request->input('refresh_token');
+
+        if (!$refreshToken) {
+            return response()->json(
+                AbstractResource::error('Refresh token not found', null),
+                401
+            );
+        }
+
+        $result = $this->refreshAction->execute(['refresh_token' => $refreshToken]);
 
         if (!$result['success']) {
             return response()->json(
@@ -187,11 +189,9 @@ class AuthController extends Controller
             );
         }
 
+        // Return tokens in response body (Bearer token strategy)
         return response()->json(
-            AbstractResource::success(
-                new TokenResource($result['data']['tokens']),
-                $result['message']
-            )
+            AbstractResource::success($result['data']['tokens'], $result['message'])
         );
     }
 
@@ -199,11 +199,10 @@ class AuthController extends Controller
      * Logout user
      *
      * Logout the authenticated user by invalidating their JWT tokens and refresh tokens.
-     * This endpoint requires authentication and will blocklist the current tokens.
+     * Clears all authentication cookies.
      *
      * @authenticated
      *
-     * @bodyParam refresh_token string required The refresh token to invalidate. Example: def50200e8d4f5c8a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p7q8r9s0t1u2v3w4x5y6z7
      * @bodyParam logout_all_devices boolean Whether to log out from all devices. Example: false
      *
      * @response 200 {
@@ -223,14 +222,6 @@ class AuthController extends Controller
      *   "message": "Unauthenticated",
      *   "data": null
      * }
-     *
-     * @response 422 {
-     *   "success": false,
-     *   "message": "Validation failed",
-     *   "data": {
-     *     "refresh_token": ["The refresh token field is required."]
-     *   }
-     * }
      */
     public function logout(LogoutRequest $request): JsonResponse
     {
@@ -239,7 +230,7 @@ class AuthController extends Controller
         if (!$result['success']) {
             return response()->json(
                 AbstractResource::error($result['message'], $result['data'] ?? null),
-                400
+                $result['code'] ?? 400
             );
         }
 
@@ -251,39 +242,21 @@ class AuthController extends Controller
     /**
      * Get authenticated user profile
      *
-     * Retrieve the profile information of the currently authenticated user.
-     * This endpoint requires a valid JWT token in the Authorization header.
+     * Retrieve the currently authenticated user's profile information.
      *
      * @authenticated
      *
      * @response 200 {
      *   "success": true,
-     *   "message": "User profile retrieved successfully",
+     *   "message": "User retrieved successfully",
      *   "data": {
-     *     "id": 1,
-     *     "name": "John Doe",
-     *     "email": "user@example.com",
-     *     "email_verified_at": "2024-01-01T00:00:00.000000Z",
-     *     "phone": "+1234567890",
-     *     "phone_verified_at": null,
-     *     "status": "active",
-     *     "last_login_at": "2024-01-01T12:00:00.000000Z",
-     *     "last_login_ip": "192.168.1.1",
-     *     "mfa_enabled": false,
-     *     "must_change_password": false,
-     *     "password_expires_at": "2024-04-01T00:00:00.000000Z",
-     *     "failed_login_attempts": 0,
-     *     "locked_until": null,
-     *     "roles": ["member"],
-     *     "permissions": ["users.view"],
-     *     "organization": {
+     *     "user": {
      *       "id": 1,
-     *       "name": "Acme Corp",
-     *       "created_at": "2024-01-01T00:00:00.000000Z",
-     *       "updated_at": "2024-01-01T00:00:00.000000Z"
-     *     },
-     *     "created_at": "2024-01-01T00:00:00.000000Z",
-     *     "updated_at": "2024-01-01T12:00:00.000000Z"
+     *       "name": "John Doe",
+     *       "email": "user@example.com",
+     *       "roles": ["admin"],
+     *       "permissions": ["users.manage"]
+     *     }
      *   }
      * }
      *
@@ -295,12 +268,19 @@ class AuthController extends Controller
      */
     public function me(): JsonResponse
     {
-        $user = auth()->user();
+        $user = auth('api')->user();
+
+        if (!$user) {
+            return response()->json(
+                AbstractResource::error('Unauthenticated', null),
+                401
+            );
+        }
 
         return response()->json(
             AbstractResource::success(
-                new UserResource($user),
-                'User profile retrieved successfully'
+                ['user' => $user],
+                'User retrieved successfully'
             )
         );
     }

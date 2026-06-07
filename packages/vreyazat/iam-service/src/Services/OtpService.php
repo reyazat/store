@@ -84,9 +84,10 @@ class OtpService
             ];
         }
 
-        // Increment attempts
+        // Increment attempts — use attempts+1 because the model is not refreshed after update
         $this->otpRepository->incrementAttempts($otp);
-        $remainingAttempts = max(0, $otp->max_attempts - $otp->attempts);
+        $attemptsAfterIncrement = $otp->attempts + 1;
+        $remainingAttempts = max(0, $otp->max_attempts - $attemptsAfterIncrement);
 
         // Check if code matches
         if (!Hash::check($code, $otp->code_hash)) {

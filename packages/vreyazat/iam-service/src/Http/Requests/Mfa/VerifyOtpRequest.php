@@ -57,6 +57,12 @@ class VerifyOtpRequest extends FormRequest
                     'security_verification'
                 ])
             ],
+            'channel' => [
+                'nullable',
+                'string',
+                new NoHtml(),
+                Rule::in(['email', 'sms'])
+            ],
         ];
     }
 
@@ -72,6 +78,7 @@ class VerifyOtpRequest extends FormRequest
             'code.regex' => 'OTP code must contain only numbers.',
             'type.required' => 'OTP type is required.',
             'type.in' => 'Invalid OTP type. Must be one of: login_verification, password_reset, email_verification, phone_verification, account_activation, security_verification.',
+            'channel.in' => 'Invalid channel. Must be either email or sms.',
         ];
     }
 
@@ -84,6 +91,7 @@ class VerifyOtpRequest extends FormRequest
             'identifier' => 'email or phone number',
             'code' => 'OTP code',
             'type' => 'OTP type',
+            'channel' => 'communication channel',
         ];
     }
 
@@ -95,9 +103,14 @@ class VerifyOtpRequest extends FormRequest
         // Normalize phone number format
         if ($this->has('identifier') && !filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
             $phone = preg_replace('/[^\d+]/', '', $this->identifier);
-            if (!str_starts_with($phone, '+')) {
+
+            // Convert Iranian local format (09XXXXXXXXX) to E.164 (+989XXXXXXXXX)
+            if (preg_match('/^09\d{9}$/', $phone)) {
+                $phone = '+98' . substr($phone, 1);
+            } elseif (!str_starts_with($phone, '+')) {
                 $phone = '+' . $phone;
             }
+
             $this->merge(['identifier' => $phone]);
         }
 
@@ -129,6 +142,10 @@ class VerifyOtpRequest extends FormRequest
             'type' => [
                 'description' => 'Type of OTP verification (login_verification, password_reset, email_verification, phone_verification, account_activation, security_verification)',
                 'example' => 'login_verification',
+            ],
+            'channel' => [
+                'description' => 'The channel the OTP was sent through (email or sms). Must match the channel used during send.',
+                'example' => 'email',
             ],
         ];
     }

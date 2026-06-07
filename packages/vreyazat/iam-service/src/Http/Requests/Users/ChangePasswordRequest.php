@@ -34,40 +34,6 @@ class ChangePasswordRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
-     * Decode base64 encoded passwords from frontend
-     */
-    protected function prepareForValidation(): void
-    {
-        // Decode current_password
-        if ($this->has('current_password') && !empty($this->current_password)) {
-            $decodedPassword = base64_decode($this->current_password, true);
-            
-            if ($decodedPassword !== false) {
-                $this->merge(['current_password' => $decodedPassword]);
-            }
-        }
-
-        // Decode new_password
-        if ($this->has('new_password') && !empty($this->new_password)) {
-            $decodedPassword = base64_decode($this->new_password, true);
-            
-            if ($decodedPassword !== false) {
-                $this->merge(['new_password' => $decodedPassword]);
-            }
-        }
-
-        // Decode new_password_confirmation
-        if ($this->has('new_password_confirmation') && !empty($this->new_password_confirmation)) {
-            $decodedPasswordConfirmation = base64_decode($this->new_password_confirmation, true);
-            
-            if ($decodedPasswordConfirmation !== false) {
-                $this->merge(['new_password_confirmation' => $decodedPasswordConfirmation]);
-            }
-        }
-    }
-
-    /**
      * Get the body parameters for API documentation
      */
     public function bodyParameters(): array

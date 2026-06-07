@@ -21,11 +21,14 @@ class CheckPasswordExpiry
 
         // Skip password expiry check for certain routes
         $skipRoutes = [
-            'password.change',
-            'password.force-change',
-            'password.expiry',
-            'auth.logout',
-            'mfa.*', // Allow MFA operations
+            'iam.password.change',
+            'iam.password.force-change',
+            'iam.password.expiry',
+            'iam.auth.logout',
+            'iam.auth.me',           // Allow reading own profile (needed right after OTP login)
+            'iam.auth.me.roles',     // Allow reading own roles (needed right after OTP login)
+            'iam.auth.me.permissions',
+            'iam.mfa.*', // Allow MFA operations
             'health.check'
         ];
 

@@ -28,13 +28,13 @@ class LoginWithPasswordAction extends BaseAction
         );
 
         if (!$user) {
-            return $this->error('Invalid credentials', null, 401);
+            return $this->error('Invalid credentials', null, 400);
         }
 
         // Check if an account is locked
         if ($user->isLocked()) {
             return $this->error('Account is temporarily locked', [
-                'locked_until' => $user->locked_until
+                'locked_until' => $user->locked_until->toISOString()
             ], 423);
         }
 
@@ -43,12 +43,22 @@ class LoginWithPasswordAction extends BaseAction
             return $this->error('Account is disabled', null, 403);
         }
 
-        // Check if password change is required
+        // Check if password change is required.
+        // Issue a short-lived temp token so the frontend can call /password/force-change
+        // without a full session token (user has not completed login yet).
         if ($user->must_change_password) {
-            return $this->error('Password change required', [
+            $tempToken = $this->tokenService->issue($user, [
+                'temp' => true,
+                'force_password_change' => true,
+            ], [
+                'device_name' => $data['device_name'] ?? 'Unknown Device'
+            ]);
+
+            return $this->success([
                 'action_required' => 'change_password',
-                'user_id' => $user->id
-            ], 422);
+                'temp_token' => $tempToken['access_token'],
+                'user_id' => $user->id,
+            ], 'Password change required');
         }
 
         // Check if MFA is enabled

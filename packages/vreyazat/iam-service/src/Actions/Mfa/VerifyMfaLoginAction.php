@@ -142,9 +142,14 @@ class VerifyMfaLoginAction
                 ])
                 ->log('User logged in via MFA');
 
+            // Load organization if applicable
+            if ($user->organization_id) {
+                $user->load('organization');
+            }
+
             $responseData = [
-                'user' => $user->only(['id','name','email','phone','status','email_verified_at','phone_verified_at','mfa_enabled']),
-                'tokens' => $tokens
+                'user'   => $user,
+                'tokens' => $tokens,
             ];
 
             // Add recovery code specific data

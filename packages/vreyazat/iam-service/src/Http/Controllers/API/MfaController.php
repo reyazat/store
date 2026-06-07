@@ -351,7 +351,7 @@ class MfaController extends Controller
      *
      * @authenticated
      *
-     * @bodyParam recovery_code string required The 8-character recovery code. Example: 12345678
+     * @bodyParam recovery_code string required The 10-character alphanumeric recovery code. Example: A1B2C3D4E5
      *
      * @response 200 {
      *   "success": true,
@@ -376,7 +376,7 @@ class MfaController extends Controller
      *   "success": false,
      *   "message": "Validation failed",
      *   "data": {
-     *     "recovery_code": ["The recovery code must be 8 characters."]
+     *     "recovery_code": ["Recovery code must be exactly 10 characters."]
      *   }
      * }
      */
@@ -457,8 +457,12 @@ class MfaController extends Controller
             );
         }
 
+        // Return tokens in response body (Bearer token strategy)
         return response()->json(
-            AbstractResource::success($result['data'], $result['message'])
+            AbstractResource::success([
+                'user'   => $result['data']['user'],
+                'tokens' => $result['data']['tokens'],
+            ], $result['message'])
         );
     }
 
@@ -471,7 +475,7 @@ class MfaController extends Controller
      * @unauthenticated
      *
      * @bodyParam login_token string required The temporary login token from initial authentication. Example: temp_login_token_here
-     * @bodyParam recovery_code string required The 8-character recovery code. Example: 12345678
+     * @bodyParam recovery_code string required The 10-character alphanumeric recovery code. Example: A1B2C3D4E5
      *
      * @response 200 {
      *   "success": true,
@@ -482,12 +486,8 @@ class MfaController extends Controller
      *       "name": "John Doe",
      *       "email": "user@example.com"
      *     },
-     *     "tokens": {
-     *       "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-     *       "refresh_token": "def50200e8d4f5c8a2b3c4d5e6f7g8h9...",
-     *       "token_type": "bearer",
-     *       "expires_in": 900
-     *     },
+     *     "csrf_token": "abc123...",
+     *     "expires_in": 900,
      *     "recovery_code_used": true,
      *     "remaining_codes": 7
      *   }
@@ -521,8 +521,14 @@ class MfaController extends Controller
             );
         }
 
+        // Return tokens in response body (Bearer token strategy)
         return response()->json(
-            AbstractResource::success($result['data'], $result['message'])
+            AbstractResource::success([
+                'user'               => $result['data']['user'],
+                'tokens'             => $result['data']['tokens'],
+                'recovery_code_used' => $result['data']['recovery_code_used'] ?? true,
+                'remaining_codes'    => $result['data']['remaining_codes'] ?? null,
+            ], $result['message'])
         );
     }
 

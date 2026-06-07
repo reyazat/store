@@ -42,31 +42,6 @@ class RegisterUserRequest extends FormRequest
     }
 
     /**
-     * Prepare the data for validation.
-     * Decode base64 encoded password from frontend
-     */
-    protected function prepareForValidation(): void
-    {
-        // Decode password
-        if ($this->has('password') && !empty($this->password)) {
-            $decodedPassword = base64_decode($this->password, true);
-            
-            if ($decodedPassword !== false) {
-                $this->merge(['password' => $decodedPassword]);
-            }
-        }
-
-        // Decode password_confirmation
-        if ($this->has('password_confirmation') && !empty($this->password_confirmation)) {
-            $decodedPasswordConfirmation = base64_decode($this->password_confirmation, true);
-            
-            if ($decodedPasswordConfirmation !== false) {
-                $this->merge(['password_confirmation' => $decodedPasswordConfirmation]);
-            }
-        }
-    }
-
-    /**
      * Get the body parameters for API documentation
      */
     public function bodyParameters(): array
