@@ -93,26 +93,27 @@ const hasPromoBanners = computed(() => promoBanners.value.length > 0)
 <template>
   <div class="bg-secondary-50">
     <!-- Hero Slider -->
-    <section class="relative overflow-hidden bg-secondary-800">
+    <section class="relative overflow-hidden">
       <div class="relative h-[300px] md:h-[420px]">
 
         <!-- Loading skeleton -->
         <div v-if="isLoading" class="absolute inset-0 animate-pulse bg-gradient-to-l from-primary-500 to-primary-700"></div>
 
-        <!-- Empty state (no slides configured) -->
+        <!-- Empty state (no slides configured) - Minimal welcome slide -->
         <div
           v-else-if="slides.length === 0"
-          class="absolute inset-0 bg-gradient-to-l from-primary-600 to-primary-800 flex items-center justify-center"
+          class="absolute inset-0 bg-gradient-to-br from-secondary-50 to-secondary-100 flex items-center justify-center"
         >
-          <div class="text-center text-white">
-            <h1 class="text-3xl md:text-5xl font-bold mb-3">به فروشگاه ما خوش آمدید</h1>
-            <RouterLink to="/products" class="inline-flex items-center gap-2 bg-white text-primary-700 px-8 py-3 rounded-full font-bold hover:bg-primary-50 transition shadow-lg mt-4">
+          <div class="text-center px-4">
+            <h1 class="text-3xl md:text-5xl font-bold mb-4 text-secondary-800">به فروشگاه ما خوش آمدید</h1>
+            <p class="text-lg md:text-xl text-secondary-600 mb-6">بهترین محصولات با بهترین قیمت</p>
+            <RouterLink to="/products" class="inline-flex items-center gap-2 bg-primary-600 text-white px-8 py-3 rounded-full font-bold hover:bg-primary-700 transition shadow-lg">
               مشاهده محصولات <ChevronLeft class="w-5 h-5" />
             </RouterLink>
           </div>
         </div>
 
-        <!-- Slides -->
+        <!-- Slides (dynamic) -->
         <transition-group v-else name="fade">
           <div
             v-for="(slide, index) in slides"
