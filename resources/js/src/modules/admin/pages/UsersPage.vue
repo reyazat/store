@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { Search, Eye, Lock, Unlock, X, CheckCircle, XCircle, ShieldAlert, Shield } from 'lucide-vue-next'
+import { Search, Eye, Lock, Unlock, X, CheckCircle, XCircle, ShieldAlert, Shield, AlertTriangle } from 'lucide-vue-next'
 import { formatDate } from '@shared/utils/format'
 import { useAdminList } from '../composables/useAdminList'
 import { iamService } from '../services/iamService'
@@ -8,14 +8,15 @@ import type { IamUser } from '../types/iam'
 import AdminPagination from '../components/AdminPagination.vue'
 
 const { items: users, isLoading, errorMsg, filters, meta, debouncedReload, reload, goToPage } =
-  useAdminList<IamUser, { search: string; status: string; per_page: number }>({
-    defaultFilters: { search: '', status: '', per_page: 15 },
+  useAdminList<IamUser, { search: string; status: string; is_locked: '' | '1' | '0'; per_page: number }>({
+    defaultFilters: { search: '', status: '', is_locked: '', per_page: 15 },
     fetchFn: (f) => iamService.getUsers(f),
   })
 
 const selectedUser = ref<IamUser | null>(null)
 const isDetailOpen = ref(false)
 const isLockOpen = ref(false)
+const isUnlockOpen = ref(false)
 const lockReason = ref('')
 const lockDuration = ref(30)
 const actionLoading = ref(false)
@@ -43,6 +44,16 @@ const closeLockDialog = () => {
   isLockOpen.value = false
 }
 
+const openUnlockDialog = (user: IamUser) => {
+  selectedUser.value = user
+  actionError.value = null
+  isUnlockOpen.value = true
+}
+
+const closeUnlockDialog = () => {
+  isUnlockOpen.value = false
+}
+
 const confirmLock = async () => {
   if (!selectedUser.value || !lockReason.value.trim()) return
   actionLoading.value = true
@@ -62,11 +73,13 @@ const confirmLock = async () => {
   }
 }
 
-const handleUnlock = async (user: IamUser) => {
+const confirmUnlock = async () => {
+  if (!selectedUser.value) return
   actionLoading.value = true
   actionError.value = null
   try {
-    await iamService.unlockAccount(user.id)
+    await iamService.unlockAccount(selectedUser.value.id)
+    isUnlockOpen.value = false
     reload()
   } catch {
     actionError.value = 'باز کردن قفل حساب با خطا مواجه شد'
@@ -123,6 +136,15 @@ const detailUser = computed(() => selectedUser.value)
         <option value="active">فعال</option>
         <option value="inactive">غیرفعال</option>
         <option value="suspended">تعلیق شده</option>
+      </select>
+      <select
+        v-model="filters.is_locked"
+        class="h-10 px-3 rounded-lg border border-secondary-200 focus:border-primary-500 text-sm text-secondary-700"
+        @change="reload"
+      >
+        <option value="">همه (قفل و باز)</option>
+        <option value="1">فقط قفل شده‌ها</option>
+        <option value="0">فقط باز</option>
       </select>
       <select
         v-model="filters.per_page"
@@ -223,7 +245,7 @@ const detailUser = computed(() => selectedUser.value)
                     class="p-1.5 hover:bg-green-50 rounded-lg transition"
                     title="باز کردن قفل حساب"
                     :disabled="actionLoading"
-                    @click="handleUnlock(user)"
+                    @click="openUnlockDialog(user)"
                   >
                     <Unlock class="w-4 h-4 text-green-600" />
                   </button>
@@ -340,7 +362,7 @@ const detailUser = computed(() => selectedUser.value)
               v-else
               class="px-4 py-2 text-sm text-green-600 border border-green-200 rounded-lg hover:bg-green-50 transition"
               :disabled="actionLoading"
-              @click="() => { closeDetail(); handleUnlock(detailUser!) }"
+              @click="() => { closeDetail(); openUnlockDialog(detailUser!) }"
             >باز کردن قفل</button>
             <button
               class="px-4 py-2 text-sm bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition"
@@ -404,6 +426,48 @@ const detailUser = computed(() => selectedUser.value)
               :disabled="actionLoading || !lockReason.trim()"
               @click="confirmLock"
             >{{ actionLoading ? 'در حال پردازش...' : 'قفل کردن' }}</button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Unlock Confirmation Dialog -->
+    <Teleport to="body">
+      <div
+        v-if="isUnlockOpen && selectedUser"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+        @click.self="closeUnlockDialog"
+      >
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+          <div class="flex items-center justify-between p-6 border-b border-secondary-100">
+            <h2 class="text-lg font-bold text-secondary-800">باز کردن قفل حساب</h2>
+            <button class="p-1.5 hover:bg-secondary-100 rounded-lg" @click="closeUnlockDialog">
+              <X class="w-5 h-5 text-secondary-500" />
+            </button>
+          </div>
+          <div class="p-6 space-y-4">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle class="w-5 h-5 text-green-600" />
+              </div>
+              <p class="text-sm text-secondary-600 leading-relaxed">
+                آیا مطمئن هستید که می‌خواهید قفل حساب کاربری
+                <strong class="text-secondary-800">{{ selectedUser.name }}</strong>
+                را باز کنید؟ کاربر بلافاصله می‌تواند وارد سیستم شود.
+              </p>
+            </div>
+            <p v-if="actionError" class="text-sm text-red-600">{{ actionError }}</p>
+          </div>
+          <div class="p-6 border-t border-secondary-100 flex justify-end gap-3">
+            <button
+              class="px-4 py-2 text-sm bg-secondary-100 text-secondary-700 rounded-lg hover:bg-secondary-200 transition"
+              @click="closeUnlockDialog"
+            >انصراف</button>
+            <button
+              class="px-4 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50"
+              :disabled="actionLoading"
+              @click="confirmUnlock"
+            >{{ actionLoading ? 'در حال پردازش...' : 'بله، باز کن' }}</button>
           </div>
         </div>
       </div>

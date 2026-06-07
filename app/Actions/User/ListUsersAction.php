@@ -24,6 +24,16 @@ class ListUsersAction
             $query->where('status', $filters['status']);
         }
 
+        if (isset($filters['is_locked']) && $filters['is_locked'] !== '') {
+            if ($filters['is_locked'] === '1' || $filters['is_locked'] === true) {
+                $query->whereNotNull('locked_until')->where('locked_until', '>', now());
+            } else {
+                $query->where(function ($q) {
+                    $q->whereNull('locked_until')->orWhere('locked_until', '<=', now());
+                });
+            }
+        }
+
         $perPage = min((int) ($filters['per_page'] ?? 15), 100);
 
         return $query->latest()->paginate($perPage);

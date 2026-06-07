@@ -28,6 +28,7 @@ export interface IamUser {
 export interface IamUserFilters {
   search?: string
   status?: string
+  is_locked?: '' | '1' | '0'
   per_page?: number
   page?: number
 }

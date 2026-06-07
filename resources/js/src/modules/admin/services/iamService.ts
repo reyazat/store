@@ -5,10 +5,11 @@ import type { IamUser, IamUserFilters, AuditLog, AuditLogFilters, LockAccountPay
 export const iamService = {
   async getUsers(filters: IamUserFilters = {}): Promise<{ data: IamUser[]; meta: PaginationMeta }> {
     const params: Record<string, string | number> = {}
-    if (filters.search)   params.search   = filters.search
-    if (filters.status)   params.status   = filters.status
-    if (filters.per_page) params.per_page = filters.per_page
-    if (filters.page)     params.page     = filters.page
+    if (filters.search)            params.search    = filters.search
+    if (filters.status)            params.status    = filters.status
+    if (filters.is_locked != null && filters.is_locked !== '') params.is_locked = filters.is_locked
+    if (filters.per_page)          params.per_page  = filters.per_page
+    if (filters.page)              params.page      = filters.page
 
     const response = await api.get('/admin/users', { params })
 

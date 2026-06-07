@@ -24,7 +24,7 @@ class UserController extends Controller
     public function index(Request $request): JsonResponse
     {
         $users = $this->listUsersAction->execute(
-            $request->only(['search', 'status', 'per_page'])
+            $request->only(['search', 'status', 'is_locked', 'per_page'])
         );
 
         return response()->json([
