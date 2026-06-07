@@ -51,6 +51,8 @@ class ProductStoreRequest extends FormRequest
             'variants.*.width' => ['nullable', 'numeric', 'min:0'],
             'variants.*.height' => ['nullable', 'numeric', 'min:0'],
             'variants.*.status' => ['nullable', 'integer', 'in:0,1'],
+            'variants.*.price' => ['nullable', 'numeric', 'min:0'],
+            'variants.*.stock' => ['nullable', 'integer', 'min:0'],
             'variants.*.option_values' => ['nullable', 'array'],
             'variants.*.option_values.*.option_id' => ['required', 'integer', 'exists:options,id'],
             'variants.*.option_values.*.option_value_id' => ['required', 'integer', 'exists:option_values,id'],

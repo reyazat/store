@@ -155,12 +155,13 @@ export const useCartStore = defineStore('cart', () => {
       removeItem(itemId)
       return
     }
-    
-    const item = items.value.find(i => i.id === itemId || i.productId === itemId)
+
+    // Match by unique cart item id only (not productId to avoid conflicts with variants)
+    const item = items.value.find(i => i.id === itemId)
     if (item) {
       item.quantity = quantity
     }
-    
+
     // For authenticated users, sync with server
     if (authStore.isAuthenticated) {
       try {
@@ -172,8 +173,9 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   const removeItem = async (itemId: number) => {
-    items.value = items.value.filter(i => i.id !== itemId && i.productId !== itemId)
-    
+    // Remove by unique cart item id only (not productId to avoid conflicts with variants)
+    items.value = items.value.filter(i => i.id !== itemId)
+
     // For authenticated users, sync with server
     if (authStore.isAuthenticated) {
       try {

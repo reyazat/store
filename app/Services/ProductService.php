@@ -72,9 +72,17 @@ class ProductService
 
     public function deleteProduct(Product $product): void
     {
+        // Delete main image
         $this->imageService->delete($product->main_image);
 
-        Product::query()->whereKey($product->getKey())->delete();
+        // Delete all gallery images from disk
+        $product->load('images');
+        foreach ($product->images as $image) {
+            $this->imageService->delete($image->file_name);
+        }
+
+        // Delete product (cascades to images in DB via foreign key or model events)
+        $product->delete();
     }
 
     private function resolveMainImage(array $data): array

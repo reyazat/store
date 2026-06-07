@@ -115,11 +115,14 @@ const addToCart = () => {
 
   if (!listing) return
 
+  // Use listing_variant.id (not variant.id) for proper cart identification
+  const listingVariantId = selectedVariant.value?.listing_variant?.id
+
   cartStore.addItem({
     id: listing.id,
     productId: product.value.id,
     listingId: listing.id,
-    variantId: selectedVariant.value?.id,
+    variantId: listingVariantId,
     name: product.value.name,
     price: currentPrice.value,
     image: product.value.main_image,

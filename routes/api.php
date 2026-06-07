@@ -83,8 +83,11 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::middleware(['auth:api'])->prefix('v1')->group(function () {
-  Route::prefix('products')->group(function () {
-    Route::post('/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'store']);
+  // Product reviews - accessible to any authenticated user
+  Route::post('/products/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'store']);
+
+  // Product CRUD - admin only
+  Route::middleware(['admin'])->prefix('products')->group(function () {
     Route::post('/', [\App\Http\Controllers\API\ProductController::class, 'store']);
     Route::put('/{product}', [\App\Http\Controllers\API\ProductController::class, 'update']);
     Route::delete('/{product}', [\App\Http\Controllers\API\ProductController::class, 'destroy']);

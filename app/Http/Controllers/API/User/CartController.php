@@ -7,12 +7,14 @@ use App\Http\Requests\Cart\CartAddItemRequest;
 use App\Http\Requests\Cart\CartUpdateItemRequest;
 use App\Http\Resources\Cart\CartItemResource;
 use App\Http\Resources\Cart\CartResource;
+use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\ListingVariant;
 use App\Services\CartService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
 {
@@ -36,12 +38,22 @@ class CartController extends Controller
 
         $cart = $this->cartService->getOrCreateCart($request->user());
 
-        $listingVariantId = null;
-        if (isset($validated['variant_id'])) {
-            $listingVariant = ListingVariant::where('listing_id', $validated['listing_id'])
-                ->where('variant_id', $validated['variant_id'])
+        // variant_id is now the listing_variant.id (direct reference)
+        $listingVariantId = $validated['variant_id'] ?? null;
+
+        // Validate that the listing variant belongs to the specified listing
+        if ($listingVariantId) {
+            $listingVariant = ListingVariant::where('id', $listingVariantId)
+                ->where('listing_id', $validated['listing_id'])
+                ->where('status', 1)
                 ->first();
-            $listingVariantId = $listingVariant?->id;
+
+            if (!$listingVariant) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'نوع انتخاب شده محصول موجود نیست',
+                ], 422);
+            }
         }
 
         try {
@@ -67,6 +79,14 @@ class CartController extends Controller
 
     public function update(CartUpdateItemRequest $request, CartItem $cartItem): JsonResponse
     {
+        // Verify ownership - cart item must belong to current user's cart
+        if (!$this->cartItemBelongsToUser($cartItem, $request->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'شما اجازه دسترسی به این آیتم سبد خرید را ندارید',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         try {
             $item = $this->cartService->updateItemQuantity($cartItem, $request->validated('quantity'));
         } catch (RuntimeException $e) {
@@ -83,14 +103,39 @@ class CartController extends Controller
         ]);
     }
 
-    public function destroy(CartItem $cartItem): JsonResponse
+    public function destroy(Request $request, CartItem $cartItem): JsonResponse
     {
+        // Verify ownership - cart item must belong to current user's cart
+        if (!$this->cartItemBelongsToUser($cartItem, $request->user())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'شما اجازه دسترسی به این آیتم سبد خرید را ندارید',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
         $this->cartService->removeItem($cartItem);
 
         return response()->json([
             'success' => true,
             'message' => 'محصول از سبد خرید حذف شد',
         ]);
+    }
+
+    /**
+     * Verify that the cart item belongs to the given user.
+     */
+    private function cartItemBelongsToUser(CartItem $cartItem, ?\Illuminate\Contracts\Auth\Authenticatable $user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        // Load cart relationship if not already loaded
+        if (!$cartItem->relationLoaded('cart')) {
+            $cartItem->load('cart');
+        }
+
+        return $cartItem->cart && $cartItem->cart->user_id === $user->getKey();
     }
 
     public function clear(Request $request): JsonResponse

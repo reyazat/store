@@ -87,6 +87,7 @@ class ProductDetailResource extends JsonResource
                     ? $variant->optionValues->map(fn ($optionValue) => [
                         'id' => $optionValue->id,
                         'option_id' => $optionValue->option_id,
+                        'option_value_id' => $optionValue->id,
                         'value' => $optionValue->value,
                         'option_name' => $optionValue->relationLoaded('option') ? $optionValue->option->slug : null,
                     ])

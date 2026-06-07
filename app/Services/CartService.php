@@ -25,7 +25,7 @@ class CartService
             $cart = $this->cartRepository->createCart($user, $sessionId);
         }
         
-        return $cart->load('items.listing.product', 'items.listing.vendor');
+        return $cart->load(['items.listing.product', 'items.listing.vendor', 'items.listingVariant']);
     }
 
     public function addItem(Cart $cart, int $listingId, int $quantity = 1, ?int $variantId = null): CartItem
@@ -143,6 +143,6 @@ class CartService
             $guestCart->delete();
         });
         
-        return $userCart->fresh('items.listing.product');
+        return $userCart->fresh(['items.listing.product', 'items.listingVariant']);
     }
 }
