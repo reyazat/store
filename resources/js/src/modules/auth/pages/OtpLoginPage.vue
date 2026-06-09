@@ -310,8 +310,14 @@ const goToLogin = () => {
 
       <!-- Logo -->
       <div class="text-center mb-8">
-        <RouterLink to="/">
-          <img src="/images/Logo/tejarat-logo-500.png" alt="لوگو فروشگاه" class="h-12 w-auto object-contain">
+        <RouterLink to="/" class="inline-flex items-center gap-2">
+          <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
+            <Smartphone class="w-8 h-8 text-white" />
+          </div>
+          <div class="text-right">
+            <span class="text-2xl font-bold text-primary-600">اتکا</span>
+            <span class="block text-sm text-secondary-500">ورود با کد یکبار مصرف</span>
+          </div>
         </RouterLink>
       </div>
 
