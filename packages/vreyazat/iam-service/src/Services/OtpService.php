@@ -2,12 +2,14 @@
 
 namespace IamApi\Services;
 
+use IamApi\Mail\OtpMail;
 use IamApi\Models\User;
 use IamApi\Models\Otp;
 use IamApi\Repositories\Contracts\OtpRepositoryInterface;
 use Exception;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Kavenegar\Laravel\Facade as Kavenegar;
 use Kavenegar\Exceptions\ApiException;
 use Kavenegar\Exceptions\HttpException;
@@ -159,13 +161,37 @@ class OtpService
     }
 
     /**
-     * Send OTP via email
+     * Send OTP via email using OtpMail mailable
      */
     protected function sendOtpEmail(User $user, string $code, string $purpose): bool
     {
-        // TODO: Implement email sending logic
-        // Mail::to($user->email)->send(new OtpMail($code, $purpose));
-        return true;
+        try {
+            if (!$user->email) {
+                Log::warning('Cannot send email OTP: User has no email address', ['user_id' => $user->id]);
+                return false;
+            }
+
+            $expiryMinutes = (int) config('iam.otp.email.expiry_minutes', 10);
+
+            Mail::to($user->email)->send(new OtpMail($code, $purpose, $expiryMinutes));
+
+            Log::info('Email OTP sent successfully', [
+                'user_id' => $user->id,
+                'email'   => $user->email,
+                'purpose' => $purpose,
+            ]);
+
+            return true;
+
+        } catch (Exception $e) {
+            Log::error('Failed to send email OTP', [
+                'user_id' => $user->id,
+                'email'   => $user->email ?? null,
+                'purpose' => $purpose,
+                'error'   => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     /**

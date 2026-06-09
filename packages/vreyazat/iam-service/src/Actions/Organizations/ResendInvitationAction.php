@@ -3,12 +3,15 @@
 namespace IamApi\Actions\Organizations;
 
 use IamApi\Actions\BaseAction;
+use IamApi\Mail\OrganizationInvitationMail;
 use IamApi\Models\Organization;
 use IamApi\Models\OrganizationInvitation;
 use IamApi\Models\User;
 use IamApi\Repositories\Contracts\OrganizationInvitationRepositoryInterface;
 use IamApi\Services\OrganizationService;
 use Exception;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class ResendInvitationAction extends BaseAction
 {
@@ -64,8 +67,16 @@ class ResendInvitationAction extends BaseAction
                 ])
                 ->log('Invitation resent');
 
-            // TODO: Resend invitation email
-            // Mail::to($invitation->email)->send(new OrganizationInvitationMail($invitation));
+            // Resend invitation email
+            try {
+                Mail::to($invitation->email)->send(new OrganizationInvitationMail($invitation));
+            } catch (Exception $mailException) {
+                Log::error('Failed to resend organization invitation email', [
+                    'invitation_id' => $invitation->id,
+                    'email'         => $invitation->email,
+                    'error'         => $mailException->getMessage(),
+                ]);
+            }
 
             return $this->success([
                 'invitation' => [

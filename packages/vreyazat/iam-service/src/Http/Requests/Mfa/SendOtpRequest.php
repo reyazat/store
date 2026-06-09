@@ -106,16 +106,7 @@ class SendOtpRequest extends FormRequest
     {
         // Normalize phone number format
         if ($this->has('identifier') && !filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
-            $phone = preg_replace('/[^\d+]/', '', $this->identifier);
-
-            // Convert Iranian local format (09XXXXXXXXX) to E.164 (+989XXXXXXXXX)
-            if (preg_match('/^09\d{9}$/', $phone)) {
-                $phone = '+98' . substr($phone, 1);
-            } elseif (!str_starts_with($phone, '+')) {
-                $phone = '+' . $phone;
-            }
-
-            $this->merge(['identifier' => $phone]);
+            $this->merge(['identifier' => $this->normalizePhone($this->identifier)]);
         }
 
         // Normalize email to lowercase
@@ -151,5 +142,46 @@ class SendOtpRequest extends FormRequest
                 'example' => 'key_here',
             ],
         ];
+    }
+
+    /**
+     * Normalize an Iranian phone number to E.164 format (+98XXXXXXXXX).
+     *
+     * Handles all common user inputs:
+     *   09123456789  → +989123456789
+     *   9123456789   → +989123456789
+     *   989123456789 → +989123456789
+     *  +989123456789 → +989123456789  (already correct)
+     */
+    private function normalizePhone(string $phone): string
+    {
+        // Strip everything except digits and a leading +
+        $cleaned = preg_replace('/[^\d+]/', '', $phone);
+
+        // Already in E.164 format
+        if (str_starts_with($cleaned, '+98') && strlen($cleaned) === 13) {
+            return $cleaned;
+        }
+
+        // Strip any leading + so we can work with digits only
+        $digits = ltrim($cleaned, '+');
+
+        // 989XXXXXXXXX (12 digits, starts with 98)
+        if (preg_match('/^989\d{9}$/', $digits)) {
+            return '+' . $digits;
+        }
+
+        // 09XXXXXXXXX (11 digits, starts with 09)
+        if (preg_match('/^09\d{9}$/', $digits)) {
+            return '+98' . substr($digits, 1);
+        }
+
+        // 9XXXXXXXXX (10 digits, starts with 9)
+        if (preg_match('/^9\d{9}$/', $digits)) {
+            return '+98' . $digits;
+        }
+
+        // Non-Iranian number or already has country code — add + if missing
+        return str_starts_with($cleaned, '+') ? $cleaned : '+' . $digits;
     }
 }

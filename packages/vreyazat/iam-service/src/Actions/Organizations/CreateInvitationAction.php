@@ -3,10 +3,13 @@
 namespace IamApi\Actions\Organizations;
 
 use IamApi\Actions\BaseAction;
+use IamApi\Mail\OrganizationInvitationMail;
 use IamApi\Models\Organization;
 use IamApi\Models\User;
 use IamApi\Services\OrganizationService;
 use Exception;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class CreateInvitationAction extends BaseAction
 {
@@ -48,8 +51,17 @@ class CreateInvitationAction extends BaseAction
                 ])
                 ->log('User invited to organization');
 
-            // TODO: Send invitation email
-            // Mail::to($data['email'])->send(new OrganizationInvitationMail($invitation));
+            // Send invitation email
+            try {
+                Mail::to($data['email'])->send(new OrganizationInvitationMail($invitation));
+            } catch (Exception $mailException) {
+                // Email failure must not roll back the invitation — log and continue
+                Log::error('Failed to send organization invitation email', [
+                    'invitation_id' => $invitation->id,
+                    'email'         => $data['email'],
+                    'error'         => $mailException->getMessage(),
+                ]);
+            }
 
             return $this->success([
                 'invitation' => [

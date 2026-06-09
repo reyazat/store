@@ -100,18 +100,9 @@ class VerifyOtpRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Normalize phone number format
+        // Normalize phone number to E.164 (+98XXXXXXXXX)
         if ($this->has('identifier') && !filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
-            $phone = preg_replace('/[^\d+]/', '', $this->identifier);
-
-            // Convert Iranian local format (09XXXXXXXXX) to E.164 (+989XXXXXXXXX)
-            if (preg_match('/^09\d{9}$/', $phone)) {
-                $phone = '+98' . substr($phone, 1);
-            } elseif (!str_starts_with($phone, '+')) {
-                $phone = '+' . $phone;
-            }
-
-            $this->merge(['identifier' => $phone]);
+            $this->merge(['identifier' => $this->normalizePhone($this->identifier)]);
         }
 
         // Normalize email to lowercase
@@ -148,5 +139,33 @@ class VerifyOtpRequest extends FormRequest
                 'example' => 'email',
             ],
         ];
+    }
+
+    /**
+     * Normalize an Iranian phone number to E.164 format (+98XXXXXXXXX).
+     */
+    private function normalizePhone(string $phone): string
+    {
+        $cleaned = preg_replace('/[^\d+]/', '', $phone);
+
+        if (str_starts_with($cleaned, '+98') && strlen($cleaned) === 13) {
+            return $cleaned;
+        }
+
+        $digits = ltrim($cleaned, '+');
+
+        if (preg_match('/^989\d{9}$/', $digits)) {
+            return '+' . $digits;
+        }
+
+        if (preg_match('/^09\d{9}$/', $digits)) {
+            return '+98' . substr($digits, 1);
+        }
+
+        if (preg_match('/^9\d{9}$/', $digits)) {
+            return '+98' . $digits;
+        }
+
+        return str_starts_with($cleaned, '+') ? $cleaned : '+' . $digits;
     }
 }

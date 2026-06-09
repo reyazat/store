@@ -25,10 +25,13 @@ class SendOtpAction
         $type = $data['type'];
         $channel = $data['channel'];
 
-        // Rate limiting: max 5 send attempts per identifier+type per 15 minutes
+        // Rate limiting: read max attempts from config (falls back to 5)
+        // config key: iam.otp.{channel}.rate_limit_per_hour (per-channel limit)
+        $maxAttempts = (int) config('iam.otp.' . $channel . '.rate_limit_per_hour', 5);
+        $windowSeconds = 3600; // 1 hour — matches "per_hour" naming in config
         $rateLimitKey = 'otp_send:' . $identifier . ':' . $type;
 
-        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+        if (RateLimiter::tooManyAttempts($rateLimitKey, $maxAttempts)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
 
             return [
@@ -42,7 +45,7 @@ class SendOtpAction
         }
 
         // Hit rate limiter before processing to prevent enumeration
-        RateLimiter::hit($rateLimitKey, 900); // 15 minutes window
+        RateLimiter::hit($rateLimitKey, $windowSeconds);
 
         try {
             // Find user based on identifier and type

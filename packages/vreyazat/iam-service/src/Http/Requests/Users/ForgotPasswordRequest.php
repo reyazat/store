@@ -86,19 +86,49 @@ class ForgotPasswordRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Normalize a phone number format
+        // Normalize phone number to E.164 format (+98XXXXXXXXX)
         if ($this->has('identifier') && !filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
-            $phone = preg_replace('/[^\d+]/', '', $this->identifier);
-            if (!str_starts_with($phone, '+')) {
-                $phone = '+' . $phone;
-            }
-            $this->merge(['identifier' => $phone]);
+            $this->merge(['identifier' => $this->normalizePhone($this->identifier)]);
         }
 
         // Normalize email to lowercase
         if ($this->has('identifier') && filter_var($this->identifier, FILTER_VALIDATE_EMAIL)) {
             $this->merge(['identifier' => strtolower($this->identifier)]);
         }
+    }
+
+    /**
+     * Normalize an Iranian phone number to E.164 format (+98XXXXXXXXX).
+     *
+     * Handles all common user inputs:
+     *   09123456789  → +989123456789
+     *   9123456789   → +989123456789
+     *   989123456789 → +989123456789
+     *  +989123456789 → +989123456789  (already correct)
+     */
+    private function normalizePhone(string $phone): string
+    {
+        $cleaned = preg_replace('/[^\d+]/', '', $phone);
+
+        if (str_starts_with($cleaned, '+98') && strlen($cleaned) === 13) {
+            return $cleaned;
+        }
+
+        $digits = ltrim($cleaned, '+');
+
+        if (preg_match('/^989\d{9}$/', $digits)) {
+            return '+' . $digits;
+        }
+
+        if (preg_match('/^09\d{9}$/', $digits)) {
+            return '+98' . substr($digits, 1);
+        }
+
+        if (preg_match('/^9\d{9}$/', $digits)) {
+            return '+98' . $digits;
+        }
+
+        return str_starts_with($cleaned, '+') ? $cleaned : '+' . $digits;
     }
 
     /**
