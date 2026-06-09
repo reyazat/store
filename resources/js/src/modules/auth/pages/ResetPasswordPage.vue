@@ -70,17 +70,8 @@ const handleSubmit = async () => {
     <div class="max-w-md w-full">
       <!-- Logo -->
       <div class="text-center mb-8">
-        <RouterLink to="/" class="inline-flex items-center gap-2">
-          <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-            <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
-              <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>
-            </svg>
-          </div>
-          <div class="text-right">
-            <span class="text-2xl font-bold text-primary-600">اتکا</span>
-            <span class="block text-sm text-secondary-500">تجارت الکترونیک</span>
-          </div>
+        <RouterLink to="/">
+          <img src="/images/Logo/tejarat-logo-500.png" alt="لوگو فروشگاه" class="h-12 w-auto object-contain">
         </RouterLink>
       </div>
 
