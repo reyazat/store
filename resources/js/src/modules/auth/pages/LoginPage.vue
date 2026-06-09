@@ -437,11 +437,8 @@ const handlePasswordSubmit = async () => {
       <!-- Logo -->
       <div class="text-center mb-8">
         <RouterLink to="/" class="inline-flex items-center gap-3">
-          <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
-            <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
-              <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>
-            </svg>
+          <div class="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
+                      <img src="/images/Logo/tejarat-logo-500.png" alt="لوگو فروشگاه" class="h-12 w-auto object-contain">
           </div>
           <div class="text-right">
             <span class="text-2xl font-bold text-primary-600">اتکا</span>
