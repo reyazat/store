@@ -169,7 +169,11 @@ class OtpService
     }
 
     /**
-     * Send OTP via SMS using Kavenegar
+     * Send OTP via SMS using Kavenegar VerifyLookup (template-based)
+     *
+     * از متد VerifyLookup کاوه‌نگار با الگوی store-otp استفاده می‌کند.
+     * الگو: "کد تایید سامانه ی فروشگاه شرکت تجارت: %token"
+     * مستندات: https://kavenegar.com/rest.html#lookup-verify
      */
     protected function sendOtpSms(User $user, string $code, string $purpose): bool
     {
@@ -179,28 +183,34 @@ class OtpService
                 return false;
             }
 
-            $sender = config('services.sms.kavenegar.sender', '10004346');
-            $message = $this->getOtpSmsMessage($code, $purpose);
+            $template = config('kavenegar.otp_template', 'store-otp');
+            $receptor = $user->phone;
 
-            $result = Kavenegar::Send($sender, [$user->phone], $message);
+            // VerifyLookup(receptor, token, token2, token3, template, type)
+            // token  = کد OTP (جایگزین %token در الگو)
+            // token2 = null (در الگوی ما نیاز نیست)
+            // token3 = null (در الگوی ما نیاز نیست)
+            $result = Kavenegar::VerifyLookup($receptor, $code, null, null, $template);
 
             if ($result && count($result) > 0) {
                 $smsResult = $result[0];
 
-                Log::info('SMS OTP sent successfully', [
-                    'user_id' => $user->id,
-                    'phone' => $user->phone,
-                    'purpose' => $purpose,
+                Log::info('SMS OTP sent successfully via Kavenegar Lookup', [
+                    'user_id'    => $user->id,
+                    'phone'      => $receptor,
+                    'purpose'    => $purpose,
+                    'template'   => $template,
                     'message_id' => $smsResult->messageid ?? null,
-                    'status' => $smsResult->status ?? null,
+                    'status'     => $smsResult->status ?? null,
+                    'statustext' => $smsResult->statustext ?? null,
                 ]);
 
                 return true;
             }
 
-            Log::error('SMS OTP sending failed: Empty result', [
+            Log::error('SMS OTP sending failed: Empty result from Kavenegar', [
                 'user_id' => $user->id,
-                'phone' => $user->phone,
+                'phone'   => $receptor,
                 'purpose' => $purpose,
             ]);
 
@@ -209,28 +219,28 @@ class OtpService
         } catch (ApiException $e) {
             Log::error('Kavenegar API error while sending SMS OTP', [
                 'user_id' => $user->id,
-                'phone' => $user->phone,
+                'phone'   => $user->phone,
                 'purpose' => $purpose,
-                'error' => $e->errorMessage(),
-                'code' => $e->getCode(),
+                'error'   => $e->errorMessage(),
+                'code'    => $e->getCode(),
             ]);
             return false;
 
         } catch (HttpException $e) {
             Log::error('Kavenegar HTTP error while sending SMS OTP', [
                 'user_id' => $user->id,
-                'phone' => $user->phone,
+                'phone'   => $user->phone,
                 'purpose' => $purpose,
-                'error' => $e->errorMessage(),
+                'error'   => $e->errorMessage(),
             ]);
             return false;
 
         } catch (Exception $e) {
             Log::error('Unexpected error while sending SMS OTP', [
                 'user_id' => $user->id,
-                'phone' => $user->phone,
+                'phone'   => $user->phone,
                 'purpose' => $purpose,
-                'error' => $e->getMessage(),
+                'error'   => $e->getMessage(),
             ]);
             return false;
         }
@@ -238,13 +248,9 @@ class OtpService
 
     /**
      * Get an SMS message for OTP based on purpose
-     * Format optimized for:
-     * 1. Android WebOTP API (requires "@domain #CODE" on its own line)
-     * 2. iOS/Android clipboard suggestion (numeric code visible at end)
-     * 3. Samsung Auto-fill detection
      *
-     * WebOTP spec: https://wicg.github.io/web-otp/
-     * Android requirement: message must end with "\n@domain.com #123456"
+     * @deprecated این متد دیگر استفاده نمی‌شود. OTP از طریق VerifyLookup و الگوی
+     *             پنل کاوه‌نگار ارسال می‌گردد. فقط در صورت نیاز به fallback نگه داشته شده.
      */
     protected function getOtpSmsMessage(string $code, string $purpose): string
     {
