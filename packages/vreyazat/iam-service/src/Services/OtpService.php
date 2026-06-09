@@ -238,17 +238,15 @@ class OtpService
 
     /**
      * Get an SMS message for OTP based on purpose
+     * Format optimized for Iranian SMS auto-fill detection
      */
     protected function getOtpSmsMessage(string $code, string $purpose): string
     {
-        return match ($purpose) {
-            'email_verification' => "کد تأیید ایمیل شما: $code\nاین کد تا 10 دقیقه معتبر است.",
-            'phone_verification' => "کد تأیید شماره تلفن شما: $code\nاین کد تا 5 دقیقه معتبر است.",
-            'password_reset' => "کد بازیابی رمز عبور: $code\nاین کد تا 15 دقیقه معتبر است.",
-            'account_unlock' => "کد باز کردن حساب کاربری: $code\nاین کد تا 30 دقیقه معتبر است.",
-            'login_verification' => "کد تأیید ورود: $code\nاین کد تا 5 دقیقه معتبر است.",
-            default => "کد تأیید شما: $code",
-        };
+        // Standard Persian format for Iranian platforms
+        // This format helps mobile browsers auto-detect OTP codes
+        $template = "کد تایید سامانه ی فروشگاه شرکت تجارت: %token\nاین کد مختص شما میباشد. آن را در اختیار دیگران قرار ندهید.";
+
+        return str_replace('%token', $code, $template);
     }
 
     /**

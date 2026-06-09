@@ -34,11 +34,12 @@ class ForgotPasswordRequest extends FormRequest
                     }
                 },
             ],
+            // Channel is now optional - we send to both email and phone by default
             'channel' => [
-                'required',
+                'nullable',
                 'string',
                 new NoHtml(),
-                Rule::in(['email', 'sms'])
+                Rule::in(['email', 'sms', 'both'])
             ],
             'captcha' => [
                 'nullable',

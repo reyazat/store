@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { Mail, Lock, Eye, EyeOff, Loader2, Smartphone, AlertTriangle, Clock } from 'lucide-vue-next'
+import { Smartphone, Mail, Lock, Eye, EyeOff, Loader2, AlertTriangle, Clock, ArrowLeft, ShieldCheck } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useCartStore } from '@/stores/cart'
 import { authService } from '../services'
@@ -13,25 +13,35 @@ const route = useRoute()
 const authStore = useAuthStore()
 const cartStore = useCartStore()
 
+const activeTab = ref<'phone' | 'password'>('phone')
+const phone = ref('')
+const otpCode = ref(['', '', '', '', '', ''])
+const phoneStep = ref<'input' | 'verify'>('input')
+const phoneError = ref('')
+const phoneSuccess = ref('')
+const phoneLoading = ref(false)
+const phoneAttemptsRemaining = ref<number | null>(null)
+const phoneCountdown = ref(0)
+let phoneCountdownInterval: ReturnType<typeof setInterval> | null = null
+const otpInputRefs = ref<(HTMLInputElement | null)[]>([])
+
+// WebOTP API abort controller
+let webOtpAbortController: AbortController | null = null
+
 interface LoginForm {
   email: string
   password: string
   rememberMe: boolean
 }
-
 const form = ref<LoginForm>({
   email: '',
   password: '',
   rememberMe: false,
 })
-
 const showPassword = ref(false)
 const isLoading = ref(false)
 const error = ref('')
 const errorType = ref<'generic' | 'locked' | 'rate_limited'>('generic')
-const showOtpOption = ref(false)
-
-// Countdown for locked / rate-limited state
 const lockCountdown = ref(0)
 let lockInterval: ReturnType<typeof setInterval> | null = null
 
@@ -43,6 +53,62 @@ const formattedLockCountdown = computed(() => {
   return `${m}:${s.toString().padStart(2, '0')}`
 })
 
+const formattedPhoneCountdown = computed(() => {
+  const m = Math.floor(phoneCountdown.value / 60)
+  const s = phoneCountdown.value % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
+
+const isPhoneValid = computed(() => {
+  const digits = phone.value.replace(/\s/g, '')
+  // Supports both 09XXXXXXXXX and +989XXXXXXXXX formats
+  return /^09\d{9}$/.test(digits) || /^\+989\d{9}$/.test(digits)
+})
+
+const isOtpComplete = computed(() => otpCode.value.every(digit => digit.length === 1))
+
+const formatPhoneDisplay = (value: string): string => {
+  const digits = value.replace(/\D/g, '')
+  if (digits.startsWith('09') && digits.length >= 4) {
+    const parts = [digits.slice(0, 4)]
+    if (digits.length > 4) parts.push(digits.slice(4, 7))
+    if (digits.length > 7) parts.push(digits.slice(7, 11))
+    return parts.join(' ')
+  }
+  return digits
+}
+
+watch(phone, (newVal) => {
+  const digits = newVal.replace(/\D/g, '')
+  if (digits.length <= 11) {
+    const formatted = formatPhoneDisplay(digits)
+    if (formatted !== newVal) {
+      phone.value = formatted
+    }
+  } else {
+    phone.value = formatPhoneDisplay(digits.slice(0, 11))
+  }
+})
+
+const startPhoneCountdown = (seconds: number) => {
+  phoneCountdown.value = seconds
+  if (phoneCountdownInterval) clearInterval(phoneCountdownInterval)
+  phoneCountdownInterval = setInterval(() => {
+    if (phoneCountdown.value > 0) {
+      phoneCountdown.value--
+    } else {
+      clearInterval(phoneCountdownInterval!)
+      phoneCountdownInterval = null
+    }
+  }, 1000)
+}
+
+onUnmounted(() => {
+  if (lockInterval) clearInterval(lockInterval)
+  if (phoneCountdownInterval) clearInterval(phoneCountdownInterval)
+  webOtpAbortController?.abort()
+})
+
 const startLockCountdown = (seconds: number) => {
   lockCountdown.value = seconds
   if (lockInterval) clearInterval(lockInterval)
@@ -52,18 +118,203 @@ const startLockCountdown = (seconds: number) => {
     } else {
       clearInterval(lockInterval!)
       lockInterval = null
-      // Clear error once countdown expires so the user can try again
       error.value = ''
       errorType.value = 'generic'
     }
   }, 1000)
 }
 
-onUnmounted(() => {
-  if (lockInterval) clearInterval(lockInterval)
-})
+const maskPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '')
+  return digits.slice(0, 4) + '****' + digits.slice(-3)
+}
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+const handleOtpInput = (index: number, event: Event) => {
+  const input = event.target as HTMLInputElement
+  const value = input.value.replace(/\D/g, '')
+  if (value) {
+    otpCode.value[index] = value.slice(-1)
+    if (index < 5) {
+      nextTick(() => otpInputRefs.value[index + 1]?.focus())
+    } else if (index === 5 && isOtpComplete.value) {
+      // Auto-submit when last digit is entered
+      nextTick(() => verifyPhoneOtp())
+    }
+  }
+}
+
+const handleOtpKeydown = (index: number, event: KeyboardEvent) => {
+  if (event.key === 'Backspace' && !otpCode.value[index] && index > 0) {
+    otpCode.value[index - 1] = ''
+    nextTick(() => otpInputRefs.value[index - 1]?.focus())
+  } else if (event.key === 'ArrowLeft' && index > 0) {
+    nextTick(() => otpInputRefs.value[index - 1]?.focus())
+  } else if (event.key === 'ArrowRight' && index < 5) {
+    nextTick(() => otpInputRefs.value[index + 1]?.focus())
+  }
+}
+
+const handleOtpPaste = (event: ClipboardEvent) => {
+  event.preventDefault()
+  const pastedData = event.clipboardData?.getData('text') || ''
+  const digits = pastedData.replace(/\D/g, '').slice(0, 6)
+  if (digits) {
+    digits.split('').forEach((digit, i) => {
+      if (i < 6) otpCode.value[i] = digit
+    })
+    // Auto-submit if 6 digits pasted
+    if (digits.length === 6) {
+      nextTick(() => verifyPhoneOtp())
+    }
+  }
+}
+
+// WebOTP API: auto-read OTP from SMS on supported mobile browsers
+const startWebOtp = async () => {
+  if (!('OTPCredential' in window)) return
+  webOtpAbortController = new AbortController()
+  try {
+    const credential = await (navigator.credentials as any).get({
+      otp: { transport: ['sms'] },
+      signal: webOtpAbortController.signal,
+    })
+    if (credential?.code) {
+      const digits = credential.code.replace(/\D/g, '').slice(0, 6)
+      digits.split('').forEach((d: string, i: number) => {
+        if (i < 6) otpCode.value[i] = d
+      })
+      if (digits.length === 6) {
+        nextTick(() => verifyPhoneOtp())
+      }
+    }
+  } catch {
+    // Aborted or not supported — silently ignore
+  }
+}
+
+const sendPhoneOtp = async () => {
+  if (!isPhoneValid.value) {
+    phoneError.value = 'لطفا شماره موبایل را به درستی وارد کنید (مثال: 09123456789)'
+    return
+  }
+  phoneLoading.value = true
+  phoneError.value = ''
+  phoneSuccess.value = ''
+  try {
+    const cleanPhone = phone.value.replace(/\s/g, '')
+    const response = await authService.sendOtp({
+      identifier: cleanPhone,
+      type: 'login_verification',
+      channel: 'sms',
+    })
+    if (response.success) {
+      phoneSuccess.value = `کد به ${maskPhone(cleanPhone)} ارسال شد`
+      phoneAttemptsRemaining.value = response.data?.attempts_remaining ?? 3
+      phoneStep.value = 'verify'
+      if (response.data?.expires_at) {
+        const diff = Math.ceil((new Date(response.data.expires_at).getTime() - Date.now()) / 1000)
+        startPhoneCountdown(Math.max(diff, 0))
+      } else {
+        startPhoneCountdown(300)
+      }
+      await nextTick()
+      otpInputRefs.value[0]?.focus()
+      // Try to auto-read OTP from SMS on supported mobile browsers (WebOTP API)
+      startWebOtp()
+    } else {
+      phoneError.value = response.message || 'خطا در ارسال کد. لطفا دوباره تلاش کنید'
+    }
+  } catch (err: any) {
+    const status = err.response?.status
+    const retryAfter = err.response?.data?.data?.retry_after
+    if (status === 429) {
+      const minutes = retryAfter ? Math.ceil(retryAfter / 60) : null
+      phoneError.value = minutes
+        ? `تعداد درخواست های بیش از حد. لطفا ${minutes} دقیقه دیگر دوباره تلاش کنید.`
+        : 'تعداد درخواست های بیش از حد. لطفا بعدا دوباره تلاش کنید.'
+    } else if (status === 403) {
+      phoneError.value = 'حساب کاربری غیرفعال است. با پشتیبانی تماس بگیرید.'
+    } else {
+      phoneError.value = err.response?.data?.message || 'خطایی رخ داد. لطفا دوباره تلاش کنید'
+    }
+  } finally {
+    phoneLoading.value = false
+  }
+}
+
+const verifyPhoneOtp = async () => {
+  if (!isOtpComplete.value) {
+    phoneError.value = 'لطفا کد 6 رقمی را کامل وارد کنید'
+    return
+  }
+  phoneLoading.value = true
+  phoneError.value = ''
+  try {
+    const cleanPhone = phone.value.replace(/\s/g, '')
+    const code = otpCode.value.join('')
+    const response = await authService.verifyOtp({
+      identifier: cleanPhone,
+      code,
+      type: 'login_verification',
+      channel: 'sms',
+    })
+    if (response.success && response.data?.tokens) {
+      // Abort any pending WebOTP request
+      webOtpAbortController?.abort()
+
+      authStore.setToken(response.data.tokens.access_token)
+      localStorage.setItem('refresh_token', response.data.tokens.refresh_token)
+      const expiresAt = Date.now() + response.data.tokens.expires_in * 1000
+      localStorage.setItem('token_expires_at', expiresAt.toString())
+      scheduleTokenRefresh(response.data.tokens.expires_in)
+
+      // OTP login already confirms identity — use user from response, avoid extra getMe call
+      const roles = await authService.getMyRoles()
+      const user = response.data.user ?? (await authService.getMe().catch(() => null))
+      if (!user) {
+        authStore.logout()
+        phoneError.value = 'خطا در دریافت اطلاعات کاربر. لطفا دوباره تلاش کنید.'
+        return
+      }
+      authStore.setUser({
+        ...user,
+        roles,
+        is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
+      })
+      await cartStore.mergeGuestCart()
+      const redirectTo = (route.query.redirect as string) || '/'
+      router.push(redirectTo !== '/' && redirectTo ? redirectTo : authStore.isAdmin ? '/admin/dashboard' : '/')
+    } else {
+      phoneError.value = response.message || 'کد وارد شده معتبر نیست'
+      if (response.data?.attempts_remaining != null) {
+        phoneAttemptsRemaining.value = response.data.attempts_remaining
+      }
+      otpCode.value = ['', '', '', '', '', '']
+      await nextTick()
+      otpInputRefs.value[0]?.focus()
+    }
+  } catch (err: any) {
+    const status = err.response?.status
+    if (status === 423) {
+      phoneError.value = 'تعداد تلاش های نامعتبر بیش از حد. لطفا دوباره کد جدید درخواست کنید.'
+    } else {
+      phoneError.value = err.response?.data?.message || 'خطا در تایید کد. لطفا دوباره تلاش کنید.'
+    }
+  } finally {
+    phoneLoading.value = false
+  }
+}
+
+const goBackToPhoneInput = () => {
+  phoneStep.value = 'input'
+  otpCode.value = ['', '', '', '', '', '']
+  phoneError.value = ''
+  if (phoneCountdownInterval) {
+    clearInterval(phoneCountdownInterval)
+    phoneCountdownInterval = null
+  }
+  phoneCountdown.value = 0
+}
 
 const completeLogin = async (
   user: User & { is_super_admin: boolean },
@@ -74,46 +325,30 @@ const completeLogin = async (
   const expiresAt = Date.now() + tokens.expires_in * 1000
   localStorage.setItem('token_expires_at', expiresAt.toString())
   scheduleTokenRefresh(tokens.expires_in)
-
   const roles = await authService.getMyRoles()
   authStore.setUser({
     ...user,
     roles,
     is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
   })
-
   await cartStore.mergeGuestCart()
-
-  router.push(
-    redirectTo.value !== '/' && redirectTo.value
-      ? redirectTo.value
-      : authStore.isAdmin
-        ? '/admin/dashboard'
-        : '/',
-  )
+  router.push(redirectTo.value !== '/' && redirectTo.value ? redirectTo.value : authStore.isAdmin ? '/admin/dashboard' : '/')
 }
 
-// ── Submit ────────────────────────────────────────────────────────────────────
-
-const handleSubmit = async () => {
+const handlePasswordSubmit = async () => {
   if (!form.value.email || !form.value.password) {
-    error.value = 'لطفاً ایمیل و رمز عبور را وارد کنید'
+    error.value = 'لطفا ایمیل و رمز عبور را وارد کنید'
     return
   }
-
   isLoading.value = true
   error.value = ''
   errorType.value = 'generic'
-  showOtpOption.value = false
   if (lockInterval) clearInterval(lockInterval)
-
   try {
     const response = await authService.login({
       ...form.value,
       remember_me: form.value.rememberMe,
     })
-
-    // ── MFA required ──────────────────────────────────────────────────────
     if (response.action_required === 'mfa_verification' && response.temp_token) {
       router.push({
         name: 'mfa-verification',
@@ -125,8 +360,6 @@ const handleSubmit = async () => {
       })
       return
     }
-
-    // ── Password change required ──────────────────────────────────────────
     if (response.action_required === 'change_password' && response.temp_token) {
       router.push({
         name: 'force-password-change',
@@ -138,12 +371,10 @@ const handleSubmit = async () => {
       })
       return
     }
-
-    // ── Normal login ──────────────────────────────────────────────────────
     if (response.tokens && response.user) {
       await completeLogin(response.user, response.tokens)
     } else {
-      error.value = 'خطا در دریافت توکن. لطفاً دوباره تلاش کنید'
+      error.value = 'خطا در دریافت توکن. لطفا دوباره تلاش کنید'
     }
   } catch (err: unknown) {
     const e = err as {
@@ -152,64 +383,55 @@ const handleSubmit = async () => {
         data?: { message?: string; data?: { locked_until?: string; retry_after?: number } }
       }
     }
-
     const status = e.response?.status
     const responseData = e.response?.data
     const message = responseData?.message
-
     if (status === 400 || status === 401) {
       error.value = 'ایمیل یا رمز عبور اشتباه است'
     } else if (status === 403) {
-      error.value = message || 'حساب کاربری غیرفعال است. لطفاً با پشتیبانی تماس بگیرید.'
+      error.value = message || 'حساب کاربری غیرفعال است. لطفا با پشتیبانی تماس بگیرید.'
     } else if (status === 423) {
-      // Account locked — show live countdown
       errorType.value = 'locked'
-      showOtpOption.value = true
       const lockedUntil = responseData?.data?.locked_until
       if (lockedUntil) {
         const remaining = Math.ceil((new Date(lockedUntil).getTime() - Date.now()) / 1000)
         if (remaining > 0) {
           startLockCountdown(remaining)
-          error.value = 'حساب کاربری شما موقتاً قفل شده است.'
+          error.value = 'حساب کاربری شما موقتا قفل شده است.'
         } else {
-          error.value = 'حساب کاربری به دلیل تلاش‌های ناموفق متعدد قفل شده است.'
+          error.value = 'حساب کاربری به دلیل تلاش های ناموفق متعدد قفل شده است.'
         }
       } else {
-        error.value = 'حساب کاربری به دلیل تلاش‌های ناموفق متعدد قفل شده است.'
+        error.value = 'حساب کاربری به دلیل تلاش های ناموفق متعدد قفل شده است.'
       }
     } else if (status === 429) {
       errorType.value = 'rate_limited'
       const retryAfter = responseData?.data?.retry_after
       if (retryAfter) {
         startLockCountdown(retryAfter)
-        error.value = 'تعداد تلاش‌های بیش از حد.'
+        error.value = 'تعداد تلاش های بیش از حد.'
       } else {
-        error.value = 'تعداد تلاش‌های بیش از حد. لطفاً بعداً دوباره تلاش کنید.'
+        error.value = 'تعداد تلاش های بیش از حد. لطفا بعدا دوباره تلاش کنید.'
       }
     } else if (message) {
       error.value = message
     } else {
-      error.value = 'خطا در ورود. لطفاً دوباره تلاش کنید'
+      error.value = 'خطا در ورود. لطفا دوباره تلاش کنید'
     }
   } finally {
     isLoading.value = false
   }
 }
-
-const goToOtpLogin = () => {
-  router.push({ name: 'otp-login', query: { redirect: redirectTo.value } })
-}
 </script>
 
 <template>
-  <div class="min-h-screen bg-secondary-50 flex items-center justify-center py-12 px-4" dir="rtl">
+  <div class="min-h-screen bg-gradient-to-br from-secondary-50 to-secondary-100 flex items-center justify-center py-12 px-4" dir="rtl">
     <div class="max-w-md w-full">
-
       <!-- Logo -->
       <div class="text-center mb-8">
-        <RouterLink to="/" class="inline-flex items-center gap-2">
-          <div class="w-14 h-14 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center">
-            <svg class="w-9 h-9 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <RouterLink to="/" class="inline-flex items-center gap-3">
+          <div class="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-2xl flex items-center justify-center shadow-lg shadow-primary-200">
+            <svg class="w-10 h-10 text-white" viewBox="0 0 24 24" fill="currentColor">
               <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
               <circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1"/>
             </svg>
@@ -221,164 +443,223 @@ const goToOtpLogin = () => {
         </RouterLink>
       </div>
 
-      <!-- Login Card -->
-      <div class="bg-white rounded-2xl shadow-xl p-8">
-        <h1 class="text-2xl font-bold text-secondary-800 text-center mb-2">ورود به حساب کاربری</h1>
-        <p class="text-secondary-500 text-center mb-8">خوش آمدید! لطفاً وارد شوید</p>
+      <!-- Main Card -->
+      <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
+        <!-- Header with tabs -->
+        <div class="flex border-b border-secondary-100">
+          <button
+            type="button"
+            @click="activeTab = 'phone'"
+            class="flex-1 py-4 px-4 text-sm font-medium transition-colors relative"
+            :class="activeTab === 'phone' ? 'text-primary-600' : 'text-secondary-500 hover:text-secondary-700'"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <Smartphone class="w-4 h-4" />
+              ورود با موبایل
+            </span>
+            <div v-if="activeTab === 'phone'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+          </button>
+          <button
+            type="button"
+            @click="activeTab = 'password'"
+            class="flex-1 py-4 px-4 text-sm font-medium transition-colors relative"
+            :class="activeTab === 'password' ? 'text-primary-600' : 'text-secondary-500 hover:text-secondary-700'"
+          >
+            <span class="flex items-center justify-center gap-2">
+              <Lock class="w-4 h-4" />
+              ورود با رمز عبور
+            </span>
+            <div v-if="activeTab === 'password'" class="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500" />
+          </button>
+        </div>
 
-        <!-- Error / Lock Banner -->
-        <div
-          v-if="error"
-          role="alert"
-          :class="[
-            'px-4 py-3 rounded-xl mb-6 text-sm border',
-            errorType === 'locked' || errorType === 'rate_limited'
-              ? 'bg-amber-50 border-amber-200 text-amber-800'
-              : 'bg-red-50 border-red-200 text-red-700',
-          ]"
-        >
-          <!-- Lock icon row -->
-          <div class="flex items-start gap-2">
-            <AlertTriangle class="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <div class="flex-1">
-              <p>{{ error }}</p>
+        <div class="p-8">
+          <!-- PHONE LOGIN TAB -->
+          <div v-if="activeTab === 'phone'">
+            <!-- Phone Input Step -->
+            <div v-if="phoneStep === 'input'">
+              <div class="text-center mb-6">
+                <h1 class="text-xl font-bold text-secondary-800 mb-2">ورود با شماره موبایل</h1>
+                <p class="text-secondary-500 text-sm">کد یکبار مصرف برای شما ارسال خواهد شد</p>
+              </div>
 
-              <!-- Live countdown for locked/rate-limited -->
-              <div
-                v-if="(errorType === 'locked' || errorType === 'rate_limited') && lockCountdown > 0"
-                class="mt-2 flex items-center gap-1.5 font-medium"
+              <div v-if="phoneError" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-5 text-sm">
+                {{ phoneError }}
+              </div>
+
+              <div class="space-y-5">
+                <div>
+                  <label class="block text-sm font-medium text-secondary-700 mb-2">شماره موبایل</label>
+                  <div class="relative">
+                    <input
+                      v-model="phone"
+                      type="tel"
+                      inputmode="numeric"
+                      placeholder="0912 345 6789"
+                      autocomplete="tel"
+                      maxlength="14"
+                      class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-wider"
+                      dir="ltr"
+                      :disabled="phoneLoading"
+                      @keyup.enter="sendPhoneOtp"
+                    />
+                    <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <span class="text-sm text-secondary-400 font-medium">IR</span>
+                      <span class="text-secondary-300">+98</span>
+                    </div>
+                  </div>
+                  <p class="mt-2 text-xs text-secondary-400">شماره موبایل باید با ۰۹ شروع شود</p>
+                </div>
+
+                <button
+                  type="button"
+                  @click="sendPhoneOtp"
+                  :disabled="phoneLoading || !isPhoneValid"
+                  class="w-full h-14 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-primary-200"
+                >
+                  <Loader2 v-if="phoneLoading" class="w-5 h-5 animate-spin" />
+                  <span v-else>دریافت کد</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- OTP Verification Step -->
+            <div v-else>
+              <button type="button" @click="goBackToPhoneInput" class="flex items-center gap-1 text-sm text-secondary-500 hover:text-secondary-700 mb-4">
+                <ArrowLeft class="w-4 h-4" />بازگشت
+              </button>
+
+              <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-primary-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <ShieldCheck class="w-8 h-8 text-primary-500" />
+                </div>
+                <h1 class="text-xl font-bold text-secondary-800 mb-2">کد تایید را وارد کنید</h1>
+                <p class="text-secondary-500 text-sm">
+                  کد ۶ رقمی به <span class="font-medium text-secondary-700" dir="ltr">{{ maskPhone(phone) }}</span> ارسال شد
+                </p>
+              </div>
+
+              <div v-if="phoneSuccess" class="bg-emerald-50 border border-emerald-200 text-emerald-600 px-4 py-3 rounded-xl mb-5 text-sm">
+                {{ phoneSuccess }}
+              </div>
+
+              <div v-if="phoneError" class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl mb-5 text-sm">
+                {{ phoneError }}
+                <p v-if="phoneAttemptsRemaining !== null" class="mt-1 text-xs">تعداد تلاش باقی‌مانده: {{ phoneAttemptsRemaining }}</p>
+              </div>
+
+              <div class="mb-6">
+                <div class="flex gap-2 justify-center" dir="ltr">
+                  <input
+                    v-for="(digit, index) in 6"
+                    :key="index"
+                    :ref="el => { if (el) otpInputRefs[index] = el as HTMLInputElement }"
+                    v-model="otpCode[index]"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]"
+                    maxlength="1"
+                    :autocomplete="index === 0 ? 'one-time-code' : 'off'"
+                    class="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition"
+                    :class="{ 'border-primary-500 ring-2 ring-primary-200': otpCode[index] }"
+                    :disabled="phoneLoading"
+                    @input="handleOtpInput(index, $event)"
+                    @keydown="handleOtpKeydown(index, $event)"
+                    @paste="handleOtpPaste($event)"
+                  />
+                </div>
+                <p class="mt-3 text-center text-xs text-secondary-400">کد دریافتی از پیامک را وارد کنید</p>
+              </div>
+
+              <button
+                type="button"
+                @click="verifyPhoneOtp"
+                :disabled="phoneLoading || !isOtpComplete"
+                class="w-full h-14 bg-primary-500 hover:bg-primary-600 disabled:bg-primary-300 disabled:cursor-not-allowed text-white font-bold text-lg rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-primary-200 mb-4"
               >
-                <Clock class="w-4 h-4" />
-                <span>می‌توانید در </span>
-                <span class="font-mono bg-amber-100 px-1.5 py-0.5 rounded text-amber-900" dir="ltr">
-                  {{ formattedLockCountdown }}
-                </span>
-                <span> دوباره تلاش کنید</span>
+                <Loader2 v-if="phoneLoading" class="w-5 h-5 animate-spin" />
+                <span v-else>ورود</span>
+              </button>
+
+              <div class="text-center">
+                <p v-if="phoneCountdown > 0" class="text-sm text-secondary-500">
+                  ارسال مجدد کد پس از <span class="font-mono font-medium" dir="ltr">{{ formattedPhoneCountdown }}</span>
+                </p>
+                <button v-else type="button" @click="sendPhoneOtp" :disabled="phoneLoading" class="text-sm text-primary-600 hover:text-primary-700 font-medium">
+                  ارسال مجدد کد
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- OTP fallback for locked accounts -->
-          <div v-if="showOtpOption" class="mt-3 pt-3 border-t border-amber-200">
-            <button
-              type="button"
-              @click="goToOtpLogin"
-              class="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              <Smartphone class="w-4 h-4" />
-              ورود با کد یکبار مصرف (OTP)
-            </button>
-          </div>
-        </div>
-
-        <form @submit.prevent="handleSubmit" novalidate class="space-y-5">
-          <!-- Email -->
-          <div>
-            <label for="login-email" class="block text-sm font-medium text-secondary-700 mb-2">
-              ایمیل
-            </label>
-            <div class="relative">
-              <input
-                id="login-email"
-                v-model="form.email"
-                type="email"
-                placeholder="example@email.com"
-                autocomplete="email"
-                class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition text-left"
-                dir="ltr"
-                :disabled="isLoading"
-              />
-              <Mail class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none" />
+          <!-- PASSWORD LOGIN TAB -->
+          <div v-else>
+            <div class="text-center mb-6">
+              <h1 class="text-xl font-bold text-secondary-800 mb-2">ورود با رمز عبور</h1>
+              <p class="text-secondary-500 text-sm">ایمیل و رمز عبور خود را وارد کنید</p>
             </div>
-          </div>
 
-          <!-- Password -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label for="login-password" class="text-sm font-medium text-secondary-700">رمز عبور</label>
-              <RouterLink
-                to="/forgot-password"
-                class="text-xs text-primary-600 hover:text-primary-700"
-              >
-                فراموشی رمز عبور؟
-              </RouterLink>
+            <div v-if="error" role="alert" :class="['px-4 py-3 rounded-xl mb-5 text-sm border', errorType === 'locked' || errorType === 'rate_limited' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-red-50 border-red-200 text-red-700']">
+              <div class="flex items-start gap-2">
+                <AlertTriangle class="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div class="flex-1">
+                  <p>{{ error }}</p>
+                  <div v-if="(errorType === 'locked' || errorType === 'rate_limited') && lockCountdown > 0" class="mt-2 flex items-center gap-1.5 font-medium">
+                    <Clock class="w-4 h-4" />
+                    <span>می‌توانید در </span>
+                    <span class="font-mono bg-amber-100 px-1.5 py-0.5 rounded text-amber-900" dir="ltr">{{ formattedLockCountdown }}</span>
+                    <span> دوباره تلاش کنید</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="relative">
-              <input
-                id="login-password"
-                v-model="form.password"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="رمز عبور خود را وارد کنید"
-                autocomplete="current-password"
-                class="w-full h-12 pl-12 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition"
-                :disabled="isLoading"
-              />
-              <Lock class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none" />
-              <button
-                type="button"
-                @click="showPassword = !showPassword"
-                class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600"
-                :aria-label="showPassword ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'"
-              >
-                <EyeOff v-if="showPassword" class="w-5 h-5" />
-                <Eye v-else class="w-5 h-5" />
+
+            <form @submit.prevent="handlePasswordSubmit" novalidate class="space-y-5">
+              <div>
+                <label for="login-email" class="block text-sm font-medium text-secondary-700 mb-2">ایمیل</label>
+                <div class="relative">
+                  <input id="login-email" v-model="form.email" type="email" placeholder="example@email.com" autocomplete="email" class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-left" dir="ltr" :disabled="isLoading" />
+                  <Mail class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none" />
+                </div>
+              </div>
+
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label for="login-password" class="text-sm font-medium text-secondary-700">رمز عبور</label>
+                  <RouterLink to="/forgot-password" class="text-xs text-primary-600 hover:text-primary-700">فراموشی رمز؟</RouterLink>
+                </div>
+                <div class="relative">
+                  <input id="login-password" v-model="form.password" :type="showPassword ? 'text' : 'password'" placeholder="رمز عبور خود را وارد کنید" autocomplete="current-password" class="w-full h-12 pl-12 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition" :disabled="isLoading" />
+                  <Lock class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none" />
+                  <button type="button" @click="showPassword = !showPassword" class="absolute left-4 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600" :aria-label="showPassword ? 'پنهان کردن رمز عبور' : 'نمایش رمز عبور'">
+                    <EyeOff v-if="showPassword" class="w-5 h-5" />
+                    <Eye v-else class="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input id="remember-me" v-model="form.rememberMe" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500" />
+                <label for="remember-me" class="text-sm text-secondary-600 cursor-pointer select-none">مرا به خاطر بسپار</label>
+              </div>
+
+              <button type="submit" :disabled="isLoading || lockCountdown > 0" class="w-full h-12 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition flex items-center justify-center gap-2">
+                <Loader2 v-if="isLoading" class="w-5 h-5 animate-spin" />
+                <span>{{ isLoading ? 'در حال ورود...' : 'ورود' }}</span>
               </button>
-            </div>
+            </form>
           </div>
-
-          <!-- Remember me -->
-          <div class="flex items-center gap-2">
-            <input
-              id="remember-me"
-              v-model="form.rememberMe"
-              type="checkbox"
-              class="w-4 h-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
-            />
-            <label for="remember-me" class="text-sm text-secondary-600 cursor-pointer select-none">
-              مرا به خاطر بسپار
-            </label>
-          </div>
-
-          <!-- Submit -->
-          <button
-            type="submit"
-            :disabled="isLoading || lockCountdown > 0"
-            class="w-full h-12 bg-primary-500 hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition flex items-center justify-center gap-2"
-          >
-            <Loader2 v-if="isLoading" class="w-5 h-5 animate-spin" />
-            <span>{{ isLoading ? 'در حال ورود...' : 'ورود' }}</span>
-          </button>
-        </form>
-
-        <!-- Divider & Alternatives -->
-        <div class="mt-6 space-y-3">
-          <div class="relative">
-            <div class="absolute inset-0 flex items-center">
-              <div class="w-full border-t border-secondary-200"></div>
-            </div>
-            <div class="relative flex justify-center text-sm">
-              <span class="bg-white px-3 text-secondary-500">یا</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            @click="goToOtpLogin"
-            class="w-full h-11 border-2 border-secondary-200 hover:border-primary-400 rounded-xl text-sm font-medium text-secondary-700 hover:text-primary-600 transition flex items-center justify-center gap-2"
-          >
-            <Smartphone class="w-4 h-4" />
-            ورود با کد یکبار مصرف
-          </button>
         </div>
-
-        <!-- Register link -->
-        <p class="mt-6 text-center text-sm text-secondary-500">
-          حساب کاربری ندارید؟
-          <RouterLink to="/register" class="text-primary-600 hover:text-primary-700 font-medium">
-            ثبت‌نام کنید
-          </RouterLink>
-        </p>
       </div>
+
+      <p class="mt-6 text-center text-sm text-secondary-500">
+        حساب کاربری ندارید؟
+        <RouterLink to="/register" class="text-primary-600 hover:text-primary-700 font-medium">ثبت‌نام کنید</RouterLink>
+      </p>
+
+      <p class="mt-4 text-center">
+        <RouterLink to="/" class="text-secondary-400 hover:text-secondary-600 text-sm">بازگشت به صفحه اصلی</RouterLink>
+      </p>
     </div>
   </div>
 </template>

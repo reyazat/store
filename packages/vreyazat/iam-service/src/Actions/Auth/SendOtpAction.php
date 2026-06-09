@@ -21,7 +21,7 @@ class SendOtpAction
      */
     public function execute(array $data): array
     {
-        $identifier = $data['identifier'];
+        $identifier = $this->normalizeIdentifier($data['identifier']);
         $type = $data['type'];
         $channel = $data['channel'];
 
@@ -135,12 +135,13 @@ class SendOtpAction
                 return null;
             }
 
-            // For phone verification, phone might not be verified yet
-            if ($type === 'phone_verification') {
+            // For phone verification or login verification, phone might not be verified yet
+            // Login via phone is a form of verification itself, so we don't require phone_verified_at
+            if ($type === 'phone_verification' || $type === 'login_verification') {
                 return $user;
             }
 
-            // For other types, require phone to be verified
+            // For other types (like password_reset), require phone to be verified
             return $user->phone_verified_at ? $user : null;
         }
 
@@ -170,5 +171,76 @@ class SendOtpAction
         }
 
         return substr($identifier, 0, 3) . str_repeat('*', strlen($identifier) - 6) . substr($identifier, -3);
+    }
+
+    /**
+     * Normalize identifier - especially for Iranian phone numbers
+     * Converts 09XXXXXXXXX to +989XXXXXXXXX format
+     */
+    private function normalizeIdentifier(string $identifier): string
+    {
+        // If it's an email, just lowercase it
+        if (filter_var($identifier, FILTER_VALIDATE_EMAIL)) {
+            return strtolower($identifier);
+        }
+
+        // Remove all non-digit characters except +
+        $phone = preg_replace('/[^\d+]/', '', $identifier);
+
+        // Iranian phone number normalization
+        // Handle formats: 09XXXXXXXXX, 9XXXXXXXXX, +989XXXXXXXXX
+        if (preg_match('/^0?9\d{9}$/', $phone)) {
+            // Remove leading 0 if present and add +98
+            $phone = preg_replace('/^0?9/', '+989', $phone);
+        }
+
+        return $phone;
+    }
+
+    /**
+     * Verify OTP code for a user
+     * This is used internally by ForgotPasswordAction
+     */
+    public function verifyOtp(array $data): array
+    {
+        $identifier = $this->normalizeIdentifier($data['identifier']);
+        $code = $data['code'];
+        $type = $data['type'];
+        $channel = $data['channel'] ?? 'email';
+
+        // Find user
+        $user = $this->findUserByIdentifier($identifier, $type, $channel);
+
+        if (!$user) {
+            return [
+                'success' => false,
+                'message' => 'User not found',
+                'data' => ['verified' => false]
+            ];
+        }
+
+        // Use OtpService to verify the code (returns array with success/data)
+        $result = $this->otpService->verify($user, $code, $type, $channel);
+
+        if ($result['success']) {
+            return [
+                'success' => true,
+                'message' => 'OTP verified successfully',
+                'data' => [
+                    'verified' => true,
+                    'identifier' => $this->maskIdentifier($identifier)
+                ]
+            ];
+        }
+
+        // Return the error with attempts remaining
+        return [
+            'success' => false,
+            'message' => $result['message'] ?? 'Invalid or expired OTP code',
+            'data' => [
+                'verified' => false,
+                'attempts_remaining' => $result['data']['attempts_remaining'] ?? 0
+            ]
+        ];
     }
 }

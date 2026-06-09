@@ -63,6 +63,8 @@ Route::prefix('v1/password')->group(function () {
         ->middleware('captcha.throttle:password_reset')
         ->name('iam.password.forgot');
     Route::post('reset', [PasswordController::class, 'reset'])->name('iam.password.reset');
+    Route::post('verify-otp', [PasswordController::class, 'verifyOtp'])->name('iam.password.verify-otp');
+    Route::post('reset-with-otp', [PasswordController::class, 'resetWithOtp'])->name('iam.password.reset-with-otp');
     Route::get('policy', [PasswordController::class, 'policy'])->name('iam.password.policy');
     // Force-change is called during login flow using a temp token (user not fully authenticated yet)
     Route::post('force-change-login', [PasswordController::class, 'forceChangeLogin'])

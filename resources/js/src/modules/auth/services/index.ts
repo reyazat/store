@@ -94,6 +94,45 @@ export interface OtpLoginResponse {
   }
 }
 
+// Password reset interfaces
+export interface ForgotPasswordResponse {
+  success: boolean
+  message: string
+  data?: {
+    channels: string[]
+    expires_at: string
+    identifier: string
+  }
+}
+
+export interface VerifyPasswordResetOtpPayload {
+  identifier: string
+  code: string
+}
+
+export interface VerifyPasswordResetOtpResponse {
+  success: boolean
+  message: string
+  data?: {
+    verified: boolean
+    reset_token?: string
+    expires_in?: number
+    attempts_remaining?: number
+  }
+}
+
+export interface ResetPasswordWithOtpPayload {
+  identifier: string
+  reset_token: string
+  password: string
+  password_confirmation: string
+}
+
+export interface ResetPasswordWithOtpResponse {
+  success: boolean
+  message: string
+}
+
 // Password change interfaces
 export interface ForceChangePasswordPayload {
   new_password: string
@@ -158,10 +197,24 @@ export const authService = {
     return response.data.data
   },
 
-  async forgotPassword(email: string): Promise<void> {
-    await api.post('/password/forgot', { email })
+  // ========== Password Reset with OTP Methods ==========
+
+  async forgotPassword(identifier: string): Promise<ForgotPasswordResponse> {
+    const response = await api.post('/password/forgot', { identifier })
+    return response.data
   },
 
+  async verifyPasswordResetOtp(payload: VerifyPasswordResetOtpPayload): Promise<VerifyPasswordResetOtpResponse> {
+    const response = await api.post('/password/verify-otp', payload)
+    return response.data
+  },
+
+  async resetPasswordWithOtp(payload: ResetPasswordWithOtpPayload): Promise<ResetPasswordWithOtpResponse> {
+    const response = await api.post('/password/reset-with-otp', payload)
+    return response.data
+  },
+
+  // Legacy method - kept for backwards compatibility
   async resetPassword(payload: {
     token: string
     email: string
@@ -287,12 +340,13 @@ export const authService = {
     return response
   },
 
-  async verifyPhoneLogin(phone: string, code: string): Promise<OtpLoginResponse> {
+  async verifyPhoneLogin(payload: VerifyOtpPayload): Promise<OtpLoginResponse> {
     const response = await this.verifyOtp({
-      identifier: phone,
-      code,
-      type: 'login_verification'
+      identifier: payload.identifier,
+      code: payload.code,
+      type: 'login_verification',
+      channel: 'sms'
     })
     return response
-  },
+  }
 }

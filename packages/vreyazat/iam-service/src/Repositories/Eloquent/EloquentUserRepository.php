@@ -84,7 +84,47 @@ class EloquentUserRepository extends BaseRepository implements UserRepositoryInt
 
     public function findByPhone(string $phone): ?User
     {
-        return $this->model->query()->where('phone', $phone)->first();
+        // First try exact match
+        $user = $this->model->query()->where('phone', $phone)->first();
+        if ($user) {
+            return $user;
+        }
+
+        // Normalize Iranian phone number formats for searching
+        // Handle: +989XXXXXXXXX, 989XXXXXXXXX, 09XXXXXXXXX, 9XXXXXXXXX
+        $normalizedPhone = $this->normalizeIranianPhone($phone);
+
+        // Try with normalized format
+        return $this->model->query()
+            ->where(function ($query) use ($phone, $normalizedPhone) {
+                $query->where('phone', $phone)
+                      ->orWhere('phone', $normalizedPhone)
+                      // Also check common variations
+                      ->orWhere('phone', preg_replace('/^\+98/', '0', $normalizedPhone))
+                      ->orWhere('phone', preg_replace('/^\+98/', '', $normalizedPhone));
+            })
+            ->first();
+    }
+
+    /**
+     * Normalize Iranian phone number to international format (+98)
+     */
+    private function normalizeIranianPhone(string $phone): string
+    {
+        // Remove all non-digit characters except +
+        $phone = preg_replace('/[^\d+]/', '', $phone);
+
+        // If already starts with +98, it's already normalized
+        if (str_starts_with($phone, '+98')) {
+            return $phone;
+        }
+
+        // Handle 09XXXXXXXXX -> +989XXXXXXXXX
+        if (preg_match('/^0?9\d{9}$/', $phone)) {
+            return preg_replace('/^0?9/', '+989', $phone);
+        }
+
+        return $phone;
     }
 
     public function findByIdentifier(string $identifier): ?User

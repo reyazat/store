@@ -358,6 +358,131 @@ class PasswordController extends Controller
     }
 
     /**
+     * Verify password reset OTP
+     *
+     * Verify the OTP code sent to user's email or phone for password reset.
+     * This endpoint checks if the provided OTP code is valid.
+     *
+     * @unauthenticated
+     *
+     * @bodyParam identifier string required The email or phone number that received the OTP. Example: user@example.com
+     * @bodyParam code string required The 6-digit OTP code. Example: 123456
+     *
+     * @response 200 {
+     *   "success": true,
+     *   "message": "OTP verified successfully",
+     *   "data": {
+     *     "verified": true,
+     *     "identifier": "user@example.com"
+     *   }
+     * }
+     *
+     * @response 400 {
+     *   "success": false,
+     *   "message": "Invalid or expired OTP code",
+     *   "data": {
+     *     "attempts_remaining": 3
+     *   }
+     * }
+     *
+     * @response 423 {
+     *   "success": false,
+     *   "message": "Too many failed attempts. Please request a new OTP."
+     * }
+     */
+    public function verifyOtp(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'identifier' => 'required|string|max:255',
+            'code' => 'required|string|size:6',
+        ]);
+
+        $result = $this->forgotPasswordAction->verifyOtp([
+            'identifier' => $validated['identifier'],
+            'code' => $validated['code'],
+        ]);
+
+        if (!$result['success']) {
+            return response()->json(
+                AbstractResource::error($result['message'], $result['data'] ?? null),
+                $result['code'] ?? 400
+            );
+        }
+
+        return response()->json(
+            AbstractResource::success($result['data'], $result['message'])
+        );
+    }
+
+    /**
+     * Reset password with OTP
+     *
+     * Reset password using verified OTP code and reset token. This endpoint completes
+     * the password reset flow. The reset_token is obtained from the verify-otp endpoint.
+     *
+     * @unauthenticated
+     *
+     * @bodyParam identifier string required The email or phone number. Example: user@example.com
+     * @bodyParam reset_token string required The reset token received from verify-otp endpoint.
+     * @bodyParam password string required The new password. Example: NewSecurePassword456!
+     * @bodyParam password_confirmation string required Confirmation of new password. Example: NewSecurePassword456!
+     *
+     * @response 200 {
+     *   "success": true,
+     *   "message": "Password reset successfully",
+     *   "data": {
+     *     "password_changed_at": "2024-01-01T12:30:00.000000Z",
+     *     "password_expires_at": "2024-04-01T12:30:00.000000Z",
+     *     "must_change_password": false
+     *   }
+     * }
+     *
+     * @response 400 {
+     *   "success": false,
+     *   "message": "Password reset failed",
+     *   "data": {
+     *     "errors": [
+     *       "Invalid or expired reset token",
+     *       "New password cannot be one of your last 5 passwords"
+     *     ]
+     *   }
+     * }
+     *
+     * @response 422 {
+     *   "success": false,
+     *   "message": "Validation failed",
+     *   "data": {
+     *     "password": ["The password must be at least 8 characters."]
+     *   }
+     * }
+     */
+    public function resetWithOtp(\Illuminate\Http\Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'identifier' => 'required|string|max:255',
+            'reset_token' => 'required|string|size:64',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $result = $this->forgotPasswordAction->resetWithOtp([
+            'identifier' => $validated['identifier'],
+            'reset_token' => $validated['reset_token'],
+            'new_password' => $validated['password'],
+        ]);
+
+        if (!$result['success']) {
+            return response()->json(
+                AbstractResource::error($result['message'], $result['data'] ?? null),
+                $result['code'] ?? 400
+            );
+        }
+
+        return response()->json(
+            AbstractResource::success($result['data'], $result['message'])
+        );
+    }
+
+    /**
      * Get password policy
      *
      * Get the current password policy requirements and rules.
