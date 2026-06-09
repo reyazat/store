@@ -59,16 +59,26 @@ const formattedPhoneCountdown = computed(() => {
   return `${m}:${s.toString().padStart(2, '0')}`
 })
 
+// Normalize raw phone string to clean digits, converting +98 prefix to 09
+const normalizePhone = (raw: string): string => {
+  // Strip spaces, dashes, parentheses
+  let v = raw.replace(/[\s\-().]/g, '')
+  // Convert +989XXXXXXXXX → 09XXXXXXXXX so validation & display are uniform
+  if (v.startsWith('+98')) v = '0' + v.slice(3)
+  // Keep only digits
+  return v.replace(/\D/g, '')
+}
+
 const isPhoneValid = computed(() => {
-  const digits = phone.value.replace(/\s/g, '')
-  // Supports both 09XXXXXXXXX and +989XXXXXXXXX formats
-  return /^09\d{9}$/.test(digits) || /^\+989\d{9}$/.test(digits)
+  const digits = normalizePhone(phone.value)
+  // Exactly 11 digits starting with 09
+  return /^09\d{9}$/.test(digits)
 })
 
 const isOtpComplete = computed(() => otpCode.value.every(digit => digit.length === 1))
 
-const formatPhoneDisplay = (value: string): string => {
-  const digits = value.replace(/\D/g, '')
+// Format display as "0912 345 6789"
+const formatPhoneDisplay = (digits: string): string => {
   if (digits.startsWith('09') && digits.length >= 4) {
     const parts = [digits.slice(0, 4)]
     if (digits.length > 4) parts.push(digits.slice(4, 7))
@@ -79,14 +89,11 @@ const formatPhoneDisplay = (value: string): string => {
 }
 
 watch(phone, (newVal) => {
-  const digits = newVal.replace(/\D/g, '')
-  if (digits.length <= 11) {
-    const formatted = formatPhoneDisplay(digits)
-    if (formatted !== newVal) {
-      phone.value = formatted
-    }
-  } else {
-    phone.value = formatPhoneDisplay(digits.slice(0, 11))
+  const digits = normalizePhone(newVal)
+  const capped = digits.slice(0, 11)
+  const formatted = formatPhoneDisplay(capped)
+  if (formatted !== newVal) {
+    phone.value = formatted
   }
 })
 
@@ -201,7 +208,7 @@ const sendPhoneOtp = async () => {
   phoneError.value = ''
   phoneSuccess.value = ''
   try {
-    const cleanPhone = phone.value.replace(/\s/g, '')
+    const cleanPhone = normalizePhone(phone.value)
     const response = await authService.sendOtp({
       identifier: cleanPhone,
       type: 'login_verification',
@@ -250,7 +257,7 @@ const verifyPhoneOtp = async () => {
   phoneLoading.value = true
   phoneError.value = ''
   try {
-    const cleanPhone = phone.value.replace(/\s/g, '')
+    const cleanPhone = normalizePhone(phone.value)
     const code = otpCode.value.join('')
     const response = await authService.verifyOtp({
       identifier: cleanPhone,
@@ -493,12 +500,12 @@ const handlePasswordSubmit = async () => {
                   <div class="relative">
                     <input
                       v-model="phone"
-                      type="tel"
+                      type="text"
                       inputmode="numeric"
-                      placeholder="0912 345 6789"
+                      placeholder="09xx xxx xxxx"
                       autocomplete="tel"
                       maxlength="14"
-                      class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-wider"
+                      class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-widest font-mono"
                       dir="ltr"
                       :disabled="phoneLoading"
                       @keyup.enter="sendPhoneOtp"

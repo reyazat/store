@@ -238,15 +238,35 @@ class OtpService
 
     /**
      * Get an SMS message for OTP based on purpose
-     * Format optimized for Iranian SMS auto-fill detection
+     * Format optimized for:
+     * 1. Android WebOTP API (requires "@domain #CODE" on its own line)
+     * 2. iOS/Android clipboard suggestion (numeric code visible at end)
+     * 3. Samsung Auto-fill detection
+     *
+     * WebOTP spec: https://wicg.github.io/web-otp/
+     * Android requirement: message must end with "\n@domain.com #123456"
      */
     protected function getOtpSmsMessage(string $code, string $purpose): string
     {
-        // Standard Persian format for Iranian platforms
-        // This format helps mobile browsers auto-detect OTP codes
-        $template = "کد تایید سامانه ی فروشگاه شرکت تجارت: %token\nاین کد مختص شما میباشد. آن را در اختیار دیگران قرار ندهید.";
+        $appName = config('app.name', 'اتکا');
 
-        return str_replace('%token', $code, $template);
+        // Extract bare domain from FRONTEND_URL or APP_URL for WebOTP binding
+        $url = config('app.frontend_url', config('app.url', ''));
+        $host = parse_url($url, PHP_URL_HOST) ?: 'etka.ir';
+
+        $purposeLabels = [
+            'login_verification' => 'ورود',
+            'password_reset'     => 'بازنشانی رمز عبور',
+            'phone_verification' => 'تایید شماره موبایل',
+            'email_verification' => 'تایید ایمیل',
+        ];
+        $purposeLabel = $purposeLabels[$purpose] ?? 'تایید هویت';
+
+        // WebOTP-compatible format:
+        // - Main message in Persian (user-friendly)
+        // - Last line MUST be exactly: "@domain.com #CODE" (no extra text)
+        //   so Android Chrome / Samsung Internet can auto-read the OTP.
+        return "{$appName}: کد {$purposeLabel} شما: {$code}\nاین کد یکبار مصرف است. آن را به کسی ندهید.\n\n@{$host} #{$code}";
     }
 
     /**

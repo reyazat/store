@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Mail, Smartphone, Loader2, CheckCircle2, ArrowRight, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff } from 'lucide-vue-next'
+import { Mail, Smartphone, Loader2, CheckCircle2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, Check } from 'lucide-vue-next'
 import { authService } from '../services'
 
 const router = useRouter()
@@ -10,7 +10,7 @@ const router = useRouter()
 const step = ref<'input' | 'verify' | 'reset' | 'success'>('input')
 const identifier = ref('')
 const otpCode = ref(['', '', '', '', '', ''])
-const resetToken = ref('') // Reset token received from verify-otp endpoint
+const resetToken = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const showNewPassword = ref(false)
@@ -25,6 +25,9 @@ const channels = ref<string[]>([])
 let countdownInterval: ReturnType<typeof setInterval> | null = null
 
 const otpInputRefs = ref<(HTMLInputElement | null)[]>([])
+
+// WebOTP API abort controller (Android Chrome auto-read SMS)
+let webOtpAbortController: AbortController | null = null
 
 const isIdentifierValid = computed(() => {
   const val = identifier.value.trim()
@@ -73,6 +76,7 @@ const startCountdown = (seconds: number) => {
 
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval)
+  webOtpAbortController?.abort()
 })
 
 const handleOtpInput = (index: number, event: Event) => {
@@ -82,6 +86,9 @@ const handleOtpInput = (index: number, event: Event) => {
     otpCode.value[index] = value.slice(-1)
     if (index < 5) {
       nextTick(() => otpInputRefs.value[index + 1]?.focus())
+    } else if (index === 5 && isOtpComplete.value) {
+      // Bug fix: auto-submit when last digit entered
+      nextTick(() => verifyOtp())
     }
   }
 }
@@ -99,12 +106,38 @@ const handleOtpKeydown = (index: number, event: KeyboardEvent) => {
 
 const handleOtpPaste = (event: ClipboardEvent) => {
   event.preventDefault()
-  const pastedData = event.clipboardData?.getData('text') || ''
-  const digits = pastedData.replace(/\D/g, '').slice(0, 6)
+  const digits = (event.clipboardData?.getData('text') || '').replace(/\D/g, '').slice(0, 6)
   if (digits) {
-    digits.split('').forEach((digit, index) => {
-      if (index < 6) otpCode.value[index] = digit
+    digits.split('').forEach((digit, i) => {
+      if (i < 6) otpCode.value[i] = digit
     })
+    // Auto-submit if all 6 digits pasted
+    if (digits.length === 6) {
+      nextTick(() => verifyOtp())
+    }
+  }
+}
+
+// WebOTP API: auto-read OTP from SMS on Android Chrome / Samsung Internet
+const startWebOtp = async () => {
+  if (!('OTPCredential' in window)) return
+  webOtpAbortController = new AbortController()
+  try {
+    const credential = await (navigator.credentials as any).get({
+      otp: { transport: ['sms'] },
+      signal: webOtpAbortController.signal,
+    })
+    if (credential?.code) {
+      const digits = credential.code.replace(/\D/g, '').slice(0, 6)
+      digits.split('').forEach((d: string, i: number) => {
+        if (i < 6) otpCode.value[i] = d
+      })
+      if (digits.length === 6) {
+        nextTick(() => verifyOtp())
+      }
+    }
+  } catch {
+    // Aborted or not supported — silently ignore
   }
 }
 
@@ -138,6 +171,8 @@ const sendResetCode = async () => {
       }
       await nextTick()
       otpInputRefs.value[0]?.focus()
+      // Start WebOTP auto-read on Android Chrome / Samsung Internet
+      startWebOtp()
     } else {
       error.value = response.message || 'خطا در ارسال کد. لطفا دوباره تلاش کنید'
     }
@@ -166,6 +201,7 @@ const verifyOtp = async () => {
 
   isLoading.value = true
   error.value = ''
+  webOtpAbortController?.abort()
 
   try {
     const cleanIdentifier = identifier.value.trim()
@@ -269,25 +305,38 @@ const goBack = () => {
       </div>
 
       <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
-        <!-- Step indicator -->
-        <div class="flex border-b border-secondary-100">
-          <div class="flex-1 py-3 text-center text-sm font-medium" :class="step === 'input' ? 'text-primary-600 bg-primary-50' : 'text-secondary-400'">
-            <span class="flex items-center justify-center gap-1">
-              <Mail class="w-4 h-4" />
-              شناسایی
-            </span>
+        <!-- Step progress indicator -->
+        <div class="flex items-center px-6 py-4 border-b border-secondary-100 gap-2">
+          <!-- Step 1 -->
+          <div class="flex items-center gap-2 flex-1">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
+              :class="step === 'input' ? 'bg-primary-500 text-white' : 'bg-emerald-500 text-white'">
+              <Check v-if="step !== 'input'" class="w-4 h-4" />
+              <span v-else>۱</span>
+            </div>
+            <span class="text-xs font-medium hidden sm:block" :class="step === 'input' ? 'text-primary-600' : 'text-emerald-600'">شناسایی</span>
           </div>
-          <div class="flex-1 py-3 text-center text-sm font-medium" :class="step === 'verify' ? 'text-primary-600 bg-primary-50' : (step === 'reset' || step === 'success' ? 'text-emerald-600' : 'text-secondary-400')">
-            <span class="flex items-center justify-center gap-1">
-              <ShieldCheck class="w-4 h-4" />
-              تایید کد
-            </span>
+          <div class="h-px flex-1 max-w-8 transition-colors" :class="step !== 'input' ? 'bg-emerald-400' : 'bg-secondary-200'" />
+          <!-- Step 2 -->
+          <div class="flex items-center gap-2 flex-1">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
+              :class="step === 'verify' ? 'bg-primary-500 text-white' : (step === 'reset' || step === 'success' ? 'bg-emerald-500 text-white' : 'bg-secondary-200 text-secondary-400')">
+              <Check v-if="step === 'reset' || step === 'success'" class="w-4 h-4" />
+              <span v-else>۲</span>
+            </div>
+            <span class="text-xs font-medium hidden sm:block"
+              :class="step === 'verify' ? 'text-primary-600' : (step === 'reset' || step === 'success' ? 'text-emerald-600' : 'text-secondary-400')">تایید کد</span>
           </div>
-          <div class="flex-1 py-3 text-center text-sm font-medium" :class="step === 'reset' ? 'text-primary-600 bg-primary-50' : (step === 'success' ? 'text-emerald-600' : 'text-secondary-400')">
-            <span class="flex items-center justify-center gap-1">
-              <Lock class="w-4 h-4" />
-              رمز جدید
-            </span>
+          <div class="h-px flex-1 max-w-8 transition-colors" :class="step === 'reset' || step === 'success' ? 'bg-emerald-400' : 'bg-secondary-200'" />
+          <!-- Step 3 -->
+          <div class="flex items-center gap-2 flex-1">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
+              :class="step === 'reset' ? 'bg-primary-500 text-white' : (step === 'success' ? 'bg-emerald-500 text-white' : 'bg-secondary-200 text-secondary-400')">
+              <Check v-if="step === 'success'" class="w-4 h-4" />
+              <span v-else>۳</span>
+            </div>
+            <span class="text-xs font-medium hidden sm:block"
+              :class="step === 'reset' ? 'text-primary-600' : (step === 'success' ? 'text-emerald-600' : 'text-secondary-400')">رمز جدید</span>
           </div>
         </div>
 
@@ -370,16 +419,16 @@ const goBack = () => {
                   inputmode="numeric"
                   pattern="[0-9]"
                   maxlength="1"
-                  autocomplete="one-time-code"
+                  :autocomplete="index === 0 ? 'one-time-code' : 'off'"
                   class="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition"
-                  :class="{ 'border-primary-500 ring-4 ring-primary-100': otpCode[index] }"
+                  :class="{ 'border-primary-500 ring-2 ring-primary-200': otpCode[index] }"
                   :disabled="isLoading"
                   @input="handleOtpInput(index, $event)"
                   @keydown="handleOtpKeydown(index, $event)"
-                  @paste="index === 0 && handleOtpPaste($event)"
+                  @paste="handleOtpPaste($event)"
                 />
               </div>
-              <p class="mt-3 text-center text-xs text-secondary-400">کد را از پیامک یا ایمیل خود کپی کنید</p>
+              <p class="mt-3 text-center text-xs text-secondary-400">کد دریافتی از پیامک یا ایمیل را وارد کنید</p>
             </div>
 
             <button
