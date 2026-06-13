@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -53,5 +54,26 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Override ValidationException JSON response to produce a fully Farsi summary message.
+        // Laravel's default summarize() appends "(and N more errors)" in English — we replace
+        // that suffix with its Persian equivalent before the response is sent.
+        $exceptions->render(function (ValidationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                $errors  = $e->errors();
+                $allMsgs = array_merge(...array_values($errors));
+                $first   = $allMsgs[0] ?? 'خطای اعتبارسنجی';
+                $rest    = count($allMsgs) - 1;
+
+                if ($rest > 0) {
+                    $message = $first . ' ' . "(و {$rest} خطای دیگر)";
+                } else {
+                    $message = $first;
+                }
+
+                return response()->json([
+                    'message' => $message,
+                    'errors'  => $errors,
+                ], 422);
+            }
+        });
     })->create();
