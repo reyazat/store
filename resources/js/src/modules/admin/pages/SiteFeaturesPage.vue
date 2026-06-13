@@ -13,15 +13,21 @@ const errorMsg = ref<string | null>(null)
 const successMsg = ref<string | null>(null)
 
 const iconOptions = [
-  { value: 'Truck', label: '🚚 ارسال' },
-  { value: 'Shield', label: '🛡️ ضمانت' },
-  { value: 'RotateCcw', label: '🔄 بازگشت' },
-  { value: 'Headphones', label: '🎧 پشتیبانی' },
-  { value: 'CreditCard', label: '💳 پرداخت' },
-  { value: 'Package', label: '📦 بسته‌بندی' },
-  { value: 'Star', label: '⭐ کیفیت' },
-  { value: 'Clock', label: '⏰ سرعت' },
+  { value: 'Truck', label: '🚚 ارسال', emoji: '🚚' },
+  { value: 'Shield', label: '🛡️ ضمانت', emoji: '🛡️' },
+  { value: 'RotateCcw', label: '🔄 بازگشت', emoji: '🔄' },
+  { value: 'Headphones', label: '🎧 پشتیبانی', emoji: '🎧' },
+  { value: 'CreditCard', label: '💳 پرداخت', emoji: '💳' },
+  { value: 'Package', label: '📦 بسته‌بندی', emoji: '📦' },
+  { value: 'Star', label: '⭐ کیفیت', emoji: '⭐' },
+  { value: 'Clock', label: '⏰ سرعت', emoji: '⏰' },
 ]
+
+function getIconEmoji(iconName: string | null | undefined): string {
+  if (!iconName) return '—'
+  const found = iconOptions.find(o => o.value === iconName)
+  return found ? found.emoji : iconName
+}
 
 const defaultForm = (): SiteFeatureFormData => ({
   title: '',
@@ -77,37 +83,48 @@ async function handleSubmit() {
   isSaving.value = true
   errorMsg.value = null
   try {
+    const payload = {
+      title: form.title.trim(),
+      description: form.description?.trim() || null,
+      icon: form.icon || null,
+      sort_order: Number(form.sort_order) || 0,
+      is_active: Boolean(form.is_active),
+    }
     if (editingFeature.value) {
-      const updated = await siteFeatureService.update(editingFeature.value.id, form)
+      const updated = await siteFeatureService.update(editingFeature.value.id, payload)
       const idx = features.value.findIndex(f => f.id === editingFeature.value!.id)
       if (idx !== -1) features.value[idx] = updated
       showSuccess('ویژگی ویرایش شد')
     } else {
-      const created = await siteFeatureService.create(form)
+      const created = await siteFeatureService.create(payload)
       features.value.push(created)
       showSuccess('ویژگی ایجاد شد')
     }
     closeModal()
-  } catch {
-    showError('خطا در ذخیره ویژگی')
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || err?.response?.data?.error || 'خطا در ذخیره ویژگی'
+    showError(msg)
   } finally {
     isSaving.value = false
   }
 }
 
 async function toggleActive(feature: SiteFeature) {
+  const previous = feature.is_active
+  feature.is_active = !feature.is_active
   try {
     await siteFeatureService.update(feature.id, {
       title: feature.title,
-      description: feature.description ?? '',
-      icon: feature.icon ?? '',
-      sort_order: feature.sort_order,
-      is_active: !feature.is_active,
+      description: feature.description ?? null,
+      icon: feature.icon ?? null,
+      sort_order: Number(feature.sort_order) || 0,
+      is_active: feature.is_active,
     })
-    feature.is_active = !feature.is_active
     showSuccess('وضعیت ویژگی تغییر کرد')
-  } catch {
-    showError('خطا در تغییر وضعیت')
+  } catch (err: any) {
+    feature.is_active = previous
+    const msg = err?.response?.data?.message || 'خطا در تغییر وضعیت'
+    showError(msg)
   }
 }
 
@@ -117,8 +134,9 @@ async function handleDelete(feature: SiteFeature) {
     await siteFeatureService.delete(feature.id)
     features.value = features.value.filter(f => f.id !== feature.id)
     showSuccess('ویژگی حذف شد')
-  } catch {
-    showError('خطا در حذف ویژگی')
+  } catch (err: any) {
+    const msg = err?.response?.data?.message || 'خطا در حذف ویژگی'
+    showError(msg)
   }
 }
 
@@ -190,7 +208,7 @@ function showSuccess(msg: string) {
         <tbody class="divide-y divide-secondary-100">
           <tr v-for="feature in features" :key="feature.id" class="hover:bg-secondary-50">
             <td class="px-4 py-3 text-sm text-secondary-600">{{ feature.sort_order }}</td>
-            <td class="px-4 py-3 text-sm">{{ feature.icon }}</td>
+            <td class="px-4 py-3 text-xl" :title="feature.icon ?? ''">{{ getIconEmoji(feature.icon) }}</td>
             <td class="px-4 py-3 font-medium text-secondary-800">{{ feature.title }}</td>
             <td class="px-4 py-3 text-sm text-secondary-500">{{ feature.description || '-' }}</td>
             <td class="px-4 py-3">

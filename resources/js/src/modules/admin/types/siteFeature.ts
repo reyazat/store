@@ -11,8 +11,8 @@ export interface SiteFeature {
 
 export interface SiteFeatureFormData {
   title: string
-  description: string
-  icon: string
+  description?: string | null
+  icon?: string | null
   sort_order: number
   is_active: boolean
 }

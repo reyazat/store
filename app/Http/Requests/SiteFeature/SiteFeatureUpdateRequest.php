@@ -11,6 +11,27 @@ class SiteFeatureUpdateRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+
+        if ($this->has('is_active')) {
+            $merge['is_active'] = filter_var($this->is_active, FILTER_VALIDATE_BOOLEAN);
+        }
+
+        if ($this->has('sort_order')) {
+            $merge['sort_order'] = (int) $this->sort_order;
+        }
+
+        if ($this->has('icon') && $this->icon !== null && $this->icon !== '') {
+            $merge['icon'] = $this->normalizeIcon($this->icon);
+        }
+
+        if (!empty($merge)) {
+            $this->merge($merge);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -20,5 +41,13 @@ class SiteFeatureUpdateRequest extends FormRequest
             'sort_order'  => ['nullable', 'integer', 'min:0', 'max:255'],
             'is_active'   => ['nullable', 'boolean'],
         ];
+    }
+
+    /**
+     * Normalize icon name to PascalCase (e.g. 'rotate-ccw' → 'RotateCcw', 'truck' → 'Truck').
+     */
+    private function normalizeIcon(string $icon): string
+    {
+        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $icon)));
     }
 }

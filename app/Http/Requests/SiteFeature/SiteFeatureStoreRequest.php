@@ -11,6 +11,15 @@ class SiteFeatureStoreRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'is_active'  => filter_var($this->is_active ?? true, FILTER_VALIDATE_BOOLEAN),
+            'sort_order' => (int) ($this->sort_order ?? 0),
+            'icon'       => $this->icon ? $this->normalizeIcon($this->icon) : null,
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -20,5 +29,13 @@ class SiteFeatureStoreRequest extends FormRequest
             'sort_order'  => ['nullable', 'integer', 'min:0', 'max:255'],
             'is_active'   => ['nullable', 'boolean'],
         ];
+    }
+
+    /**
+     * Normalize icon name to PascalCase (e.g. 'rotate-ccw' → 'RotateCcw', 'truck' → 'Truck').
+     */
+    private function normalizeIcon(string $icon): string
+    {
+        return str_replace(' ', '', ucwords(str_replace(['-', '_'], ' ', $icon)));
     }
 }
