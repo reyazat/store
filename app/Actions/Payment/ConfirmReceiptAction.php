@@ -26,7 +26,8 @@ class ConfirmReceiptAction
             $paymentMethod = PaymentMethod::where('driver', $transaction->driver)->first();
             $successStatus = $paymentMethod?->success_order_status ?? 'processing';
 
-            $order->update(['payment_status' => 'paid', 'paid_at' => now()]);
+            // B2 fix: route through OrderService so payment_status_changed history is recorded
+            $this->orderService->updatePaymentStatus($order, 'paid');
             $this->orderService->updateOrderStatus($order, $successStatus);
 
             return $order->fresh();

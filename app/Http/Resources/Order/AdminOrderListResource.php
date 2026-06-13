@@ -25,7 +25,8 @@ class AdminOrderListResource extends JsonResource
             'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'total'          => $this->total,
-            'items_count'    => $this->whenLoaded('items', fn () => $this->items->count(), 0),
+            // B4 fix: use withCount result instead of loading all item rows to count them
+            'items_count'    => $this->items_count ?? $this->whenLoaded('items', fn () => $this->items->count(), 0),
             'created_at'     => $this->created_at,
         ];
     }

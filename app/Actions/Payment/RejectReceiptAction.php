@@ -23,7 +23,8 @@ class RejectReceiptAction
             $paymentMethod = PaymentMethod::where('driver', $transaction->driver)->first();
             $failureStatus = $paymentMethod?->failure_order_status ?? 'payment_failed';
 
-            $order->update(['payment_status' => 'failed']);
+            // B2 fix: route through OrderService so payment_status_changed history is recorded
+            $this->orderService->updatePaymentStatus($order, 'failed');
             $this->orderService->updateOrderStatus($order, $failureStatus);
 
             return $order->fresh();

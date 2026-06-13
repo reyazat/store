@@ -24,7 +24,8 @@ class OrderRepository implements OrderRepositoryInterface
     
     public function getAllOrders(array $filters = []): LengthAwarePaginator
     {
-        $query = Order::with(['user', 'items', 'orderAddress']);
+        // B4 fix: use withCount instead of eager-loading all item rows just to count them
+        $query = Order::with(['user', 'orderAddress'])->withCount('items');
 
         if (!empty($filters['status'])) {
             $query->where('status', $filters['status']);
@@ -73,7 +74,8 @@ class OrderRepository implements OrderRepositoryInterface
             $query->where('total', '<=', (float) $maxAmount);
         }
 
-        $perPage = $filters['per_page'] ?? 15;
+        // B5 fix: cap per_page to prevent memory exhaustion from oversized requests
+        $perPage = min((int) ($filters['per_page'] ?? 20), 100);
 
         return $query->latest()->paginate($perPage);
     }

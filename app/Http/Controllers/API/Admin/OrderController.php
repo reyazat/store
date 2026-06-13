@@ -83,7 +83,8 @@ class OrderController extends Controller
 
     public function updateNotes(OrderUpdateNotesRequest $request, Order $order): JsonResponse
     {
-        $order->update($request->validated());
+        // B6 fix: delegate to Service instead of directly calling $order->update() in controller
+        $this->orderService->updateAdminNotes($order, $request->validated('admin_notes'));
 
         return response()->json([
             'success' => true,
@@ -105,20 +106,14 @@ class OrderController extends Controller
 
     public function histories(Order $order): JsonResponse
     {
+        // B7 fix: reuse the same mapping from AdminOrderDetailResource to avoid drift
         $order->load('histories.user');
+        $resource = new AdminOrderDetailResource($order);
+        $resourceArray = $resource->toArray(request());
 
         return response()->json([
             'success' => true,
-            'data'    => $order->histories->map(fn ($h) => [
-                'id'          => $h->id,
-                'event'       => $h->event,
-                'event_label' => $this->eventLabel($h->event),
-                'from_status' => $h->from_status,
-                'to_status'   => $h->to_status,
-                'note'        => $h->note,
-                'actor'       => $h->user ? ['id' => $h->user->id, 'name' => $h->user->name] : null,
-                'created_at'  => $h->created_at,
-            ]),
+            'data'    => $resourceArray['histories'] ?? [],
         ]);
     }
 
@@ -140,17 +135,5 @@ class OrderController extends Controller
         ]);
     }
 
-    private function eventLabel(string $event): string
-    {
-        return match ($event) {
-            'status_changed'         => 'تغییر وضعیت',
-            'shipping_code_set'      => 'ثبت کد رهگیری',
-            'notification_sent'      => 'ارسال اعلان',
-            'payment_confirmed'      => 'تأیید پرداخت',
-            'payment_rejected'       => 'رد پرداخت',
-            'payment_status_changed' => 'تغییر وضعیت پرداخت',
-            'order_created'          => 'ثبت سفارش',
-            default                  => $event,
-        };
-    }
+
 }

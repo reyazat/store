@@ -3,12 +3,12 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRight, Check, AlertCircle, MapPin, CreditCard, Package,
-  CheckCircle, XCircle, Clock, FileImage, Truck, Bell, Printer, History,
+  CheckCircle, XCircle, Clock, FileImage, Truck, Bell, Printer, History, Banknote,
 } from 'lucide-vue-next'
 import { orderService, type AdminOrderDetail, type AdminOrderHistoryEntry } from '../services/orderService'
 import { orderStatusService } from '../services/paymentMethodService'
 import type { OrderStatus } from '../types/payment'
-import { formatDate, formatPrice } from '@shared/utils/format'
+import { formatDate, formatDateTime, formatPrice } from '@shared/utils/format'
 
 const route  = useRoute()
 const router = useRouter()
@@ -173,24 +173,26 @@ const txStatusClass = (s: string) => {
 
 const historyIcon = (event: string) => {
   const map: Record<string, string> = {
-    status_changed:    'status',
-    shipping_code_set: 'truck',
-    notification_sent: 'bell',
-    payment_confirmed: 'check',
-    payment_rejected:  'x',
-    order_created:     'package',
+    status_changed:         'status',
+    shipping_code_set:      'truck',
+    notification_sent:      'bell',
+    payment_confirmed:      'check',
+    payment_rejected:       'x',
+    payment_status_changed: 'credit',
+    order_created:          'package',
   }
   return map[event] ?? 'clock'
 }
 
 const historyIconClass = (event: string) => {
   const map: Record<string, string> = {
-    status_changed:    'bg-blue-100 text-blue-600',
-    shipping_code_set: 'bg-orange-100 text-orange-600',
-    notification_sent: 'bg-purple-100 text-purple-600',
-    payment_confirmed: 'bg-green-100 text-green-600',
-    payment_rejected:  'bg-red-100 text-red-600',
-    order_created:     'bg-secondary-100 text-secondary-600',
+    status_changed:         'bg-blue-100 text-blue-600',
+    shipping_code_set:      'bg-orange-100 text-orange-600',
+    notification_sent:      'bg-purple-100 text-purple-600',
+    payment_confirmed:      'bg-green-100 text-green-600',
+    payment_rejected:       'bg-red-100 text-red-600',
+    payment_status_changed: 'bg-indigo-100 text-indigo-600',
+    order_created:          'bg-secondary-100 text-secondary-600',
   }
   return map[event] ?? 'bg-secondary-100 text-secondary-600'
 }
@@ -433,26 +435,34 @@ const currentStatusNotifyMessage = computed(() => {
           <div v-if="!order.histories?.length" class="text-center py-8 text-secondary-400 text-sm">
             هنوز تاریخچه‌ای ثبت نشده است.
           </div>
-          <ol v-else class="relative border-r border-secondary-200 mr-3 space-y-6">
+          <ol class="relative border-r border-secondary-200 mr-3 space-y-6">
             <li v-for="entry in order.histories" :key="entry.id" class="mr-6">
               <span
                 :class="['absolute -right-3 flex items-center justify-center w-6 h-6 rounded-full ring-4 ring-white', historyIconClass(entry.event)]"
               >
+                <!-- B9+B10 fix: added payment_status_changed icon (Banknote) -->
                 <Truck       v-if="historyIcon(entry.event) === 'truck'"   class="w-3 h-3" />
                 <Bell        v-else-if="historyIcon(entry.event) === 'bell'"    class="w-3 h-3" />
                 <CheckCircle v-else-if="historyIcon(entry.event) === 'check'"   class="w-3 h-3" />
                 <XCircle     v-else-if="historyIcon(entry.event) === 'x'"       class="w-3 h-3" />
                 <Package     v-else-if="historyIcon(entry.event) === 'package'" class="w-3 h-3" />
+                <Banknote    v-else-if="historyIcon(entry.event) === 'credit'"  class="w-3 h-3" />
                 <Clock       v-else class="w-3 h-3" />
               </span>
               <div class="bg-secondary-50 rounded-lg p-4 text-sm">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <span class="font-semibold text-secondary-800">{{ entry.event_label }}</span>
-                  <span class="text-xs text-secondary-400 shrink-0">{{ formatDate(entry.created_at) }}</span>
+                  <!-- B8 fix: use formatDateTime so same-day events are distinguishable -->
+                  <span class="text-xs text-secondary-400 shrink-0">{{ formatDateTime(entry.created_at) }}</span>
                 </div>
+                <!-- B3 fix: show human-readable labels, fall back to raw key if label not available -->
                 <div v-if="entry.from_status || entry.to_status" class="text-xs text-secondary-500 mb-1">
-                  <span v-if="entry.from_status">از: <code class="bg-secondary-200 px-1 rounded">{{ entry.from_status }}</code></span>
-                  <span v-if="entry.to_status" class="mr-2">به: <code class="bg-primary-100 text-primary-700 px-1 rounded">{{ entry.to_status }}</code></span>
+                  <span v-if="entry.from_status">
+                    از: <code class="bg-secondary-200 px-1 rounded">{{ entry.from_status_label || entry.from_status }}</code>
+                  </span>
+                  <span v-if="entry.to_status" class="mr-2">
+                    به: <code class="bg-primary-100 text-primary-700 px-1 rounded">{{ entry.to_status_label || entry.to_status }}</code>
+                  </span>
                 </div>
                 <p v-if="entry.note" class="text-secondary-600">{{ entry.note }}</p>
                 <p v-if="entry.actor" class="text-xs text-secondary-400 mt-1">توسط: {{ entry.actor.name }}</p>

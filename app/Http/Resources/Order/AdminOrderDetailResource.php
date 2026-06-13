@@ -64,16 +64,22 @@ class AdminOrderDetailResource extends JsonResource
                 'paid_at'        => $this->latestTransaction->paid_at,
             ] : null),
             'histories'      => $this->whenLoaded('histories', fn () => $this->histories->map(fn ($h) => [
-                'id'          => $h->id,
-                'event'       => $h->event,
-                'event_label' => $this->resolveEventLabel($h->event),
-                'from_status' => $h->from_status,
-                'to_status'   => $h->to_status,
-                'note'        => $h->note,
-                'actor'       => $h->relationLoaded('user') && $h->user
+                'id'               => $h->id,
+                'event'            => $h->event,
+                'event_label'      => $this->resolveEventLabel($h->event),
+                'from_status'      => $h->from_status,
+                'from_status_label' => $h->from_status
+                    ? (\App\Models\OrderStatus::findByKey($h->from_status)?->label ?? $h->from_status)
+                    : null,
+                'to_status'        => $h->to_status,
+                'to_status_label'  => $h->to_status
+                    ? (\App\Models\OrderStatus::findByKey($h->to_status)?->label ?? $h->to_status)
+                    : null,
+                'note'             => $h->note,
+                'actor'            => $h->relationLoaded('user') && $h->user
                     ? ['id' => $h->user->id, 'name' => $h->user->name]
                     : null,
-                'created_at'  => $h->created_at,
+                'created_at'       => $h->created_at,
             ])),
             'created_at'     => $this->created_at,
             'paid_at'        => $this->paid_at,

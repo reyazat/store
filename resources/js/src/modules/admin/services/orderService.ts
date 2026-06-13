@@ -51,7 +51,9 @@ export interface AdminOrderHistoryEntry {
   event: string
   event_label: string
   from_status: string | null
+  from_status_label: string | null
   to_status: string | null
+  to_status_label: string | null
   note: string | null
   actor: { id: number; name: string } | null
   created_at: string

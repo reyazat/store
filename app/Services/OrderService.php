@@ -128,11 +128,25 @@ class OrderService
             $status,
         );
 
-        $previousStatusModel = OrderStatus::findByKey($previousStatus);
-        if ($statusModel?->is_cancellation && !($previousStatusModel?->is_cancellation)) {
+        // B1 fix: only restore stock on the FIRST cancellation transition.
+        // Guard with cancelled_at: it was set above only when !$order->cancelled_at,
+        // meaning if cancelled_at was already set (re-cancellation), we skip restore.
+        // We use the fresh attributes array to detect first-time cancellation.
+        $isFirstCancellation = $statusModel?->is_cancellation && isset($attributes['cancelled_at']);
+        if ($isFirstCancellation) {
             $this->restoreStock($order);
         }
 
+        return $order;
+    }
+
+    /**
+     * Update admin notes on an order.
+     * Kept in Service (not Action) as it is a single atomic field update with no side-effects.
+     */
+    public function updateAdminNotes(Order $order, ?string $notes): Order
+    {
+        $order->update(['admin_notes' => $notes]);
         return $order;
     }
 
