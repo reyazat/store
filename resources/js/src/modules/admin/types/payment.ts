@@ -21,6 +21,7 @@ export interface OrderStatus {
   color: string
   is_cancellation: boolean
   is_completion: boolean
+  is_shipping: boolean
   sort_order: number
   notify_customer: boolean
   notification_message: string | null

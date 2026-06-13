@@ -16,6 +16,7 @@ class OrderStatusResource extends JsonResource
             'color'                => $this->color,
             'is_cancellation'      => $this->is_cancellation,
             'is_completion'        => $this->is_completion,
+            'is_shipping'          => $this->is_shipping,
             'sort_order'           => $this->sort_order,
             'notify_customer'      => $this->notify_customer,
             'notification_message' => $this->notification_message,

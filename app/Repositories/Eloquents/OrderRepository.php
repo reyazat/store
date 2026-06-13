@@ -46,20 +46,31 @@ class OrderRepository implements OrderRepositoryInterface
             });
         }
 
-        if (!empty($filters['date_from'])) {
-            $query->whereDate('created_at', '>=', $filters['date_from']);
+        $dateFrom = $filters['date_from'] ?? null;
+        $dateTo   = $filters['date_to']   ?? null;
+
+        // Bug 4 fix: only apply date filters when values are valid dates
+        if (!empty($dateFrom) && strtotime($dateFrom)) {
+            $query->whereDate('created_at', '>=', $dateFrom);
         }
 
-        if (!empty($filters['date_to'])) {
-            $query->whereDate('created_at', '<=', $filters['date_to']);
+        // Bug 5 fix: enforce date_from <= date_to; skip date_to if it's before date_from
+        if (!empty($dateTo) && strtotime($dateTo)) {
+            if (empty($dateFrom) || $dateTo >= $dateFrom) {
+                $query->whereDate('created_at', '<=', $dateTo);
+            }
         }
 
-        if (isset($filters['min_amount']) && $filters['min_amount'] !== '') {
-            $query->where('total', '>=', $filters['min_amount']);
+        // Bug 4 fix: only apply amount filters when values are valid positive numbers
+        $minAmount = $filters['min_amount'] ?? null;
+        $maxAmount = $filters['max_amount'] ?? null;
+
+        if ($minAmount !== null && $minAmount !== '' && is_numeric($minAmount) && (float) $minAmount >= 0) {
+            $query->where('total', '>=', (float) $minAmount);
         }
 
-        if (isset($filters['max_amount']) && $filters['max_amount'] !== '') {
-            $query->where('total', '<=', $filters['max_amount']);
+        if ($maxAmount !== null && $maxAmount !== '' && is_numeric($maxAmount) && (float) $maxAmount >= 0) {
+            $query->where('total', '<=', (float) $maxAmount);
         }
 
         $perPage = $filters['per_page'] ?? 15;

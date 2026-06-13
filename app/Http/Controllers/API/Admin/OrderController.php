@@ -143,13 +143,14 @@ class OrderController extends Controller
     private function eventLabel(string $event): string
     {
         return match ($event) {
-            'status_changed'      => 'تغییر وضعیت',
-            'shipping_code_set'   => 'ثبت کد رهگیری',
-            'notification_sent'   => 'ارسال اعلان',
-            'payment_confirmed'   => 'تأیید پرداخت',
-            'payment_rejected'    => 'رد پرداخت',
-            'order_created'       => 'ثبت سفارش',
-            default               => $event,
+            'status_changed'         => 'تغییر وضعیت',
+            'shipping_code_set'      => 'ثبت کد رهگیری',
+            'notification_sent'      => 'ارسال اعلان',
+            'payment_confirmed'      => 'تأیید پرداخت',
+            'payment_rejected'       => 'رد پرداخت',
+            'payment_status_changed' => 'تغییر وضعیت پرداخت',
+            'order_created'          => 'ثبت سفارش',
+            default                  => $event,
         };
     }
 }

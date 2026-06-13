@@ -14,6 +14,7 @@ class AdminOrderDetailResource extends JsonResource
         return [
             'id'             => $this->id,
             'order_number'   => $this->order_number,
+            'customer_name'  => $this->whenLoaded('user', fn () => $this->user?->name),
             'user'           => $this->whenLoaded('user', fn () => $this->user ? [
                 'id'    => $this->user->id,
                 'name'  => $this->user->name,
@@ -85,13 +86,14 @@ class AdminOrderDetailResource extends JsonResource
     private function resolveEventLabel(string $event): string
     {
         return match ($event) {
-            'status_changed'    => 'تغییر وضعیت',
-            'shipping_code_set' => 'ثبت کد رهگیری',
-            'notification_sent' => 'ارسال اعلان',
-            'payment_confirmed' => 'تأیید پرداخت',
-            'payment_rejected'  => 'رد پرداخت',
-            'order_created'     => 'ثبت سفارش',
-            default             => $event,
+            'status_changed'         => 'تغییر وضعیت',
+            'shipping_code_set'      => 'ثبت کد رهگیری',
+            'notification_sent'      => 'ارسال اعلان',
+            'payment_confirmed'      => 'تأیید پرداخت',
+            'payment_rejected'       => 'رد پرداخت',
+            'payment_status_changed' => 'تغییر وضعیت پرداخت',
+            'order_created'          => 'ثبت سفارش',
+            default                  => $event,
         };
     }
 }

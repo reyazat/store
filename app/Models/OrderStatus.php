@@ -12,6 +12,7 @@ class OrderStatus extends Model
         'color',
         'is_cancellation',
         'is_completion',
+        'is_shipping',
         'sort_order',
         'notify_customer',
         'notification_message',
@@ -20,6 +21,7 @@ class OrderStatus extends Model
     protected $casts = [
         'is_cancellation' => 'boolean',
         'is_completion'   => 'boolean',
+        'is_shipping'     => 'boolean',
         'notify_customer' => 'boolean',
         'sort_order'      => 'integer',
     ];

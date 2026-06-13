@@ -99,13 +99,24 @@ class OrderService
 
     public function updateOrderStatus(Order $order, string $status): Order
     {
-        $statusModel    = OrderStatus::findByKey($status);
         $previousStatus = $order->status;
-        $attributes     = ['status' => $status];
 
-        if ($statusModel?->is_completion) {
+        // Bug 3 fix: skip if status hasn't actually changed
+        if ($previousStatus === $status) {
+            return $order;
+        }
+
+        $statusModel = OrderStatus::findByKey($status);
+        $attributes  = ['status' => $status];
+
+        // Bug 1 fix: set shipped_at when transitioning to a shipping status
+        if ($statusModel?->is_shipping && !$order->shipped_at) {
+            $attributes['shipped_at'] = now();
+        }
+
+        if ($statusModel?->is_completion && !$order->delivered_at) {
             $attributes['delivered_at'] = now();
-        } elseif ($statusModel?->is_cancellation) {
+        } elseif ($statusModel?->is_cancellation && !$order->cancelled_at) {
             $attributes['cancelled_at'] = now();
         }
 
@@ -127,13 +138,24 @@ class OrderService
 
     public function updatePaymentStatus(Order $order, string $paymentStatus): Order
     {
+        $previousPaymentStatus = $order->payment_status;
+
         $attributes = ['payment_status' => $paymentStatus];
 
-        if ($paymentStatus === 'paid') {
+        if ($paymentStatus === 'paid' && !$order->paid_at) {
             $attributes['paid_at'] = now();
         }
 
         $order->update($attributes);
+
+        // Bug 9 fix: record history for payment status change
+        if ($previousPaymentStatus !== $paymentStatus) {
+            $order->recordHistory(
+                'payment_status_changed',
+                $previousPaymentStatus,
+                $paymentStatus,
+            );
+        }
 
         return $order;
     }

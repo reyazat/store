@@ -18,6 +18,7 @@ const EMPTY_FORM = (): Omit<OrderStatus, 'id'> => ({
   color: '#6b7280',
   is_cancellation: false,
   is_completion: false,
+  is_shipping: false,
   sort_order: 0,
   notify_customer: false,
   notification_message: null,
@@ -121,6 +122,7 @@ const handleDelete = async (status: OrderStatus) => {
             <th class="text-right py-3 px-4 font-medium text-secondary-600">کلید</th>
             <th class="text-center py-3 px-4 font-medium text-secondary-600">رنگ</th>
             <th class="text-center py-3 px-4 font-medium text-secondary-600">لغو</th>
+            <th class="text-center py-3 px-4 font-medium text-secondary-600">ارسال</th>
             <th class="text-center py-3 px-4 font-medium text-secondary-600">تکمیل</th>
             <th class="text-center py-3 px-4 font-medium text-secondary-600">اعلان</th>
             <th class="text-center py-3 px-4 font-medium text-secondary-600">ترتیب</th>
@@ -142,6 +144,11 @@ const handleDelete = async (status: OrderStatus) => {
             <td class="py-3 px-4 text-center">
               <span :class="['text-xs px-2 py-0.5 rounded-full', status.is_cancellation ? 'bg-red-100 text-red-700' : 'bg-secondary-100 text-secondary-400']">
                 {{ status.is_cancellation ? 'بله' : 'خیر' }}
+              </span>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <span :class="['text-xs px-2 py-0.5 rounded-full', status.is_shipping ? 'bg-orange-100 text-orange-700' : 'bg-secondary-100 text-secondary-400']">
+                {{ status.is_shipping ? 'بله' : 'خیر' }}
               </span>
             </td>
             <td class="py-3 px-4 text-center">
@@ -213,6 +220,10 @@ const handleDelete = async (status: OrderStatus) => {
               <label class="flex items-center gap-2 cursor-pointer">
                 <input v-model="form.is_cancellation" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600" />
                 <span class="text-sm text-secondary-700">وضعیت لغو</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input v-model="form.is_shipping" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600" />
+                <span class="text-sm text-secondary-700">وضعیت ارسال</span>
               </label>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input v-model="form.is_completion" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600" />

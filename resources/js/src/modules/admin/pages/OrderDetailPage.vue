@@ -63,12 +63,8 @@ onMounted(async () => {
 const updateStatus = async (status: string) => {
   if (!order.value) return
   try {
-    await orderService.updateStatus(order.value.id, status)
-    order.value.status = status
-    const found = statuses.value.find(s => s.key === status)
-    if (found) { order.value.status_label = found.label; order.value.status_color = found.color }
-    // Re-fetch to get updated histories
-    order.value = await orderService.getById(order.value.id)
+    // Bug 7 fix: use the full order returned by the server (single source of truth)
+    order.value = await orderService.updateStatus(order.value.id, status)
     showToast('وضعیت سفارش به‌روزرسانی شد', 'success')
   } catch {
     showToast('خطا در به‌روزرسانی وضعیت', 'error')

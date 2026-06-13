@@ -37,7 +37,7 @@ class AdminPaymentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'رسید پرداخت تأیید شد و سفارش به مرحله پردازش منتقل گردید',
-            'data'    => new AdminOrderDetailResource($order->load(['user', 'items', 'orderAddress', 'latestTransaction'])),
+            'data'    => new AdminOrderDetailResource($order->load(['user', 'items', 'orderAddress', 'latestTransaction', 'histories.user'])),
         ]);
     }
 
@@ -61,7 +61,7 @@ class AdminPaymentController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'رسید پرداخت رد شد',
-            'data'    => new AdminOrderDetailResource($order->load(['user', 'items', 'orderAddress', 'latestTransaction'])),
+            'data'    => new AdminOrderDetailResource($order->load(['user', 'items', 'orderAddress', 'latestTransaction', 'histories.user'])),
         ]);
     }
 }

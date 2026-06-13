@@ -115,8 +115,9 @@ export const orderService = {
     return response.data?.data
   },
 
-  async updateStatus(id: number | string, status: string): Promise<void> {
-    await api.patch(`/admin/orders/${id}/status`, { status })
+  async updateStatus(id: number | string, status: string): Promise<AdminOrderDetail> {
+    const response = await api.patch(`/admin/orders/${id}/status`, { status })
+    return response.data?.data
   },
 
   async updateNotes(id: number | string, adminNotes: string): Promise<AdminOrderDetail> {
