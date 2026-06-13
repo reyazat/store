@@ -27,12 +27,12 @@ class LoginRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.required' => 'Email address is required',
-            'email.email' => 'Please provide a valid email address',
-            'password.required' => 'Password is required',
-            'captcha.string' => 'Invalid captcha format',
-            'captcha_key.string' => 'Invalid captcha key format',
-            'device_name.max' => 'Device name cannot exceed 255 characters'
+            'email.required' => 'آدرس ایمیل الزامی است',
+            'email.email' => 'لطفاً یک آدرس ایمیل معتبر وارد کنید',
+            'password.required' => 'رمز عبور الزامی است',
+            'captcha.string' => 'فرمت کپچا نامعتبر است',
+            'captcha_key.string' => 'فرمت کلید کپچا نامعتبر است',
+            'device_name.max' => 'نام دستگاه نباید بیشتر از ۲۵۵ کاراکتر باشد'
         ];
     }
 

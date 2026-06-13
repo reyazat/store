@@ -36,7 +36,7 @@ class SendOtpAction
 
             return [
                 'success' => false,
-                'message' => 'Too many OTP requests. Please try again later.',
+                'message' => 'تعداد درخواست‌های شما از حد مجاز فراتر رفته است. لطفاً بعداً دوباره تلاش کنید.',
                 'code' => 429,
                 'data' => [
                     'retry_after' => $seconds
@@ -55,7 +55,7 @@ class SendOtpAction
                 // Don't reveal if user exists or not for security (but rate limit is already hit)
                 return [
                     'success' => false,
-                    'message' => 'Invalid identifier or user not found.',
+                    'message' => 'اطلاعات وارد شده نامعتبر است.',
                     'code' => 400
                 ];
             }
@@ -64,7 +64,7 @@ class SendOtpAction
             if ($type !== 'account_activation' && $user->status !== 'active') {
                 return [
                     'success' => false,
-                    'message' => 'Account is not active. Please contact support.',
+                    'message' => 'حساب کاربری غیرفعال است. لطفاً با پشتیبانی تماس بگیرید.',
                     'code' => 403
                 ];
             }
@@ -76,13 +76,13 @@ class SendOtpAction
                 return [
                     'success' => false,
                     'message' => $result['message'],
-                    'code' => 500
+                    'code' => ($result['service_error'] ?? false) ? 503 : 500
                 ];
             }
 
             return [
                 'success' => true,
-                'message' => 'OTP sent successfully to ' . $this->maskIdentifier($identifier),
+                'message' => 'کد تأیید به ' . $this->maskIdentifier($identifier) . ' ارسال شد',
                 'data' => [
                     'identifier' => $this->maskIdentifier($identifier),
                     'type' => $type,
@@ -102,7 +102,7 @@ class SendOtpAction
 
             return [
                 'success' => false,
-                'message' => 'Failed to send OTP. Please try again later.',
+                'message' => 'ارسال کد تأیید ناموفق بود. لطفاً دوباره تلاش کنید.',
                 'code' => 500
             ];
         }

@@ -135,11 +135,13 @@ const handleSubmit = async () => {
               <input
                 v-model="form.phone"
                 type="tel"
-                placeholder="۰۹۱۲۳۴۵۶۷۸۹"
+                placeholder="09123456789"
                 class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
+                dir="ltr"
               />
               <Phone class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
             </div>
+            <p class="text-xs text-secondary-400 mt-1 text-right">مثال: 09123456789</p>
           </div>
 
           <!-- Password -->

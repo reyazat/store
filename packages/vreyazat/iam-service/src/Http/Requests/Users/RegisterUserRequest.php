@@ -13,6 +13,20 @@ class RegisterUserRequest extends FormRequest
         return true; 
     }
 
+    /**
+     * Prepare the data for validation — normalize phone before rules run.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone') && $this->phone) {
+            $this->merge(['phone' => $this->normalizePhone($this->phone)]);
+        }
+
+        if ($this->has('email') && $this->email) {
+            $this->merge(['email' => strtolower($this->email)]);
+        }
+    }
+
     public function rules(): array 
     {
         return [
@@ -28,17 +42,51 @@ class RegisterUserRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'name.required' => 'Name is required',
-            'name.max' => 'Name cannot exceed 255 characters',
-            'email.required' => 'Email address is required',
-            'email.email' => 'Please provide a valid email address',
-            'email.unique' => 'This email address is already registered',
-            'phone.regex' => 'Phone number must be in valid international format (E.164)',
-            'phone.unique' => 'This phone number is already registered',
-            'password.required' => 'Password is required',
-            'password.confirmed' => 'Password confirmation does not match',
-            'password_confirmation.required' => 'Password confirmation is required'
+            'name.required' => 'نام و نام خانوادگی الزامی است',
+            'name.max' => 'نام نباید بیشتر از ۲۵۵ کاراکتر باشد',
+            'email.required' => 'آدرس ایمیل الزامی است',
+            'email.email' => 'لطفاً یک آدرس ایمیل معتبر وارد کنید',
+            'email.unique' => 'این آدرس ایمیل قبلاً ثبت شده است',
+            'phone.regex' => 'شماره موبایل باید به فرمت معتبر وارد شود (مثال: ۰۹۱۲۳۴۵۶۷۸۹)',
+            'phone.unique' => 'این شماره موبایل قبلاً ثبت شده است',
+            'password.required' => 'رمز عبور الزامی است',
+            'password.confirmed' => 'تکرار رمز عبور مطابقت ندارد',
+            'password_confirmation.required' => 'تکرار رمز عبور الزامی است'
         ];
+    }
+
+    /**
+     * Normalize an Iranian phone number to E.164 format (+98XXXXXXXXX).
+     *
+     * Handles all common user inputs:
+     *   09123456789  → +989123456789
+     *   9123456789   → +989123456789
+     *   989123456789 → +989123456789
+     *  +989123456789 → +989123456789  (already correct)
+     */
+    private function normalizePhone(string $phone): string
+    {
+        $cleaned = preg_replace('/[^\d+]/', '', $phone);
+
+        if (str_starts_with($cleaned, '+98') && strlen($cleaned) === 13) {
+            return $cleaned;
+        }
+
+        $digits = ltrim($cleaned, '+');
+
+        if (preg_match('/^989\d{9}$/', $digits)) {
+            return '+' . $digits;
+        }
+
+        if (preg_match('/^09\d{9}$/', $digits)) {
+            return '+98' . substr($digits, 1);
+        }
+
+        if (preg_match('/^9\d{9}$/', $digits)) {
+            return '+98' . $digits;
+        }
+
+        return str_starts_with($cleaned, '+') ? $cleaned : '+' . $digits;
     }
 
     /**

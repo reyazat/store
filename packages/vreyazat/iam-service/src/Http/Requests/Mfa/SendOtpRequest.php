@@ -33,7 +33,7 @@ class SendOtpRequest extends FormRequest
                 function ($attribute, $value, $fail) {
                     // Validate email or phone format
                     if (!filter_var($value, FILTER_VALIDATE_EMAIL) && !preg_match('/^\+?[1-9]\d{1,14}$/', $value)) {
-                        $fail('The ' . $attribute . ' must be a valid email address or phone number.');
+                        $fail('فرمت ایمیل یا شماره موبایل نامعتبر است.');
                     }
                 },
             ],
@@ -77,11 +77,11 @@ class SendOtpRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'identifier.required' => 'Email address or phone number is required.',
-            'type.required' => 'OTP type is required.',
-            'type.in' => 'Invalid OTP type. Must be one of: login_verification, password_reset, email_verification, phone_verification, account_activation, security_verification.',
-            'channel.required' => 'Communication channel is required.',
-            'channel.in' => 'Invalid channel. Must be either email or sms.',
+            'identifier.required' => 'آدرس ایمیل یا شماره موبایل الزامی است.',
+            'type.required' => 'نوع کد یکبار مصرف الزامی است.',
+            'type.in' => 'نوع کد یکبار مصرف نامعتبر است.',
+            'channel.required' => 'کانال ارسال الزامی است.',
+            'channel.in' => 'کانال ارسال نامعتبر است. باید ایمیل یا پیامک باشد.',
         ];
     }
 
@@ -91,11 +91,11 @@ class SendOtpRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'identifier' => 'email or phone number',
-            'type' => 'OTP type',
-            'channel' => 'communication channel',
-            'captcha' => 'CAPTCHA value',
-            'captcha_key' => 'CAPTCHA key',
+            'identifier' => 'ایمیل یا شماره موبایل',
+            'type' => 'نوع کد یکبار مصرف',
+            'channel' => 'کانال ارسال',
+            'captcha' => 'مقدار کپچا',
+            'captcha_key' => 'کلید کپچا',
         ];
     }
 

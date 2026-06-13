@@ -250,7 +250,7 @@ class OtpService
                 'error'   => $e->errorMessage(),
                 'code'    => $e->getCode(),
             ]);
-            return false;
+            throw $e;
 
         } catch (HttpException $e) {
             Log::error('Kavenegar HTTP error while sending SMS OTP', [
@@ -259,7 +259,7 @@ class OtpService
                 'purpose' => $purpose,
                 'error'   => $e->errorMessage(),
             ]);
-            return false;
+            throw $e;
 
         } catch (Exception $e) {
             Log::error('Unexpected error while sending SMS OTP', [
@@ -268,7 +268,7 @@ class OtpService
                 'purpose' => $purpose,
                 'error'   => $e->getMessage(),
             ]);
-            return false;
+            throw $e;
         }
     }
 
@@ -316,24 +316,40 @@ class OtpService
             if (!$sent) {
                 return [
                     'success' => false,
-                    'message' => 'Failed to send OTP',
+                    'message' => 'ارسال کد تأیید ناموفق بود. لطفاً دوباره تلاش کنید.',
                     'data' => null
                 ];
             }
 
             return [
                 'success' => true,
-                'message' => 'OTP sent successfully',
+                'message' => 'کد تأیید با موفقیت ارسال شد',
                 'data' => [
                     'expires_at' => $otpData['expires_at'],
                     'max_attempts' => config('iam.otp.' . $channel . '.max_attempts', 5)
                 ]
             ];
 
+        } catch (ApiException $e) {
+            return [
+                'success' => false,
+                'message' => 'سرویس پیامک در حال حاضر در دسترس نیست. لطفاً از روش دیگری استفاده کنید یا بعداً تلاش کنید.',
+                'data' => null,
+                'service_error' => true,
+            ];
+
+        } catch (HttpException $e) {
+            return [
+                'success' => false,
+                'message' => 'خطا در اتصال به سرویس پیامک. لطفاً دوباره تلاش کنید.',
+                'data' => null,
+                'service_error' => true,
+            ];
+
         } catch (Exception $e) {
             return [
                 'success' => false,
-                'message' => 'Failed to send OTP: ' . $e->getMessage(),
+                'message' => 'ارسال کد تأیید ناموفق بود. لطفاً دوباره تلاش کنید.',
                 'data' => null
             ];
         }

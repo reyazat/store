@@ -55,12 +55,12 @@ class ResetPasswordRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'reset_token.required' => 'Password reset token is required.',
-            'new_password.required' => 'New password is required.',
-            'new_password.min' => 'New password must be at least :min characters.',
-            'new_password.max' => 'New password must not exceed :max characters.',
-            'new_password.confirmed' => 'New password confirmation does not match.',
-            'new_password_confirmation.required' => 'New password confirmation is required.',
+            'reset_token.required' => 'توکن بازیابی رمز عبور الزامی است.',
+            'new_password.required' => 'رمز عبور جدید الزامی است.',
+            'new_password.min' => 'رمز عبور جدید باید حداقل :min کاراکتر باشد.',
+            'new_password.max' => 'رمز عبور جدید نباید بیشتر از :max کاراکتر باشد.',
+            'new_password.confirmed' => 'تکرار رمز عبور جدید مطابقت ندارد.',
+            'new_password_confirmation.required' => 'تکرار رمز عبور جدید الزامی است.',
         ];
     }
 
@@ -70,9 +70,9 @@ class ResetPasswordRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'reset_token' => 'reset token',
-            'new_password' => 'new password',
-            'new_password_confirmation' => 'new password confirmation',
+            'reset_token' => 'توکن بازیابی',
+            'new_password' => 'رمز عبور جدید',
+            'new_password_confirmation' => 'تکرار رمز عبور جدید',
         ];
     }
 
@@ -85,31 +85,31 @@ class ResetPasswordRequest extends FormRequest
 
         // Check uppercase requirement
         if (($policy['require_uppercase'] ?? true) && !preg_match('/[A-Z]/', $password)) {
-            $errors[] = 'Password must contain at least one uppercase letter.';
+            $errors[] = 'رمز عبور باید حداقل یک حرف بزرگ داشته باشد.';
         }
 
         // Check lowercase requirement
         if (($policy['require_lowercase'] ?? true) && !preg_match('/[a-z]/', $password)) {
-            $errors[] = 'Password must contain at least one lowercase letter.';
+            $errors[] = 'رمز عبور باید حداقل یک حرف کوچک داشته باشد.';
         }
 
         // Check numbers requirement
         if (($policy['require_numbers'] ?? true) && !preg_match('/[0-9]/', $password)) {
-            $errors[] = 'Password must contain at least one number.';
+            $errors[] = 'رمز عبور باید حداقل یک عدد داشته باشد.';
         }
 
         // Check symbols requirement
         if (($policy['require_symbols'] ?? true) && !preg_match('/[^A-Za-z0-9]/', $password)) {
-            $errors[] = 'Password must contain at least one special character.';
+            $errors[] = 'رمز عبور باید حداقل یک کاراکتر خاص (مانند !@#$) داشته باشد.';
         }
 
         // Check for common weak patterns
         if (preg_match('/(.)\1{2,}/', $password)) {
-            $errors[] = 'Password cannot contain more than 2 consecutive identical characters.';
+            $errors[] = 'رمز عبور نباید بیش از ۲ کاراکتر تکراری متوالی داشته باشد.';
         }
 
         if (preg_match('/123|abc|qwe|password|admin/i', $password)) {
-            $errors[] = 'Password cannot contain common patterns or words.';
+            $errors[] = 'رمز عبور نباید شامل الگوها یا کلمات رایج باشد.';
         }
 
         if (!empty($errors)) {
