@@ -197,6 +197,9 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   Route::patch('/orders/{order}/status', [\App\Http\Controllers\API\Admin\OrderController::class, 'updateStatus']);
   Route::patch('/orders/{order}/payment-status', [\App\Http\Controllers\API\Admin\OrderController::class, 'updatePaymentStatus']);
   Route::patch('/orders/{order}/notes', [\App\Http\Controllers\API\Admin\OrderController::class, 'updateNotes']);
+  Route::patch('/orders/{order}/shipping-code', [\App\Http\Controllers\API\Admin\OrderController::class, 'setShippingCode']);
+  Route::get('/orders/{order}/histories', [\App\Http\Controllers\API\Admin\OrderController::class, 'histories']);
+  Route::post('/orders/{order}/send-notification', [\App\Http\Controllers\API\Admin\OrderController::class, 'sendNotification']);
   
   // Coupons Management
   Route::get('/coupons', [\App\Http\Controllers\API\Admin\CouponController::class, 'index']);

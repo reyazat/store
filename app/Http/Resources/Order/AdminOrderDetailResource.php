@@ -24,6 +24,7 @@ class AdminOrderDetailResource extends JsonResource
             'status_color'   => $statusModel?->color ?? '#6b7280',
             'payment_status' => $this->payment_status,
             'payment_method' => $this->payment_method,
+            'shipping_code'  => $this->shipping_code,
             'subtotal'       => $this->subtotal,
             'tax'            => $this->tax,
             'shipping'       => $this->shipping,
@@ -61,11 +62,36 @@ class AdminOrderDetailResource extends JsonResource
                     : null,
                 'paid_at'        => $this->latestTransaction->paid_at,
             ] : null),
+            'histories'      => $this->whenLoaded('histories', fn () => $this->histories->map(fn ($h) => [
+                'id'          => $h->id,
+                'event'       => $h->event,
+                'event_label' => $this->resolveEventLabel($h->event),
+                'from_status' => $h->from_status,
+                'to_status'   => $h->to_status,
+                'note'        => $h->note,
+                'actor'       => $h->relationLoaded('user') && $h->user
+                    ? ['id' => $h->user->id, 'name' => $h->user->name]
+                    : null,
+                'created_at'  => $h->created_at,
+            ])),
             'created_at'     => $this->created_at,
             'paid_at'        => $this->paid_at,
             'shipped_at'     => $this->shipped_at,
             'delivered_at'   => $this->delivered_at,
             'cancelled_at'   => $this->cancelled_at,
         ];
+    }
+
+    private function resolveEventLabel(string $event): string
+    {
+        return match ($event) {
+            'status_changed'    => 'تغییر وضعیت',
+            'shipping_code_set' => 'ثبت کد رهگیری',
+            'notification_sent' => 'ارسال اعلان',
+            'payment_confirmed' => 'تأیید پرداخت',
+            'payment_rejected'  => 'رد پرداخت',
+            'order_created'     => 'ثبت سفارش',
+            default             => $event,
+        };
     }
 }

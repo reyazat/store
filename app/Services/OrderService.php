@@ -111,6 +111,12 @@ class OrderService
 
         $order->update($attributes);
 
+        $order->recordHistory(
+            'status_changed',
+            $previousStatus,
+            $status,
+        );
+
         $previousStatusModel = OrderStatus::findByKey($previousStatus);
         if ($statusModel?->is_cancellation && !($previousStatusModel?->is_cancellation)) {
             $this->restoreStock($order);

@@ -46,10 +46,22 @@ export interface AdminOrder {
   created_at: string
 }
 
+export interface AdminOrderHistoryEntry {
+  id: number
+  event: string
+  event_label: string
+  from_status: string | null
+  to_status: string | null
+  note: string | null
+  actor: { id: number; name: string } | null
+  created_at: string
+}
+
 export interface AdminOrderDetail extends AdminOrder {
   subtotal: number
   tax: number
   shipping: number
+  shipping_code: string | null
   discount: number
   notes: string | null
   payment_method: string | null
@@ -57,6 +69,7 @@ export interface AdminOrderDetail extends AdminOrder {
   admin_notes: string | null
   address: AdminOrderAddress | null
   latest_transaction: AdminPaymentTransaction | null
+  histories: AdminOrderHistoryEntry[]
   paid_at: string | null
   shipped_at: string | null
   delivered_at: string | null
@@ -67,6 +80,10 @@ export interface OrderFilters {
   search?: string
   status?: string
   payment_status?: string
+  date_from?: string
+  date_to?: string
+  min_amount?: number | string
+  max_amount?: number | string
   per_page?: number
   page?: number
 }
@@ -75,11 +92,15 @@ export const orderService = {
   async getAll(filters: OrderFilters = {}): Promise<{ data: AdminOrder[]; meta: PaginationMeta }> {
     const params: Record<string, string | number> = {}
 
-    if (filters.search)         params.search         = filters.search
-    if (filters.status)         params.status         = filters.status
-    if (filters.payment_status) params.payment_status = filters.payment_status
-    if (filters.per_page)       params.per_page       = filters.per_page
-    if (filters.page)           params.page           = filters.page
+    if (filters.search)                                    params.search         = filters.search
+    if (filters.status)                                    params.status         = filters.status
+    if (filters.payment_status)                            params.payment_status = filters.payment_status
+    if (filters.date_from)                                 params.date_from      = filters.date_from
+    if (filters.date_to)                                   params.date_to        = filters.date_to
+    if (filters.min_amount !== '' && filters.min_amount != null) params.min_amount = filters.min_amount
+    if (filters.max_amount !== '' && filters.max_amount != null) params.max_amount = filters.max_amount
+    if (filters.per_page)                                  params.per_page       = filters.per_page
+    if (filters.page)                                      params.page           = filters.page
 
     const response = await api.get('/admin/orders', { params })
 
@@ -110,6 +131,16 @@ export const orderService = {
 
   async rejectReceipt(transactionId: number): Promise<AdminOrderDetail> {
     const response = await api.post(`/admin/transactions/${transactionId}/reject-receipt`)
+    return response.data?.data
+  },
+
+  async setShippingCode(id: number | string, shippingCode: string): Promise<AdminOrderDetail> {
+    const response = await api.patch(`/admin/orders/${id}/shipping-code`, { shipping_code: shippingCode })
+    return response.data?.data
+  },
+
+  async sendNotification(id: number | string, message?: string): Promise<AdminOrderDetail> {
+    const response = await api.post(`/admin/orders/${id}/send-notification`, { message: message || null })
     return response.data?.data
   },
 }
