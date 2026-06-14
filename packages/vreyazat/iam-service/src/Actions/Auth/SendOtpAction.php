@@ -8,6 +8,7 @@ use IamApi\Services\OtpService;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\DB;
 
 class SendOtpAction
 {
@@ -52,6 +53,24 @@ class SendOtpAction
             $user = $this->findUserByIdentifier($identifier, $type, $channel);
 
             if (!$user) {
+                // Debug logging for production troubleshooting
+                Log::warning('OTP user lookup failed', [
+                    'identifier' => $identifier,
+                    'type' => $type,
+                    'channel' => $channel,
+                    'request_phone_formats' => [
+                        'original' => $data['identifier'] ?? null,
+                        'normalized' => $identifier,
+                        'with_zero' => '0' . ltrim($identifier, '+98'),
+                        'without_country' => ltrim(ltrim($identifier, '+'), '98'),
+                    ],
+                    'existing_phones_sample' => DB::table('users')
+                        ->whereNotNull('phone')
+                        ->where('phone', 'like', '%' . substr($identifier, -8) . '%')
+                        ->pluck('phone')
+                        ->toArray(),
+                ]);
+
                 // Don't reveal if user exists or not for security (but rate limit is already hit)
                 return [
                     'success' => false,

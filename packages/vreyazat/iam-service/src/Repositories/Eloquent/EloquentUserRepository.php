@@ -101,7 +101,9 @@ class EloquentUserRepository extends BaseRepository implements UserRepositoryInt
                       ->orWhere('phone', $normalizedPhone)
                       // Also check common variations
                       ->orWhere('phone', preg_replace('/^\+98/', '0', $normalizedPhone))
-                      ->orWhere('phone', preg_replace('/^\+98/', '', $normalizedPhone));
+                      ->orWhere('phone', preg_replace('/^\+98/', '', $normalizedPhone))
+                      // Handle 98XXXXXXXXX format (without +)
+                      ->orWhere('phone', preg_replace('/^\+/', '', $normalizedPhone));
             })
             ->first();
     }

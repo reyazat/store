@@ -43,6 +43,9 @@ class ImageUploadService
     {
         $this->validateFile($file);
 
+        // Ensure disk defaults to 'public' if null is passed
+        $disk = $disk ?? 'public';
+
         // Generate unique filename with UUID + timestamp
         $extension = $file->getClientOriginalExtension();
         $filename = $this->generateFilename($extension);
