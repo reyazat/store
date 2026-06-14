@@ -61,7 +61,14 @@ class OrderController extends Controller
 
     public function updateStatus(OrderUpdateStatusRequest $request, Order $order): JsonResponse
     {
-        $this->orderService->updateOrderStatus($order, $request->validated('status'));
+        try {
+            $this->orderService->updateOrderStatus($order, $request->validated('status'));
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
 
         return response()->json([
             'success' => true,

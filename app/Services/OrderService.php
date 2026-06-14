@@ -110,6 +110,20 @@ class OrderService
         }
 
         $statusModel = OrderStatus::findByKey($status);
+        if (!$statusModel) {
+            throw new RuntimeException("وضعیت '{$status}' یافت نشد.");
+        }
+
+        $previousStatusModel = OrderStatus::findByKey($previousStatus);
+
+        // Prevent regression: cannot go back from terminal statuses (completion/cancellation)
+        if ($previousStatusModel?->is_completion || $previousStatusModel?->is_cancellation) {
+            throw new RuntimeException(
+                'امکان تغییر وضعیت از ' . ($previousStatusModel?->label ?? $previousStatus) .
+                ' به ' . $statusModel->label . ' وجود ندارد. سفارش در وضعیت پایانی قرار دارد.'
+            );
+        }
+
         $attributes  = ['status' => $status];
 
         // Bug 1 fix: set shipped_at when transitioning to a shipping status

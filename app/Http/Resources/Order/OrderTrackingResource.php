@@ -38,6 +38,11 @@ class OrderTrackingResource extends JsonResource
      */
     private function buildTimeline(): array
     {
+        // Load status models for color information
+        $processingStatus = \App\Models\OrderStatus::findByKey('processing');
+        $shippedStatus = \App\Models\OrderStatus::findByKey('shipped');
+        $deliveredStatus = \App\Models\OrderStatus::findByKey('delivered');
+
         $timeline = [
             [
                 'key'         => 'created',
@@ -45,6 +50,7 @@ class OrderTrackingResource extends JsonResource
                 'date'        => $this->created_at?->format('Y-m-d H:i'),
                 'completed'   => true,
                 'current'     => in_array($this->status, ['pending', 'payment_pending', 'payment_failed']),
+                'color'       => '#6b7280', // gray-500
             ],
             [
                 'key'         => 'paid',
@@ -52,6 +58,7 @@ class OrderTrackingResource extends JsonResource
                 'date'        => $this->paid_at?->format('Y-m-d H:i'),
                 'completed'   => $this->paid_at !== null,
                 'current'     => $this->payment_status === 'paid' && !$this->shipped_at,
+                'color'       => '#10b981', // emerald-500 (success color)
             ],
             [
                 'key'         => 'processing',
@@ -59,6 +66,7 @@ class OrderTrackingResource extends JsonResource
                 'date'        => null,
                 'completed'   => $this->shipped_at !== null || ($this->status !== 'pending' && $this->status !== 'payment_pending'),
                 'current'     => $this->paid_at && !$this->shipped_at && $this->status === 'processing',
+                'color'       => $processingStatus?->color ?? '#3b82f6', // blue-500 or from status
             ],
             [
                 'key'         => 'shipped',
@@ -66,6 +74,7 @@ class OrderTrackingResource extends JsonResource
                 'date'        => $this->shipped_at?->format('Y-m-d H:i'),
                 'completed'   => $this->shipped_at !== null,
                 'current'     => $this->shipped_at && !$this->delivered_at,
+                'color'       => $shippedStatus?->color ?? '#f97316', // orange-500 or from status
             ],
             [
                 'key'         => 'delivered',
@@ -73,6 +82,7 @@ class OrderTrackingResource extends JsonResource
                 'date'        => $this->delivered_at?->format('Y-m-d H:i'),
                 'completed'   => $this->delivered_at !== null,
                 'current'     => $this->delivered_at !== null,
+                'color'       => $deliveredStatus?->color ?? '#22c55e', // green-500 or from status
             ],
         ];
 
