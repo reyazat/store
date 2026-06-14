@@ -104,11 +104,11 @@ async function confirmDelete(): Promise<void> {
   isDeleting.value = true
   deleteError.value = null
   try {
-    await categoryService.destroy(deleteTarget.value.id)
+    await categoryService.destroy(deleteTarget.value.slug)
     deleteTarget.value = null
     reload()
-  } catch {
-    deleteError.value = 'خطا در حذف دسته‌بندی'
+  } catch (err: any) {
+    deleteError.value = err.response?.data?.message || 'خطا در حذف دسته‌بندی'
   } finally {
     isDeleting.value = false
   }

@@ -203,12 +203,21 @@ async function submit(): Promise<void> {
       const originalIds = originalDetail.values.map(v => v.id)
       const toDelete = originalIds.filter(id => !existingValueIds.includes(id))
       
+      const failedDeletes: number[] = []
       for (const deleteId of toDelete) {
         try {
           await optionService.destroyValue(deleteId)
-        } catch {
-          // Continue if delete fails
+        } catch (err: any) {
+          // Value is in use by product variants - collect and report at the end
+          failedDeletes.push(deleteId)
+          const msg = err.response?.data?.message || `مقدار #${deleteId} قابل حذف نیست`
+          saveError.value = msg
         }
+      }
+      if (failedDeletes.length > 0) {
+        // Abort save so user sees the error
+        isSaving.value = false
+        return
       }
 
       // Update or create values

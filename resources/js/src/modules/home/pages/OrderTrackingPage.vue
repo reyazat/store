@@ -80,9 +80,24 @@ const getStepIcon = (step: TrackingTimelineItem) => {
 }
 
 const getStepStatusColor = (step: TrackingTimelineItem) => {
-  if (step.completed) return 'bg-green-500 border-green-500'
-  if (step.current) return 'bg-primary-500 border-primary-500 animate-pulse'
-  return 'bg-gray-200 border-gray-200'
+  // Use dynamic color from API if available, fallback to defaults
+  const baseColor = step.color || (step.completed ? '#22c55e' : step.current ? '#3b82f6' : '#e5e7eb')
+  if (step.completed) {
+    return {
+      backgroundColor: baseColor,
+      borderColor: baseColor,
+    }
+  }
+  if (step.current) {
+    return {
+      backgroundColor: baseColor,
+      borderColor: baseColor,
+    }
+  }
+  return {
+    backgroundColor: '#e5e7eb',
+    borderColor: '#e5e7eb',
+  }
 }
 
 </script>
@@ -204,9 +219,9 @@ const getStepStatusColor = (step: TrackingTimelineItem) => {
                   <div
                     :class="[
                       'relative z-10 w-12 h-12 rounded-full border-2 flex items-center justify-center shrink-0 transition-all',
-                      getStepStatusColor(step),
                       step.current ? 'ring-4 ring-primary-100' : '',
                     ]"
+                    :style="getStepStatusColor(step)"
                   >
                     <component
                       :is="getStepIcon(step)"

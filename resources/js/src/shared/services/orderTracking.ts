@@ -6,6 +6,7 @@ export interface TrackingTimelineItem {
   date: string | null
   completed: boolean
   current: boolean
+  color: string
 }
 
 export interface OrderTrackingResult {

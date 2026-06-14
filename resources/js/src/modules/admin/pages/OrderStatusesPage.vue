@@ -87,8 +87,9 @@ const handleDelete = async (status: OrderStatus) => {
     await orderStatusService.destroy(status.id)
     statuses.value = statuses.value.filter(s => s.id !== status.id)
     showMsg(true, 'وضعیت حذف شد')
-  } catch {
-    showMsg(false, 'خطا در حذف')
+  } catch (e: unknown) {
+    const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+    showMsg(false, msg || 'خطا در حذف')
   }
 }
 </script>

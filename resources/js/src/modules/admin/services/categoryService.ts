@@ -112,8 +112,8 @@ export const categoryService = {
     await api.post('/admin/categories/reorder', { ids })
   },
 
-  async destroy(id: number): Promise<void> {
-    await api.delete(`/admin/categories/${id}`)
+  async destroy(slug: string): Promise<void> {
+    await api.delete(`/admin/categories/${slug}`)
   },
 
   async getParentOptions(): Promise<Array<{ id: number; name: string; slug: string; parent_id: number | null; level: number }>> {

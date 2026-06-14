@@ -60,14 +60,17 @@ onMounted(async () => {
   }
 })
 
+const apiError = (err: unknown, fallback: string): string =>
+  (err as { response?: { data?: { message?: string } } })?.response?.data?.message || fallback
+
 const updateStatus = async (status: string) => {
   if (!order.value) return
   try {
     // Bug 7 fix: use the full order returned by the server (single source of truth)
     order.value = await orderService.updateStatus(order.value.id, status)
     showToast('وضعیت سفارش به‌روزرسانی شد', 'success')
-  } catch {
-    showToast('خطا در به‌روزرسانی وضعیت', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در به‌روزرسانی وضعیت'), 'error')
   }
 }
 
@@ -78,8 +81,8 @@ const confirmReceipt = async () => {
     const updated = await orderService.confirmReceipt(order.value.latest_transaction.id)
     order.value = updated
     showToast('رسید تأیید شد و سفارش به مرحله پردازش منتقل گردید', 'success')
-  } catch {
-    showToast('خطا در تأیید رسید', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در تأیید رسید'), 'error')
   } finally {
     confirmingReceipt.value = false
   }
@@ -93,8 +96,8 @@ const rejectReceipt = async () => {
     const updated = await orderService.rejectReceipt(order.value.latest_transaction.id)
     order.value = updated
     showToast('رسید رد شد', 'success')
-  } catch {
-    showToast('خطا در رد رسید', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در رد رسید'), 'error')
   } finally {
     rejectingReceipt.value = false
   }
@@ -111,8 +114,8 @@ const saveNotes = async () => {
     const updated = await orderService.updateNotes(order.value.id, adminNotesText.value)
     if (order.value) order.value.admin_notes = updated.admin_notes
     showToast('یادداشت ذخیره شد', 'success')
-  } catch {
-    showToast('خطا در ذخیره یادداشت', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در ذخیره یادداشت'), 'error')
   } finally {
     isSavingNotes.value = false
   }
@@ -126,8 +129,8 @@ const saveShippingCode = async () => {
     order.value = updated
     editingShipping.value = false
     showToast('کد رهگیری ثبت شد', 'success')
-  } catch {
-    showToast('خطا در ثبت کد رهگیری', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در ثبت کد رهگیری'), 'error')
   } finally {
     isSettingShipping.value = false
   }
@@ -142,8 +145,8 @@ const sendNotification = async () => {
     showNotifyModal.value = false
     notificationMsg.value = ''
     showToast('اعلان با موفقیت ارسال شد', 'success')
-  } catch {
-    showToast('خطا در ارسال اعلان', 'error')
+  } catch (err) {
+    showToast(apiError(err, 'خطا در ارسال اعلان'), 'error')
   } finally {
     isSendingNotification.value = false
   }
@@ -277,6 +280,14 @@ const currentStatusNotifyMessage = computed(() => {
           </div>
           <div>
             <p class="text-xs text-secondary-500 mb-2">وضعیت سفارش</p>
+            <!-- Current status badge with dynamic color -->
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-2"
+              :style="{ backgroundColor: (order.status_color || '#6b7280') + '22', color: order.status_color || '#6b7280' }"
+            >
+              {{ order.status_label || order.status }}
+            </span>
+            <!-- Status change selector -->
             <select
               :value="order.status"
               class="w-full px-3 py-1.5 rounded-lg border border-secondary-200 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 print:hidden"
