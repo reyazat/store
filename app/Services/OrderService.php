@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Actions\Order\SendOrderNotificationAction;
 use App\Models\Address;
 use App\Models\Cart;
 use App\Models\ListingVariant;
@@ -16,8 +17,10 @@ use Throwable;
 
 class OrderService
 {
-    public function __construct(private readonly OrderRepositoryInterface $orderRepository)
-    {
+    public function __construct(
+        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly SendOrderNotificationAction $sendNotificationAction,
+    ) {
     }
 
     /**
@@ -135,6 +138,12 @@ class OrderService
         $isFirstCancellation = $statusModel?->is_cancellation && isset($attributes['cancelled_at']);
         if ($isFirstCancellation) {
             $this->restoreStock($order);
+        }
+
+        // Automatic notification: if the new status has notify_customer enabled,
+        // send notification to the customer using the configured message.
+        if ($statusModel?->notify_customer) {
+            $this->sendNotificationAction->execute($order, $statusModel->notification_message);
         }
 
         return $order;
