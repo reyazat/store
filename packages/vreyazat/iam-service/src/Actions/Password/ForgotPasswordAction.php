@@ -36,7 +36,7 @@ class ForgotPasswordAction extends BaseAction
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
 
-            return $this->error('Too many password reset requests. Please try again later.', [
+            return $this->error(__('auth.reset.too_many_requests'), [
                 'retry_after' => $seconds
             ], 429);
         }
@@ -174,7 +174,7 @@ class ForgotPasswordAction extends BaseAction
             $user = $this->userRepository->findByIdentifier($identifier);
 
             if (!$user) {
-                return $this->error('Invalid identifier', null, 400);
+                return $this->error(__('auth.reset.invalid_identifier'), null, 400);
             }
 
             // Try to verify against email first, then phone
@@ -250,7 +250,7 @@ class ForgotPasswordAction extends BaseAction
 
             // Not verified - return appropriate error
             return $this->error(
-                'Invalid or expired OTP code',
+                __('auth.otp.invalid_or_expired'),
                 ['attempts_remaining' => $attemptsRemaining],
                 400
             );
@@ -261,7 +261,7 @@ class ForgotPasswordAction extends BaseAction
                 'error' => $e->getMessage()
             ]);
 
-            return $this->error('Failed to verify OTP code', null, 500);
+            return $this->error(__('auth.otp.invalid'), null, 500);
         }
     }
 
@@ -281,7 +281,7 @@ class ForgotPasswordAction extends BaseAction
             $user = $this->userRepository->findByIdentifier($identifier);
 
             if (!$user) {
-                return $this->error('Invalid identifier', null, 400);
+                return $this->error(__('auth.reset.invalid_identifier'), null, 400);
             }
 
             // Verify the reset token from cache (prevents replay attacks)
@@ -289,12 +289,12 @@ class ForgotPasswordAction extends BaseAction
             $cachedData = cache()->get($cacheKey);
 
             if (!$cachedData) {
-                return $this->error('Reset token not found or expired. Please verify the OTP code again.', null, 400);
+                return $this->error(__('auth.reset.token_expired'), null, 400);
             }
 
             // Verify that the cached user_id matches the found user
             if ($cachedData['user_id'] !== $user->id) {
-                return $this->error('Invalid reset token for this user.', null, 400);
+                return $this->error(__('auth.reset.token_invalid'), null, 400);
             }
 
             // Clear the verification cache (one-time use)
@@ -332,7 +332,7 @@ class ForgotPasswordAction extends BaseAction
                 'error' => $e->getMessage()
             ]);
 
-            return $this->error('Failed to reset password', null, 500);
+            return $this->error(__('auth.reset.failed'), null, 500);
         }
     }
 

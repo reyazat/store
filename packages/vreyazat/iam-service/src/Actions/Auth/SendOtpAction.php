@@ -217,7 +217,7 @@ class SendOtpAction
         if (!$user) {
             return [
                 'success' => false,
-                'message' => 'User not found',
+                'message' => __('auth.otp.user_not_found'),
                 'data' => ['verified' => false]
             ];
         }
@@ -239,7 +239,7 @@ class SendOtpAction
         // Return the error with attempts remaining
         return [
             'success' => false,
-            'message' => $result['message'] ?? 'Invalid or expired OTP code',
+            'message' => $result['message'] ?? __('auth.otp.invalid_or_expired'),
             'data' => [
                 'verified' => false,
                 'attempts_remaining' => $result['data']['attempts_remaining'] ?? 0
