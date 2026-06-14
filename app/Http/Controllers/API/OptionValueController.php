@@ -82,11 +82,18 @@ class OptionValueController extends Controller
 
     public function destroy(OptionValue $optionValue): JsonResponse
     {
-        $this->destroyAction->execute($optionValue);
+        try {
+            $this->destroyAction->execute($optionValue);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Option value deleted successfully.',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'مقدار ویژگی با موفقیت حذف شد.',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }

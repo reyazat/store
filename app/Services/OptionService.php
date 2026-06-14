@@ -47,9 +47,33 @@ class OptionService
         });
     }
 
+    /**
+     * Delete an option with cascade to values.
+     * Checks if the option is used in product variants before deletion.
+     *
+     * @throws \RuntimeException if option is used in variants
+     */
     public function deleteOption(Option $option): void
     {
-        Option::query()->whereKey($option->getKey())->delete();
+        // Check if option is used in any product variants
+        $variantCount = DB::table('variant_option_values')
+            ->where('option_id', $option->id)
+            ->count();
+
+        if ($variantCount > 0) {
+            throw new \RuntimeException(
+                sprintf(
+                    'این ویژگی در %d محصول استفاده شده است و قابل حذف نیست. ابتدا باید از محصولات حذف شود.',
+                    $variantCount
+                )
+            );
+        }
+
+        // DB cascade will handle:
+        // - option_values (onDelete cascade)
+        // - option_product (onDelete cascade)
+        // Soft delete the option
+        $option->delete();
     }
 
     private function optionAttributes(array $data): array

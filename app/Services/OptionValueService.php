@@ -47,9 +47,29 @@ class OptionValueService
         });
     }
 
+    /**
+     * Delete an option value.
+     * Checks if the value is used in product variants before deletion.
+     *
+     * @throws \RuntimeException if value is used in variants
+     */
     public function deleteOptionValue(OptionValue $optionValue): void
     {
-        OptionValue::query()->whereKey($optionValue->getKey())->delete();
+        // Check if value is used in any product variants
+        $variantCount = DB::table('variant_option_values')
+            ->where('option_value_id', $optionValue->id)
+            ->count();
+
+        if ($variantCount > 0) {
+            throw new \RuntimeException(
+                sprintf(
+                    'این مقدار ویژگی در %d محصول استفاده شده است و قابل حذف نیست.',
+                    $variantCount
+                )
+            );
+        }
+
+        $optionValue->delete();
     }
 
     private function optionValueAttributes(array $data): array

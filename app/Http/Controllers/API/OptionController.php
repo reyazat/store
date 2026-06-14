@@ -82,11 +82,18 @@ class OptionController extends Controller
 
     public function destroy(Option $option): JsonResponse
     {
-        $this->destroyAction->execute($option);
+        try {
+            $this->destroyAction->execute($option);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Option deleted successfully.',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'ویژگی با موفقیت حذف شد.',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 }
