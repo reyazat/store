@@ -34,6 +34,7 @@ const isDeleting = ref(false)
 const deleteError = ref<string | null>(null)
 
 const expandedOptionId = ref<number | null>(null)
+const expandedOptionDetails = ref<Map<number, AdminOptionDetail>>(new Map())
 
 const typeOptions = [
   { value: 'radio', label: 'تک انتخابی (Radio)' },
@@ -285,7 +286,8 @@ async function loadOptionValues(optionId: number): Promise<void> {
   valuesError.value = null
   try {
     const detail = await optionService.getById(optionId)
-    // This is for display only in the list, not editing
+    // Store in map for display in expanded row
+    expandedOptionDetails.value.set(optionId, detail)
   } catch {
     valuesError.value = 'خطا در بارگذاری مقادیر'
   } finally {
@@ -390,8 +392,8 @@ async function loadOptionValues(optionId: number): Promise<void> {
                     </span>
                   </td>
                   <td class="px-4 py-3 text-center text-sm text-secondary-600">
-                    <!-- Will show count from expanded data -->
-                    <span v-if="expandedOptionId === option.id && (option as any).values">{{ (option as any).values.length }}</span>
+                    <!-- Show count from expanded data or from cached details -->
+                    <span v-if="expandedOptionDetails.has(option.id)">{{ expandedOptionDetails.get(option.id)?.values?.length || 0 }}</span>
                     <span v-else class="text-secondary-400">-</span>
                   </td>
                   <td class="px-4 py-3 text-center text-sm text-secondary-600">{{ option.sorted }}</td>
@@ -423,9 +425,9 @@ async function loadOptionValues(optionId: number): Promise<void> {
                     <div v-else-if="valuesError" class="text-red-500 text-sm">{{ valuesError }}</div>
                     <div v-else>
                       <h4 class="text-sm font-medium text-secondary-700 mb-2">مقادیر ویژگی:</h4>
-                      <div v-if="(option as any).values?.length > 0" class="flex flex-wrap gap-2">
+                      <div v-if="expandedOptionDetails.get(option.id)?.values?.length" class="flex flex-wrap gap-2">
                         <span
-                          v-for="val in (option as any).values" :key="val.id"
+                          v-for="val in expandedOptionDetails.get(option.id)?.values" :key="val.id"
                           class="inline-flex items-center px-3 py-1 bg-white border border-secondary-200 rounded-lg text-sm text-secondary-700"
                         >
                           {{ val.value }}
