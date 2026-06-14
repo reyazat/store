@@ -138,11 +138,18 @@ const maskPhone = (phone: string): string => {
 
 const handleOtpInput = (index: number, event: Event) => {
   const input = event.target as HTMLInputElement
-  const value = input.value.replace(/\D/g, '')
+  // Strip non-digits and take last character (handles replace case)
+  const value = input.value.replace(/\D/g, '').slice(-1)
   if (value) {
-    otpCode.value[index] = value.slice(-1)
+    otpCode.value[index] = value
     if (index < 5) {
-      nextTick(() => otpInputRefs.value[index + 1]?.focus())
+      nextTick(() => {
+        const nextInput = otpInputRefs.value[index + 1]
+        if (nextInput) {
+          nextInput.focus()
+          nextInput.select()
+        }
+      })
     } else if (index === 5 && isOtpComplete.value) {
       // Auto-submit when last digit is entered
       nextTick(() => verifyPhoneOtp())
@@ -151,13 +158,39 @@ const handleOtpInput = (index: number, event: Event) => {
 }
 
 const handleOtpKeydown = (index: number, event: KeyboardEvent) => {
-  if (event.key === 'Backspace' && !otpCode.value[index] && index > 0) {
-    otpCode.value[index - 1] = ''
-    nextTick(() => otpInputRefs.value[index - 1]?.focus())
+  if (event.key === 'Backspace') {
+    if (!otpCode.value[index] && index > 0) {
+      // Current box is empty, go back and clear previous
+      otpCode.value[index - 1] = ''
+      nextTick(() => {
+        const prevInput = otpInputRefs.value[index - 1]
+        if (prevInput) {
+          prevInput.focus()
+          prevInput.select()
+        }
+      })
+    } else {
+      // Current box has value, just clear it
+      otpCode.value[index] = ''
+    }
   } else if (event.key === 'ArrowLeft' && index > 0) {
-    nextTick(() => otpInputRefs.value[index - 1]?.focus())
+    event.preventDefault()
+    nextTick(() => {
+      const prevInput = otpInputRefs.value[index - 1]
+      if (prevInput) {
+        prevInput.focus()
+        prevInput.select()
+      }
+    })
   } else if (event.key === 'ArrowRight' && index < 5) {
-    nextTick(() => otpInputRefs.value[index + 1]?.focus())
+    event.preventDefault()
+    nextTick(() => {
+      const nextInput = otpInputRefs.value[index + 1]
+      if (nextInput) {
+        nextInput.focus()
+        nextInput.select()
+      }
+    })
   }
 }
 
@@ -166,13 +199,25 @@ const handleOtpPaste = (event: ClipboardEvent) => {
   const pastedData = event.clipboardData?.getData('text') || ''
   const digits = pastedData.replace(/\D/g, '').slice(0, 6)
   if (digits) {
+    // Clear all first
+    otpCode.value = ['', '', '', '', '', '']
+    // Fill digits
     digits.split('').forEach((digit, i) => {
       if (i < 6) otpCode.value[i] = digit
     })
-    // Auto-submit if 6 digits pasted
-    if (digits.length === 6) {
-      nextTick(() => verifyPhoneOtp())
-    }
+    // Focus the appropriate input and select
+    nextTick(() => {
+      const focusIndex = Math.min(digits.length, 5)
+      const input = otpInputRefs.value[focusIndex]
+      if (input) {
+        input.focus()
+        input.select()
+      }
+      // Auto-submit if all 6 digits pasted
+      if (digits.length === 6) {
+        verifyPhoneOtp()
+      }
+    })
   }
 }
 
@@ -555,21 +600,22 @@ const handlePasswordSubmit = async () => {
               <div class="mb-6">
                 <div class="flex gap-2 justify-center" dir="ltr">
                   <input
-                    v-for="(digit, index) in 6"
-                    :key="index"
-                    :ref="el => { if (el) otpInputRefs[index] = el as HTMLInputElement }"
-                    v-model="otpCode[index]"
+                    v-for="n in 6"
+                    :key="n - 1"
+                    :ref="el => { if (el) otpInputRefs[n - 1] = el as HTMLInputElement }"
+                    v-model="otpCode[n - 1]"
                     type="text"
                     inputmode="numeric"
-                    pattern="[0-9]"
+                    pattern="[0-9]*"
                     maxlength="1"
-                    :autocomplete="index === 0 ? 'one-time-code' : 'off'"
-                    class="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition"
-                    :class="{ 'border-primary-500 ring-2 ring-primary-200': otpCode[index] }"
+                    :autocomplete="(n - 1) === 0 ? 'one-time-code' : 'off'"
+                    class="w-12 h-14 text-center text-2xl font-bold rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition bg-white"
+                    :class="{ 'border-primary-500 ring-2 ring-primary-200': otpCode[n - 1] }"
                     :disabled="phoneLoading"
-                    @input="handleOtpInput(index, $event)"
-                    @keydown="handleOtpKeydown(index, $event)"
+                    @input="handleOtpInput(n - 1, $event)"
+                    @keydown="handleOtpKeydown(n - 1, $event)"
                     @paste="handleOtpPaste($event)"
+                    @focus="($event.target as HTMLInputElement).select()"
                   />
                 </div>
                 <p class="mt-3 text-center text-xs text-secondary-400">کد دریافتی از پیامک را وارد کنید</p>
