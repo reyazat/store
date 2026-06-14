@@ -99,10 +99,43 @@ class CategoryService
         });
     }
 
+    /**
+     * Delete a category with checks for children and products.
+     * Prevents deletion if category has subcategories or is used in products.
+     *
+     * @throws \RuntimeException if category has children or is used in products
+     */
     public function deleteCategory(Category $category): void
     {
+        // Check if category has children (subcategories)
+        $childrenCount = $category->children()->count();
+        if ($childrenCount > 0) {
+            throw new \RuntimeException(
+                sprintf(
+                    'این دسته‌بندی دارای %d زیردسته است و قابل حذف نیست. ابتدا زیردسته‌ها را حذف کنید.',
+                    $childrenCount
+                )
+            );
+        }
+
+        // Check if category is used in any products
+        $productCount = $category->products()->count();
+        if ($productCount > 0) {
+            throw new \RuntimeException(
+                sprintf(
+                    'این دسته‌بندی در %d محصول استفاده شده است و قابل حذف نیست.',
+                    $productCount
+                )
+            );
+        }
+
+        // Delete image if exists
         $this->imageService->delete($category->image);
-        Category::query()->whereKey($category->getKey())->delete();
+
+        // Soft delete the category
+        // DB cascade will handle category_product (onDelete cascade)
+        // DB nullOnDelete handles children.parent_id (set to null)
+        $category->delete();
     }
 
     private function resolveImage(array $data): array

@@ -87,12 +87,19 @@ class CategoryController extends Controller
 
     public function destroy(Category $category): JsonResponse
     {
-        $this->destroyAction->execute($category);
+        try {
+            $this->destroyAction->execute($category);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Category deleted successfully.',
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'دسته‌بندی با موفقیت حذف شد.',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     
