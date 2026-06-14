@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { Mail, Lock, Eye, EyeOff, Loader2, User, Phone } from 'lucide-vue-next'
+import { Mail, Lock, Eye, EyeOff, Loader2, User } from 'lucide-vue-next'
 import { authService } from '../services'
 
 const router = useRouter()
@@ -12,6 +12,32 @@ const form = ref({
   phone: '',
   password: '',
   password_confirmation: '',
+})
+
+// ── Phone normalization (same logic as LoginPage) ──────────────────────────
+const normalizePhone = (raw: string): string => {
+  let v = raw.replace(/[\s\-().]/g, '')
+  if (v.startsWith('+98')) v = '0' + v.slice(3)
+  return v.replace(/\D/g, '')
+}
+
+const formatPhoneDisplay = (digits: string): string => {
+  if (digits.startsWith('09') && digits.length >= 4) {
+    const parts = [digits.slice(0, 4)]
+    if (digits.length > 4) parts.push(digits.slice(4, 7))
+    if (digits.length > 7) parts.push(digits.slice(7, 11))
+    return parts.join(' ')
+  }
+  return digits
+}
+
+watch(() => form.value.phone, (newVal) => {
+  const digits = normalizePhone(newVal)
+  const capped = digits.slice(0, 11)
+  const formatted = formatPhoneDisplay(capped)
+  if (formatted !== newVal) {
+    form.value.phone = formatted
+  }
 })
 
 const showPassword = ref(false)
@@ -39,12 +65,13 @@ const handleSubmit = async () => {
   error.value = ''
 
   try {
+    const cleanPhone = form.value.phone ? normalizePhone(form.value.phone) : undefined
     await authService.register({
       name: form.value.name,
       email: form.value.email,
       password: form.value.password,
       password_confirmation: form.value.password_confirmation,
-      phone: form.value.phone || undefined,
+      phone: cleanPhone || undefined,
     })
     success.value = true
     setTimeout(() => {
@@ -130,18 +157,24 @@ const handleSubmit = async () => {
 
           <!-- Phone -->
           <div>
-            <label class="block text-sm font-medium text-secondary-700 mb-2">شماره موبایل (اختیاری)</label>
+            <label class="block text-sm font-medium text-secondary-700 mb-2">شماره موبایل <span class="text-secondary-400 text-xs">(اختیاری)</span></label>
             <div class="relative">
               <input
                 v-model="form.phone"
-                type="tel"
-                placeholder="09123456789"
-                class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition"
+                type="text"
+                inputmode="numeric"
+                placeholder="09xx xxx xxxx"
+                autocomplete="tel"
+                maxlength="14"
+                class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-widest font-mono"
                 dir="ltr"
               />
-              <Phone class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
+              <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                <span class="text-sm text-secondary-400 font-medium">IR</span>
+                <span class="text-secondary-300">+98</span>
+              </div>
             </div>
-            <p class="text-xs text-secondary-400 mt-1 text-right">مثال: 09123456789</p>
+            <p class="mt-2 text-xs text-secondary-400">شماره موبایل باید با ۰۹ شروع شود</p>
           </div>
 
           <!-- Password -->

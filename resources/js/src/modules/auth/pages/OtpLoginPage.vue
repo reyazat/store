@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Smartphone, ArrowLeft, Loader2, AlertCircle, CheckCircle, RefreshCw } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -35,11 +35,37 @@ const otpInputRefs = ref<(HTMLInputElement | null)[]>([])
 // WebOTP API abort controller
 let webOtpAbortController: AbortController | null = null
 
+// ── Phone normalization (same logic as LoginPage) ──────────────────────────
+const normalizePhone = (raw: string): string => {
+  let v = raw.replace(/[\s\-().]/g, '')
+  if (v.startsWith('+98')) v = '0' + v.slice(3)
+  return v.replace(/\D/g, '')
+}
+
+const formatPhoneDisplay = (digits: string): string => {
+  if (digits.startsWith('09') && digits.length >= 4) {
+    const parts = [digits.slice(0, 4)]
+    if (digits.length > 4) parts.push(digits.slice(4, 7))
+    if (digits.length > 7) parts.push(digits.slice(7, 11))
+    return parts.join(' ')
+  }
+  return digits
+}
+
+watch(phone, (newVal) => {
+  const digits = normalizePhone(newVal)
+  const capped = digits.slice(0, 11)
+  const formatted = formatPhoneDisplay(capped)
+  if (formatted !== newVal) {
+    phone.value = formatted
+  }
+})
+
 // ── Computed ──────────────────────────────────────────────────────────────────
 
 const isPhoneValid = computed(() => {
-  const digits = phone.value.replace(/\s/g, '')
-  return /^09\d{9}$/.test(digits) || /^\+989\d{9}$/.test(digits)
+  const digits = normalizePhone(phone.value)
+  return /^09\d{9}$/.test(digits)
 })
 
 const isOtpComplete = computed(() => otpCode.value.every(d => d.length === 1))
@@ -173,7 +199,7 @@ const sendOtp = async () => {
   successMessage.value = ''
 
   try {
-    const cleanPhone = phone.value.replace(/\s/g, '')
+    const cleanPhone = normalizePhone(phone.value)
     const response = await authService.sendOtp({
       identifier: cleanPhone,
       type: 'login_verification',
@@ -217,7 +243,7 @@ const verifyOtp = async () => {
   try {
     webOtpAbortController?.abort()
 
-    const cleanPhone = phone.value.replace(/\s/g, '')
+    const cleanPhone = normalizePhone(phone.value)
     const response = await authService.verifyOtp({
       identifier: cleanPhone,
       code: otpCode.value.join(''),
@@ -357,20 +383,22 @@ const goToLogin = () => {
                 <input
                   id="otp-phone"
                   v-model="phone"
-                  type="tel"
-                  placeholder="09123456789"
-                  class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-2 focus:ring-primary-100 outline-none transition text-left"
-                  dir="ltr"
+                  type="text"
+                  inputmode="numeric"
+                  placeholder="09xx xxx xxxx"
                   autocomplete="tel"
-                  inputmode="tel"
+                  maxlength="14"
+                  class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-widest font-mono"
+                  dir="ltr"
                   :disabled="isLoading"
                   :aria-invalid="phone.length > 0 && !isPhoneValid"
                 />
-                <Smartphone
-                  class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400 pointer-events-none"
-                />
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                  <span class="text-sm text-secondary-400 font-medium">IR</span>
+                  <span class="text-secondary-300">+98</span>
+                </div>
               </div>
-              <p class="text-xs text-secondary-500 mt-1.5">مثال: 09123456789</p>
+              <p class="mt-2 text-xs text-secondary-400">شماره موبایل باید با ۰۹ شروع شود</p>
             </div>
 
             <button

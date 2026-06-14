@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Plus, MapPin, Check, ChevronRight } from 'lucide-vue-next'
 import type { Address } from '@shared/types'
 import { userService } from '@modules/user/services'
@@ -14,6 +14,23 @@ const emit = defineEmits<{
   next: []
   addressAdded: [address: Address]
 }>()
+
+// ── Phone normalization (same logic as LoginPage) ──────────────────────────
+const normalizePhone = (raw: string): string => {
+  let v = raw.replace(/[\s\-().]/g, '')
+  if (v.startsWith('+98')) v = '0' + v.slice(3)
+  return v.replace(/\D/g, '')
+}
+
+const formatPhoneDisplay = (digits: string): string => {
+  if (digits.startsWith('09') && digits.length >= 4) {
+    const parts = [digits.slice(0, 4)]
+    if (digits.length > 4) parts.push(digits.slice(4, 7))
+    if (digits.length > 7) parts.push(digits.slice(7, 11))
+    return parts.join(' ')
+  }
+  return digits
+}
 
 type FormView = 'list' | 'add'
 const view = ref<FormView>(props.addresses.length === 0 ? 'add' : 'list')
@@ -38,11 +55,21 @@ const resetForm = () => {
   formError.value = ''
 }
 
+watch(() => form.value.phone, (newVal) => {
+  const digits = normalizePhone(newVal)
+  const capped = digits.slice(0, 11)
+  const formatted = formatPhoneDisplay(capped)
+  if (formatted !== newVal) {
+    form.value.phone = formatted
+  }
+})
+
 const saveAddress = async () => {
   formError.value = ''
   isSubmitting.value = true
   try {
-    const res = await userService.createAddress(form.value)
+    const payload = { ...form.value, phone: normalizePhone(form.value.phone) }
+    const res = await userService.createAddress(payload)
     const newAddress: Address = res.data
     emit('addressAdded', newAddress)
     emit('update:selectedAddressId', newAddress.id)
@@ -155,7 +182,24 @@ const labelCls = 'block text-sm font-medium text-gray-700 mb-1'
 
         <div>
           <label :class="labelCls">شماره موبایل <span class="text-red-400">*</span></label>
-          <input v-model="form.phone" type="tel" required dir="ltr" placeholder="09xxxxxxxxx" :class="inputCls" />
+          <div class="relative">
+            <input
+              v-model="form.phone"
+              type="text"
+              inputmode="numeric"
+              placeholder="09xx xxx xxxx"
+              autocomplete="tel"
+              maxlength="14"
+              required
+              class="w-full h-14 pl-4 pr-14 text-lg rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition text-center tracking-widest font-mono"
+              dir="ltr"
+            />
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+              <span class="text-sm text-secondary-400 font-medium">IR</span>
+              <span class="text-secondary-300">+98</span>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-secondary-400">شماره موبایل باید با ۰۹ شروع شود</p>
         </div>
 
         <div class="grid grid-cols-2 gap-3">

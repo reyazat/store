@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onUnmounted } from 'vue'
+import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Mail, Smartphone, Loader2, CheckCircle2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, Check } from 'lucide-vue-next'
 import { authService } from '../services'
@@ -29,15 +29,56 @@ const otpInputRefs = ref<(HTMLInputElement | null)[]>([])
 // WebOTP API abort controller (Android Chrome auto-read SMS)
 let webOtpAbortController: AbortController | null = null
 
+// ── Phone normalization (same logic as LoginPage) ──────────────────────────
+const normalizePhone = (raw: string): string => {
+  let v = raw.replace(/[\s\-().]/g, '')
+  if (v.startsWith('+98')) v = '0' + v.slice(3)
+  return v.replace(/\D/g, '')
+}
+
+const formatPhoneDisplay = (digits: string): string => {
+  if (digits.startsWith('09') && digits.length >= 4) {
+    const parts = [digits.slice(0, 4)]
+    if (digits.length > 4) parts.push(digits.slice(4, 7))
+    if (digits.length > 7) parts.push(digits.slice(7, 11))
+    return parts.join(' ')
+  }
+  return digits
+}
+
+// Determine if the identifier is currently phone-like
+const isPhoneMode = computed(() => {
+  const val = identifier.value.trim()
+  return !val.includes('@') && /^[0-9+\s\-().]*$/.test(val)
+})
+
+watch(identifier, (newVal) => {
+  // Only auto-format when it looks like a phone number (no @)
+  if (!newVal.includes('@')) {
+    const digits = normalizePhone(newVal)
+    const capped = digits.slice(0, 11)
+    const formatted = formatPhoneDisplay(capped)
+    if (formatted !== newVal) {
+      identifier.value = formatted
+    }
+  }
+})
+
+const cleanIdentifier = computed(() => {
+  const val = identifier.value.trim()
+  if (val.includes('@')) return val
+  return normalizePhone(val)
+})
+
 const isIdentifierValid = computed(() => {
   const val = identifier.value.trim()
   // Email validation
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
     return true
   }
-  // Iranian phone validation: supports 09XXXXXXXXX or +989XXXXXXXXX
-  const digits = val.replace(/\s/g, '')
-  return /^09\d{9}$/.test(digits) || /^\+989\d{9}$/.test(digits)
+  // Iranian phone validation
+  const digits = normalizePhone(val)
+  return /^09\d{9}$/.test(digits)
 })
 
 const isOtpComplete = computed(() => otpCode.value.every(digit => digit.length === 1))
@@ -152,8 +193,7 @@ const sendResetCode = async () => {
   successMessage.value = ''
 
   try {
-    const cleanIdentifier = identifier.value.trim()
-    const response = await authService.forgotPassword(cleanIdentifier)
+    const response = await authService.forgotPassword(cleanIdentifier.value)
 
     if (response.success) {
       channels.value = response.data?.channels || []
@@ -204,11 +244,10 @@ const verifyOtp = async () => {
   webOtpAbortController?.abort()
 
   try {
-    const cleanIdentifier = identifier.value.trim()
     const code = otpCode.value.join('')
 
     const response = await authService.verifyPasswordResetOtp({
-      identifier: cleanIdentifier,
+      identifier: cleanIdentifier.value,
       code
     })
 
@@ -253,10 +292,8 @@ const resetPassword = async () => {
   error.value = ''
 
   try {
-    const cleanIdentifier = identifier.value.trim()
-
     await authService.resetPasswordWithOtp({
-      identifier: cleanIdentifier,
+      identifier: cleanIdentifier.value,
       reset_token: resetToken.value,
       password: newPassword.value,
       password_confirmation: confirmPassword.value
@@ -356,16 +393,31 @@ const goBack = () => {
                   <input
                     v-model="identifier"
                     type="text"
-                    placeholder="example@email.com یا 09123456789"
-                    class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition"
+                    :inputmode="isPhoneMode ? 'numeric' : 'email'"
+                    :placeholder="isPhoneMode ? '09xx xxx xxxx' : 'example@email.com یا 09123456789'"
+                    :maxlength="isPhoneMode ? 14 : undefined"
+                    :class="[
+                      'w-full rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition',
+                      isPhoneMode
+                        ? 'h-14 pl-4 pr-14 text-lg text-center tracking-widest font-mono'
+                        : 'h-12 pl-4 pr-12'
+                    ]"
                     dir="ltr"
+                    autocomplete="tel email"
                     :disabled="isLoading"
                     @keyup.enter="sendResetCode"
                   />
+                  <!-- Email mode: icon -->
                   <Mail v-if="identifier.includes('@')" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
-                  <Smartphone v-else class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
+                  <!-- Phone mode: IR +98 badge -->
+                  <div v-else class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
+                    <span class="text-sm text-secondary-400 font-medium">IR</span>
+                    <span class="text-secondary-300">+98</span>
+                  </div>
                 </div>
-                <p class="mt-2 text-xs text-secondary-400">کد بازنشانی به ایمیل و شماره موبایل شما ارسال خواهد شد</p>
+                <p class="mt-2 text-xs text-secondary-400">
+                  {{ isPhoneMode ? 'شماره موبایل باید با ۰۹ شروع شود' : 'کد بازنشانی به ایمیل و شماره موبایل شما ارسال خواهد شد' }}
+                </p>
               </div>
 
               <button
