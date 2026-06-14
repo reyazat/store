@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Mail, Smartphone, Loader2, CheckCircle2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, Check } from 'lucide-vue-next'
+import { Loader2, CheckCircle2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, Check, User } from 'lucide-vue-next'
 import { authService } from '../services'
 
 const router = useRouter()
@@ -438,30 +438,17 @@ const goBack = () => {
                   <input
                     v-model="identifier"
                     type="text"
-                    :inputmode="isPhoneMode ? 'numeric' : 'email'"
-                    :placeholder="isPhoneMode ? '09xx xxx xxxx' : 'example@email.com یا 09123456789'"
-                    :maxlength="isPhoneMode ? 14 : undefined"
-                    :class="[
-                      'w-full rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition',
-                      isPhoneMode
-                        ? 'h-14 pl-4 pr-14 text-lg text-center tracking-widest font-mono'
-                        : 'h-12 pl-4 pr-12'
-                    ]"
+                    placeholder="example@email.com یا 09123456789"
+                    class="w-full h-12 pl-4 pr-12 rounded-xl border-2 border-secondary-200 focus:border-primary-500 focus:ring-4 focus:ring-primary-100 outline-none transition dir-ltr"
                     dir="ltr"
-                    autocomplete="tel email"
+                    autocomplete="username"
                     :disabled="isLoading"
                     @keyup.enter="sendResetCode"
                   />
-                  <!-- Email mode: icon -->
-                  <Mail v-if="identifier.includes('@')" class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
-                  <!-- Phone mode: IR +98 badge -->
-                  <div v-else class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1 pointer-events-none">
-                    <span class="text-sm text-secondary-400 font-medium">IR</span>
-                    <span class="text-secondary-300">+98</span>
-                  </div>
+                  <User class="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-secondary-400" />
                 </div>
                 <p class="mt-2 text-xs text-secondary-400">
-                  {{ isPhoneMode ? 'شماره موبایل باید با ۰۹ شروع شود' : 'کد بازنشانی به ایمیل و شماره موبایل شما ارسال خواهد شد' }}
+                  ایمیل یا شماره موبایل خود را وارد کنید. کد بازنشانی به هر دو کانال ارسال خواهد شد.
                 </p>
               </div>
 
