@@ -51,9 +51,15 @@ router.beforeEach((to, _from, next) => {
     return next({ name: 'not-found' })
   }
 
+  // Super admin cannot access customer-only routes (user panel, checkout, payment)
+  if (to.meta.requiresCustomer && authStore.isSuperAdmin) {
+    return next({ name: 'admin-dashboard' })
+  }
+
   // Check if route is for guests only (login, register)
+  // Super admin is redirected to admin dashboard, regular users to home
   if (to.meta.guest && authStore.isAuthenticated) {
-    return next({ name: 'home' })
+    return next(authStore.isSuperAdmin ? { name: 'admin-dashboard' } : { name: 'home' })
   }
 
   next()

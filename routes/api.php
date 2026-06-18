@@ -83,8 +83,8 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::middleware(['auth:api'])->prefix('v1')->group(function () {
-  // Product reviews - accessible to any authenticated user
-  Route::post('/products/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'store']);
+  // Product reviews - accessible to authenticated customers only (not super admin)
+  Route::middleware(['block.super.admin'])->post('/products/{product}/reviews', [\App\Http\Controllers\API\ProductReviewController::class, 'store']);
 
   // Product CRUD - admin only
   Route::middleware(['admin'])->prefix('products')->group(function () {
@@ -151,8 +151,8 @@ Route::get('/v1/payment/methods', [\App\Http\Controllers\API\User\PaymentControl
 // Zarinpal callback — must be accessible without auth (redirected from Zarinpal)
 Route::get('/v1/payment/zarinpal/callback', [\App\Http\Controllers\API\User\PaymentController::class, 'zarinpalCallback']);
 
-// User Panel Routes (authenticated users)
-Route::middleware(['auth:api'])->prefix('v1/user')->name('user.')->group(function () {
+// User Panel Routes (authenticated users only — super admin is blocked)
+Route::middleware(['auth:api', 'block.super.admin'])->prefix('v1/user')->name('user.')->group(function () {
   // Profile
   Route::get('/profile', [\App\Http\Controllers\API\User\ProfileController::class, 'show']);
   Route::put('/profile', [\App\Http\Controllers\API\User\ProfileController::class, 'update']);

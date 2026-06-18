@@ -76,12 +76,14 @@ const verifyTotp = async () => {
         is_admin: response.data.user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
 
-      // Merge guest cart
-      await cartStore.mergeGuestCart()
+      // Merge guest cart (super admin has no cart)
+      if (!authStore.isSuperAdmin) {
+        await cartStore.mergeGuestCart()
+      }
 
       // Redirect
       const redirectTo = (route.query.redirect as string) || '/'
-      router.push(redirectTo !== '/' && redirectTo ? redirectTo : (authStore.isAdmin ? '/admin/dashboard' : '/'))
+      router.push(authStore.isSuperAdmin ? '/admin/dashboard' : (redirectTo !== '/' && redirectTo ? redirectTo : '/'))
     } else {
       error.value = response.message || 'خطا در تایید کد MFA'
       if (response.data?.attempts_remaining != null) {
