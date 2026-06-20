@@ -44,7 +44,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'locale' => \App\Http\Middleware\SetLocaleMiddleware::class,
             'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
-            'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'admin' => \IamApi\Http\Middleware\EnsureSuperAdmin::class,
             'block.super.admin' => \App\Http\Middleware\BlockSuperAdminMiddleware::class,
             'store.owner' => \App\Http\Middleware\StoreOwnerMiddleware::class,
             'captcha.throttle' => \IamApi\Http\Middleware\CaptchaOrThrottle::class,

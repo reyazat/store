@@ -311,10 +311,19 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
     Route::post('/{organization}/assign-owner', [\App\Http\Controllers\API\Admin\OrganizationController::class, 'assignOwner']);
     // Super admin view of store's full data (products, members, orders)
     Route::get('/{organization}/overview', [\App\Http\Controllers\API\Admin\OrganizationController::class, 'overview']);
+
+    // ── Organization-scoped detail views (Super Admin reads store data) ────
+    Route::get('/{organization}/members', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'members']);
+    Route::get('/{organization}/orders', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'orders']);
+    Route::get('/{organization}/orders/{order}', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'orderDetail']);
+    Route::get('/{organization}/reviews', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'reviews']);
+    Route::get('/{organization}/coupons', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'coupons']);
+    Route::get('/{organization}/coupons/{coupon}', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'couponDetail']);
   });
 });
 
-// Store Owner Panel Routes (organization owners only — super admin is blocked)
+// Store Owner Panel Routes (store owners/admins/editors only — super admin is blocked)
+// Super Admin views store data via /v1/admin/organizations/{id}/*
 Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.')->group(function () {
   Route::get('/dashboard', [\App\Http\Controllers\API\Store\StoreDashboardController::class, 'index']);
 

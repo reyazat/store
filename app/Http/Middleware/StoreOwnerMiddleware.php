@@ -10,13 +10,13 @@ class StoreOwnerMiddleware
 {
     /**
      * Allow users with management roles in an Organization (store).
-     * Super admins can also access store panels for monitoring and management.
+     * Super admins are explicitly blocked — they manage the platform via /v1/admin,
+     * and can view store data via /v1/admin/organizations/{id}/* routes.
      *
      * Supported roles:
      * - owner: full control
      * - admin: can manage most store settings and members
      * - editor: can manage content and products
-     * - super admin: can access any store panel for platform management
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -29,10 +29,12 @@ class StoreOwnerMiddleware
             ], 401);
         }
 
-        // Super admin can access any store panel for monitoring and management
+        // Super admin must use /v1/admin/organizations/{id}/* routes
         if ($user->is_super_admin) {
-            // Super admin has full access - no organization context needed
-            return $next($request);
+            return response()->json([
+                'success' => false,
+                'message' => 'Super admin accounts must use the platform admin panel.',
+            ], 403);
         }
 
         $org = $user->organization;
