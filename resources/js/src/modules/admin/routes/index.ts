@@ -101,6 +101,18 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/AuditLogsPage.vue'),
       },
       {
+        path: 'organizations',
+        name: 'admin-organizations',
+        component: () => import('../pages/OrganizationsPage.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
+      {
+        path: 'organizations/:uuid/overview',
+        name: 'admin-store-overview',
+        component: () => import('../pages/StoreOverviewPage.vue'),
+        meta: { requiresSuperAdmin: true },
+      },
+      {
         path: 'settings',
         redirect: '/admin/site-settings',
       },

@@ -179,7 +179,8 @@ class UserController extends Controller
      */
     public function show(): JsonResponse
     {
-        $user = auth()->user();
+        /** @var \IamApi\Models\User $user */
+        $user = auth()->user()->load('organization');
 
         return response()->json(
             AbstractResource::success(

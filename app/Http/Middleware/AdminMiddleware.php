@@ -22,22 +22,12 @@ class AdminMiddleware
             ], 401);
         }
 
-        // Super admin always has full access
-        if ($user->is_super_admin) {
-            return $next($request);
-        }
-
-        // Check if user has admin role
-        $adminRoles = ['superadmin', 'admin', 'owner', 'editor'];
-
-        $userRoles = $user->roles()->pluck('name')->toArray();
-
-        $hasAdminRole = !empty(array_intersect($adminRoles, $userRoles));
-
-        if (!$hasAdminRole) {
+        // Platform admin panel is exclusively for super admins.
+        // Store owners and editors manage their own stores via /v1/store/* routes.
+        if (!$user->is_super_admin) {
             return response()->json([
                 'success' => false,
-                'message' => 'Access denied. Admin privileges required.',
+                'message' => 'Access denied. Platform admin privileges required.',
             ], 403);
         }
 

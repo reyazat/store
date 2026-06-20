@@ -18,7 +18,13 @@ class StoreProductAction
      */
     public function execute(ProductStoreRequest $request): Product
     {
-        return $this->productService->createProduct($request->validatedData())
+        $data = $request->validatedData();
+        
+        // Auto-inject organization_id from authenticated user (store owner).
+        // Products always belong to the store owner's organization.
+        $data['organization_id'] = auth()->user()->organization_id;
+        
+        return $this->productService->createProduct($data)
             ->load(['categories', 'images', 'relatedProducts', 'variants.optionValues']);
     }
 }

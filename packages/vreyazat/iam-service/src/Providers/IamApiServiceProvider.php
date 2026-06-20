@@ -20,6 +20,15 @@ use IamApi\Repositories\RepositoryServiceProvider;
 class IamApiServiceProvider extends ServiceProvider
 {
     /**
+     * Event listener mappings for the IAM package.
+     */
+    protected $listen = [
+        \IamApi\Events\OrganizationCreated::class => [
+            \IamApi\Listeners\CreateDefaultOrganizationRoles::class,
+        ],
+    ];
+
+    /**
      * Register any application services.
      */
     public function register(): void
@@ -48,6 +57,9 @@ class IamApiServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Register event listeners
+        $this->registerEventListeners();
+        
         // Configure Route Model Binding to use UUID
         $this->configureRouteModelBindings();
         
@@ -92,6 +104,18 @@ class IamApiServiceProvider extends ServiceProvider
         
         // Register custom middleware aliases
         $this->registerMiddlewareAliases($router);
+    }
+    
+    /**
+     * Register event listeners for the IAM package.
+     */
+    protected function registerEventListeners(): void
+    {
+        foreach ($this->listen as $event => $listeners) {
+            foreach ($listeners as $listener) {
+                \Event::listen($event, $listener);
+            }
+        }
     }
     
     /**

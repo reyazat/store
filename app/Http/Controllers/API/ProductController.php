@@ -92,6 +92,9 @@ class ProductController extends Controller
      */
     public function store(ProductStoreRequest $request): JsonResponse
     {
+        // Authorize: only store members can create products
+        $this->authorize('create', Product::class);
+
         $product = $this->storeAction->execute($request);
 
         return response()->json([
@@ -102,6 +105,9 @@ class ProductController extends Controller
 
     public function update(ProductUpdateRequest $request, Product $product): JsonResponse
     {
+        // Authorize: user must own the product (same organization)
+        $this->authorize('update', $product);
+
         $product = $this->updateAction->execute($request, $product);
 
         return response()->json([
@@ -112,6 +118,9 @@ class ProductController extends Controller
 
     public function destroy(Product $product): JsonResponse
     {
+        // Authorize: user must own the product (same organization)
+        $this->authorize('delete', $product);
+
         $this->destroyAction->execute($product);
 
         return response()->json([

@@ -5,6 +5,7 @@ namespace IamApi\Http\Middleware;
 use IamApi\Models\Organization;
 use Closure;
 use Illuminate\Http\Request;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureOwnerOrSuperAdmin
@@ -14,7 +15,7 @@ class EnsureOwnerOrSuperAdmin
      *
      * Ensures the user is either:
      * - Super Admin, OR
-     * - Owner of the organization in the route parameter
+     * - Owner/Admin/Editor of the organization in the route parameter
      *
      * @param Closure(Request): (Response) $next
      */
@@ -46,11 +47,26 @@ class EnsureOwnerOrSuperAdmin
             ], 404);
         }
 
-        // Check if user is owner of this organization
-        if (!$user->isOwnerOf($org)) {
+        // User must belong to this organization
+        if (!$user->belongsToOrganization($org)) {
             return response()->json([
                 'success' => false,
-                'message' => 'This action requires organization owner privileges',
+                'message' => 'You do not belong to this organization',
+                'data' => null,
+            ], 403);
+        }
+
+        // Set organization context for Spatie permission check
+        app(PermissionRegistrar::class)->setPermissionsTeamId($org->id);
+
+        // Check if user has owner, admin, or editor role
+        // Owner: full control (can manage roles, permissions, members)
+        // Admin: can manage most organization settings
+        // Editor: can manage content and products
+        if (!$user->hasRole(['owner', 'admin', 'editor'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'This action requires organization owner, admin, or editor privileges',
                 'data' => null,
             ], 403);
         }

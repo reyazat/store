@@ -97,6 +97,7 @@ class ProductService
     private function productAttributes(array $data): array
     {
         return Arr::only($data, [
+            'organization_id',
             'name',
             'slug',
             'base_sku',

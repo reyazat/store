@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -12,6 +13,7 @@ class Coupon extends AbstractModel
     protected bool $usesGlobalScopes = false;
 
     protected $fillable = [
+        'organization_id',
         'code',
         'name',
         'description',
@@ -39,9 +41,30 @@ class Coupon extends AbstractModel
         'expires_at' => 'datetime',
     ];
 
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(\IamApi\Models\Organization::class);
+    }
+
     public function usages(): HasMany
     {
         return $this->hasMany(CouponUsage::class);
+    }
+
+    /**
+     * Check if coupon is platform-level (applies to all stores)
+     */
+    public function isPlatformLevel(): bool
+    {
+        return $this->organization_id === null;
+    }
+
+    /**
+     * Check if coupon belongs to a specific store
+     */
+    public function isStoreLevel(): bool
+    {
+        return $this->organization_id !== null;
     }
 
     public function isValid(): bool

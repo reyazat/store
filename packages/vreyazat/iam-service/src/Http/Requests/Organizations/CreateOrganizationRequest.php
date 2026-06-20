@@ -15,7 +15,11 @@ class CreateOrganizationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255', 'unique:organizations,name', new NoHtml()],
+            'name'        => ['required', 'string', 'max:255', 'unique:organizations,name', new NoHtml()],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'logo'        => ['nullable', 'string', 'max:500'],
+            'status'      => ['nullable', 'in:active,inactive,suspended'],
+            'owner_id'    => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -23,22 +27,22 @@ class CreateOrganizationRequest extends FormRequest
     {
         return [
             'name.required' => 'Organization name is required',
-            'name.string' => 'Organization name must be a string',
-            'name.max' => 'Organization name cannot exceed 255 characters',
-            'name.unique' => 'An organization with this name already exists',
+            'name.string'   => 'Organization name must be a string',
+            'name.max'      => 'Organization name cannot exceed 255 characters',
+            'name.unique'   => 'An organization with this name already exists',
+            'status.in'     => 'Status must be one of: active, inactive, suspended',
+            'owner_id.exists' => 'The specified owner user does not exist',
         ];
     }
 
-    /**
-     * Get the body parameters for API documentation
-     */
     public function bodyParameters(): array
     {
         return [
-            'name' => [
-                'description' => 'The name of the organization',
-                'example' => 'Acme Corporation',
-            ],
+            'name'        => ['description' => 'The name of the organization',   'example' => 'Acme Corporation'],
+            'description' => ['description' => 'Optional description',            'example' => 'A brief description'],
+            'logo'        => ['description' => 'Optional logo URL or path',       'example' => 'logos/acme.png'],
+            'status'      => ['description' => 'active|inactive|suspended',       'example' => 'active'],
+            'owner_id'    => ['description' => 'Optional user ID to assign owner','example' => 5],
         ];
     }
 }

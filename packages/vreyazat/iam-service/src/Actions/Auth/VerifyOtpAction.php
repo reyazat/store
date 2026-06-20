@@ -163,9 +163,9 @@ class VerifyOtpAction
             'message' => 'Login successful',
             'data' => [
                 'verified' => true,
-                'type' => 'login_verification',
-                'user' => $user,
-                'tokens' => $tokens
+                'type'     => 'login_verification',
+                'user'     => $user->load('organization'),
+                'tokens'   => $tokens,
             ]
         ];
     }

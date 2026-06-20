@@ -142,10 +142,8 @@ class VerifyMfaLoginAction
                 ])
                 ->log('User logged in via MFA');
 
-            // Load organization if applicable
-            if ($user->organization_id) {
-                $user->load('organization');
-            }
+            // Always load organization. Buyers get null, store members get their org.
+            $user->load('organization');
 
             $responseData = [
                 'user'   => $user,

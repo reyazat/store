@@ -83,10 +83,9 @@ class LoginWithPasswordAction extends BaseAction
             'device_name' => $data['device_name'] ?? 'Unknown Device'
         ]);
 
-        // Load user organization (if exists - Super Admin doesn't have organization)
-        if ($user->organization_id) {
-            $user->load('organization');
-        }
+        // Always load organization so UserResource includes it.
+        // Buyers get null, store members get their org, super admin gets null.
+        $user->load('organization');
 
         // Update login info
         $this->authService->touchLogin($user, request()->ip());

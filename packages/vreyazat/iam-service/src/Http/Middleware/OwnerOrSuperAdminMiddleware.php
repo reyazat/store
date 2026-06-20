@@ -33,20 +33,23 @@ class OwnerOrSuperAdminMiddleware
             return $next($request);
         }
 
-        // Check if user belongs to the organization and has owner role
+        // Check if user belongs to the organization and has appropriate role
         if ($user->organization_id === $org->id) {
             // Set organization context for permission check
             app(PermissionRegistrar::class)->setPermissionsTeamId($org->id);
 
-            // Check if user has owner role
-            if ($user->hasRole('owner')) {
+            // Check if user has owner, admin, or editor role
+            // Owner: full control
+            // Admin: can manage most organization settings
+            // Editor: can manage content and products
+            if ($user->hasRole(['owner', 'admin', 'editor'])) {
                 return $next($request);
             }
         }
 
         return response()->json([
             'success' => false,
-            'message' => 'Forbidden'
+            'message' => 'Forbidden. This action requires owner, admin, or editor role.'
         ], 403);
     }
 }

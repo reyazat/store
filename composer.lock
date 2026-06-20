@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "093d2599fe21d33422759e7e459767ba",
+    "content-hash": "16b1948a6e90e25b4cc414500978eb60",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -8184,7 +8184,7 @@
             "dist": {
                 "type": "path",
                 "url": "packages/vreyazat/iam-service",
-                "reference": "bf03a1eacac6beecd9c09392f7be50b3411b2c4d"
+                "reference": "ca72bf38c0de74c1fc2e599ae200c670ee77a29b"
             },
             "require": {
                 "bacon/bacon-qr-code": "^3.0",
@@ -8252,7 +8252,7 @@
                 "rbac"
             ],
             "transport-options": {
-                "symlink": false,
+                "symlink": true,
                 "relative": true
             }
         }

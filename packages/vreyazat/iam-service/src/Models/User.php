@@ -170,6 +170,14 @@ class User extends Authenticatable implements JWTSubject
         return $this->is_super_admin === true;
     }
 
+    /**
+     * A buyer is a marketplace customer: authenticated but not assigned to any store organization.
+     * Super admins and store members are never considered buyers.
+     */
+    public function isBuyer(): bool {
+        return !$this->is_super_admin && $this->organization_id === null;
+    }
+
     public function isOwnerOf(Organization $organization): bool {
         // Super admin can own any organization
         if ($this->is_super_admin) {

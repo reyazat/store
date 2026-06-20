@@ -10,20 +10,30 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
-  const isAdmin = computed(() => {
-    if (!user.value) return false
-    if (user.value.is_super_admin) return true
-    if (!user.value.roles) return false
-    return user.value.roles.some(role =>
-      ['superadmin', 'admin', 'owner', 'editor'].includes(role)
-    )
-  })
-
   const isSuperAdmin = computed(() => {
     if (!user.value) return false
     if (user.value.is_super_admin) return true
     if (!user.value.roles) return false
     return user.value.roles.includes('superadmin')
+  })
+
+  // Platform admin panel access: only super admin flag or 'admin'/'superadmin' role.
+  // 'owner' and 'editor' are organization-level roles, NOT platform admin roles.
+  const isAdmin = computed(() => {
+    if (!user.value) return false
+    if (user.value.is_super_admin) return true
+    if (!user.value.roles) return false
+    return user.value.roles.some(role => ['superadmin', 'admin'].includes(role))
+  })
+
+  // Store panel access: user belongs to a store organization (owner, admin, editor roles)
+  // AND has a non-null organization_id (buyers have null — they are not store members).
+  // Super admins are explicitly excluded — they manage the platform, not individual stores.
+  const isStoreOwner = computed(() => {
+    if (!user.value || isSuperAdmin.value) return false
+    if (!user.value.organization_id) return false
+    if (!user.value.roles) return false
+    return user.value.roles.some(role => ['owner', 'admin', 'editor'].includes(role))
   })
 
   const hasRole = (role: string) => {
@@ -86,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     isAdmin,
     isSuperAdmin,
+    isStoreOwner,
     hasRole,
     hasPermission,
     setUser,

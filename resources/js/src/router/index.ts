@@ -9,6 +9,7 @@ import cartRoutes from '@modules/cart/routes'
 import userRoutes from '@modules/user/routes'
 import authRoutes from '@modules/auth/routes'
 import adminRoutes from '@modules/admin/routes'
+import storeRoutes from '@modules/store/routes'
 
 const routes: RouteRecordRaw[] = [
   ...homeRoutes,
@@ -18,6 +19,7 @@ const routes: RouteRecordRaw[] = [
   ...authRoutes,
   ...userRoutes,
   ...adminRoutes,
+  ...storeRoutes,
   {
     path: '/:pathMatch(.*)*',
     name: 'not-found',
@@ -46,8 +48,20 @@ router.beforeEach((to, _from, next) => {
     return next({ name: 'login', query: { redirect: to.fullPath } })
   }
 
-  // Check if route requires admin role
-  if (to.meta.requiresAdmin && !authStore.isAdmin) {
+  // Admin panel is exclusively for super admins in this marketplace.
+  // Store owners hitting admin routes → redirect to their store panel.
+  if (to.meta.requiresAdmin && !authStore.isSuperAdmin) {
+    if (authStore.isStoreOwner) return next({ name: 'store-dashboard' })
+    return next({ name: 'not-found' })
+  }
+
+  // Check if route requires super admin (platform-only pages)
+  if (to.meta.requiresSuperAdmin && !authStore.isSuperAdmin) {
+    return next({ name: 'not-found' })
+  }
+
+  // Check if route requires store owner role
+  if (to.meta.requiresStoreOwner && !authStore.isStoreOwner) {
     return next({ name: 'not-found' })
   }
 
@@ -56,10 +70,16 @@ router.beforeEach((to, _from, next) => {
     return next({ name: 'admin-dashboard' })
   }
 
+  // Store owner cannot access customer-only routes
+  if (to.meta.requiresCustomer && authStore.isStoreOwner) {
+    return next({ name: 'store-dashboard' })
+  }
+
   // Check if route is for guests only (login, register)
-  // Super admin is redirected to admin dashboard, regular users to home
   if (to.meta.guest && authStore.isAuthenticated) {
-    return next(authStore.isSuperAdmin ? { name: 'admin-dashboard' } : { name: 'home' })
+    if (authStore.isSuperAdmin) return next({ name: 'admin-dashboard' })
+    if (authStore.isStoreOwner) return next({ name: 'store-dashboard' })
+    return next({ name: 'home' })
   }
 
   next()

@@ -31,7 +31,7 @@
         "type": "path",
         "url": "packages/vreyazat/iam-service",
         "options": {
-            "symlink": false
+            "symlink": true
         }
     }
 ]

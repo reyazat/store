@@ -333,10 +333,12 @@ const verifyPhoneOtp = async () => {
         roles,
         is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
-      if (!authStore.isSuperAdmin) {
+      if (!authStore.isSuperAdmin && !authStore.isStoreOwner) {
         await cartStore.mergeGuestCart()
       }
-      router.push(authStore.isSuperAdmin ? '/admin/dashboard' : (redirectTo !== '/' && redirectTo ? redirectTo : '/'))
+      if (authStore.isSuperAdmin) router.push('/admin/dashboard')
+      else if (authStore.isStoreOwner) router.push('/store/dashboard')
+      else router.push(redirectTo !== '/' && redirectTo ? redirectTo : '/')
     } else {
       phoneError.value = response.message || 'کد وارد شده معتبر نیست'
       if (response.data?.attempts_remaining != null) {
@@ -384,10 +386,12 @@ const completeLogin = async (
     roles,
     is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
   })
-  if (!authStore.isSuperAdmin) {
+  if (!authStore.isSuperAdmin && !authStore.isStoreOwner) {
     await cartStore.mergeGuestCart()
   }
-  router.push(authStore.isSuperAdmin ? '/admin/dashboard' : (redirectTo.value !== '/' && redirectTo.value ? redirectTo.value : '/'))
+  if (authStore.isSuperAdmin) router.push('/admin/dashboard')
+  else if (authStore.isStoreOwner) router.push('/store/dashboard')
+  else router.push(redirectTo.value !== '/' && redirectTo.value ? redirectTo.value : '/')
 }
 
 const handlePasswordSubmit = async () => {

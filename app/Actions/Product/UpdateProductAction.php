@@ -14,6 +14,9 @@ class UpdateProductAction
 
     public function execute(ProductUpdateRequest $request, Product $product): Product
     {
+        // Authorization is handled by ProductPolicy
+        // Controller should call $this->authorize('update', $product) before calling this action
+        
         $product = $this->productService->updateProduct($product, $request->validatedData());
 
         return $product->load(['categories', 'images', 'relatedProducts', 'variants.optionValues']);

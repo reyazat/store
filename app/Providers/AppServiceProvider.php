@@ -44,6 +44,7 @@ use App\Repositories\Eloquents\UserRepository;
 use IamApi\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -86,6 +87,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(UserRepositoryInterface::class, function ($app) {
             return new UserRepository(new \App\Models\User());
         });
+
+        // Register policies
+        Gate::policy(\App\Models\Product::class, \App\Policies\ProductPolicy::class);
+        Gate::policy(\App\Models\Coupon::class, \App\Policies\CouponPolicy::class);
 
         // Configure rate limiters
         $this->configureRateLimiting();

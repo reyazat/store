@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * @property int $id
+ * @property int|null $organization_id
  * @property string $name
  * @property string $slug
  * @property string $base_sku
@@ -50,6 +51,7 @@ class Product extends AbstractModel
 
     public array $filterable = [
         'id',
+        'organization_id',
         'name',
         'slug',
         'base_sku',
@@ -68,6 +70,7 @@ class Product extends AbstractModel
     ];
 
     protected $fillable = [
+        'organization_id',
         'name',
         'slug',
         'base_sku',
@@ -104,6 +107,11 @@ class Product extends AbstractModel
         'discount_start_at' => 'datetime',
         'discount_end_at' => 'datetime',
     ];
+
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(\IamApi\Models\Organization::class);
+    }
 
     public function manufacturer(): BelongsTo
     {

@@ -13,6 +13,9 @@ class DestroyProductAction
 
     public function execute(Product $product): void
     {
+        // Authorization is handled by ProductPolicy
+        // Controller should call $this->authorize('delete', $product) before calling this action
+        
         $this->productService->deleteProduct($product);
     }
 }

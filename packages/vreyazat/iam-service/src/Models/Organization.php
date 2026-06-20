@@ -12,17 +12,25 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 /**
- * @property int id
- * @property string uuid
- * @property string name
- * @property Collection users
- * @property Carbon created_at
+ * @property int         $id
+ * @property string      $uuid
+ * @property string      $name
+ * @property string|null $description
+ * @property string|null $logo
+ * @property string      $status        active|inactive|suspended
+ * @property Collection  $users
+ * @property Carbon      $created_at
+ * @property Carbon      $updated_at
  */
 class Organization extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'description', 'logo', 'status'];
+
+    protected $casts = [
+        'status' => 'string',
+    ];
 
     /**
      * Get the route key for the model.

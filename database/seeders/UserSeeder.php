@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use IamApi\Repositories\Contracts\UserRepositoryInterface;
-use IamApi\Repositories\Contracts\OrganizationRepositoryInterface;
+use IamApi\Services\OrganizationService;
 use IamApi\Services\PasswordPolicyService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -11,16 +11,16 @@ use Illuminate\Support\Facades\Hash;
 class UserSeeder extends Seeder
 {
     protected UserRepositoryInterface $userRepository;
-    protected OrganizationRepositoryInterface $organizationRepository;
+    protected OrganizationService $organizationService;
     protected PasswordPolicyService $passwordPolicyService;
 
     public function __construct(
         UserRepositoryInterface $userRepository,
-        OrganizationRepositoryInterface $organizationRepository,
+        OrganizationService $organizationService,
         PasswordPolicyService $passwordPolicyService
     ) {
         $this->userRepository = $userRepository;
-        $this->organizationRepository = $organizationRepository;
+        $this->organizationService = $organizationService;
         $this->passwordPolicyService = $passwordPolicyService;
     }
 
@@ -30,17 +30,13 @@ class UserSeeder extends Seeder
      * Note: This seeder is for PRODUCTION environment.
      * Super Admin is created by SuperAdminSeeder (called before this).
      * This seeder only creates a sample organization with basic users.
+     * 
+     * Uses OrganizationService to ensure both Layer 1 (Organization roles)
+     * and Layer 2 (Spatie Permission roles) are synchronized.
      */
     public function run(): void
     {
         $this->command->info('👥 Seeding production users...');
-
-        // Create Default Organization
-        $defaultOrg = $this->organizationRepository->create([
-            'name' => 'Default Organization'
-        ]);
-
-        $this->command->line("   ✓ Created organization: {$defaultOrg->name}");
 
         // Create Organization Owner
         $owner = $this->userRepository->create([
@@ -56,8 +52,13 @@ class UserSeeder extends Seeder
             'password_expires_at' => now()->addDays(config('iam.password_expiry_days', 90)),
         ]);
 
-        // Add owner to organization
-        $this->organizationRepository->addMember($defaultOrg, $owner, 'owner');
+        // Create Default Organization using OrganizationService
+        // This triggers OrganizationCreated event and auto-creates default roles/permissions
+        $defaultOrg = $this->organizationService->createOrganization([
+            'name' => 'Default Organization'
+        ], $owner);
+
+        $this->command->line("   ✓ Created organization: {$defaultOrg->name}");
         $this->command->line("   ✓ Created owner: {$owner->email}");
 
         // Create sample users for the organization
@@ -96,8 +97,8 @@ class UserSeeder extends Seeder
                 'password_expires_at' => now()->addDays(config('iam.password_expiry_days', 90)),
             ]);
 
-            // Add to organization with role (Organization Role - Layer 1)
-            $this->organizationRepository->addMember($defaultOrg, $user, $userData['role']);
+            // Add to organization using OrganizationService (Layer 1 & 2 sync)
+            $this->organizationService->addMember($defaultOrg, $user, $userData['role']);
             
             $this->command->line("   ✓ Created {$userData['role']}: {$user->email}");
         }

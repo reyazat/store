@@ -46,6 +46,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth' => \Illuminate\Auth\Middleware\Authenticate::class,
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
             'block.super.admin' => \App\Http\Middleware\BlockSuperAdminMiddleware::class,
+            'store.owner' => \App\Http\Middleware\StoreOwnerMiddleware::class,
             'captcha.throttle' => \IamApi\Http\Middleware\CaptchaOrThrottle::class,
             'password.expiry' => \IamApi\Http\Middleware\CheckPasswordExpiry::class,
             'super.admin' => \IamApi\Http\Middleware\EnsureSuperAdmin::class,

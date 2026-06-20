@@ -32,48 +32,42 @@ class OrgRolePermissionSeeder extends Seeder
         // Set organization context
         app(PermissionRegistrar::class)->setPermissionsTeamId($org->id);
 
-        // Create IAM permissions for this organization
-        // These are the permissions that control IAM features within the organization
+        // Create permissions for this organization
+        // These permissions align with CreateDefaultOrganizationRoles and OrganizationService
         $iamOrgPermissions = [
-            // Organization management (only for this org)
+            // User management (simplified naming without iam. prefix for organization-level)
+            ['name' => 'users.view', 'description' => 'View users'],
+            ['name' => 'users.manage', 'description' => 'Manage users (create, update, delete)'],
+            ['name' => 'users.invite', 'description' => 'Invite new users'],
+            
+            // Content management
+            ['name' => 'content.view', 'description' => 'View content'],
+            ['name' => 'content.manage', 'description' => 'Manage content'],
+            
+            // Product management
+            ['name' => 'products.view', 'description' => 'View products'],
+            ['name' => 'products.manage', 'description' => 'Manage products (create, update, delete)'],
+            
+            // Order management
+            ['name' => 'orders.view', 'description' => 'View orders'],
+            ['name' => 'orders.manage', 'description' => 'Manage orders (update status, notes)'],
+            
+            // Settings
+            ['name' => 'settings.view', 'description' => 'View organization settings'],
+            ['name' => 'settings.manage', 'description' => 'Manage organization settings'],
+            
+            // Domains
+            ['name' => 'domains.view', 'description' => 'View domains'],
+            ['name' => 'domains.manage', 'description' => 'Manage domains'],
+
+            // Legacy IAM permissions (for backward compatibility)
             ['name' => 'iam.org.view', 'description' => 'View organization details'],
             ['name' => 'iam.org.update', 'description' => 'Update organization settings'],
-
-            // User management within organization
             ['name' => 'iam.user.view', 'description' => 'View users in organization'],
-            ['name' => 'iam.user.create', 'description' => 'Create users in organization'],
-            ['name' => 'iam.user.update', 'description' => 'Update users in organization'],
-            ['name' => 'iam.user.delete', 'description' => 'Deleted users from organization'],
-
-            // Member management
             ['name' => 'iam.member.view', 'description' => 'View members'],
-            ['name' => 'iam.member.invite', 'description' => 'Invite new members'],
-            ['name' => 'iam.member.add', 'description' => 'Add members'],
-            ['name' => 'iam.member.remove', 'description' => 'Remove members'],
-            ['name' => 'iam.member.update-role', 'description' => 'Update member roles'],
-
-            // Role management
             ['name' => 'iam.role.view', 'description' => 'View roles'],
-            ['name' => 'iam.role.create', 'description' => 'Create roles'],
-            ['name' => 'iam.role.update', 'description' => 'Update roles'],
-            ['name' => 'iam.role.delete', 'description' => 'Delete roles'],
-            ['name' => 'iam.role.assign', 'description' => 'Assign roles'],
-            ['name' => 'iam.role.revoke', 'description' => 'Revoke roles'],
-
-            // Permission management
             ['name' => 'iam.permission.view', 'description' => 'View permissions'],
-            ['name' => 'iam.permission.create', 'description' => 'Create permissions'],
-            ['name' => 'iam.permission.update', 'description' => 'Update permissions'],
-            ['name' => 'iam.permission.delete', 'description' => 'Delete permissions'],
-            ['name' => 'iam.permission.assign', 'description' => 'Assign permissions'],
-            ['name' => 'iam.permission.revoke', 'description' => 'Revoke permissions'],
-
-            // Audit
             ['name' => 'iam.audit.view', 'description' => 'View audit logs'],
-
-            // Session management
-            ['name' => 'iam.session.view', 'description' => 'View sessions'],
-            ['name' => 'iam.session.revoke', 'description' => 'Revoke sessions'],
         ];
 
         foreach ($iamOrgPermissions as $permData) {
@@ -102,26 +96,43 @@ class OrgRolePermissionSeeder extends Seeder
         $user = Role::query()->where(['name' => 'user', 'organization_id' => $org->id])->first();
         $member = Role::query()->where(['name' => 'member', 'organization_id' => $org->id])->first();
 
-        // Owner: All IAM permissions
+        // Owner: All permissions
         $allPermissions = Permission::query()->where('organization_id', $org->id)->pluck('name')->toArray();
         $owner->givePermissionTo($allPermissions);
         $this->command->line("   ✓ Owner: All permissions (" . count($allPermissions) . ")");
 
-        // Admin: Most permissions except role/permission management
+        // Admin: Most permissions except settings.manage and domains.manage
         $adminPermissions = [
+            'users.view',
+            'users.manage',
+            'users.invite',
+            'content.view',
+            'content.manage',
+            'products.view',
+            'products.manage',
+            'orders.view',
+            'orders.manage',
+            'settings.view',
+            'domains.view',
+            // Legacy IAM permissions
             'iam.org.view',
-            'iam.user.view', 'iam.user.create', 'iam.user.update', 'iam.user.delete',
-            'iam.member.view', 'iam.member.invite', 'iam.member.add', 'iam.member.remove',
-            'iam.role.view', 'iam.role.assign',
+            'iam.user.view',
+            'iam.member.view',
+            'iam.role.view',
             'iam.permission.view',
             'iam.audit.view',
-            'iam.session.view', 'iam.session.revoke',
         ];
         $admin->givePermissionTo($adminPermissions);
         $this->command->line("   ✓ Admin: " . count($adminPermissions) . " permissions");
 
-        // User: Limited permissions (can view, cannot manage)
+        // User: View-only permissions
         $userPermissions = [
+            'users.view',
+            'content.view',
+            'products.view',
+            'orders.view',
+            'settings.view',
+            // Legacy IAM permissions
             'iam.org.view',
             'iam.user.view',
             'iam.member.view',
@@ -131,8 +142,12 @@ class OrgRolePermissionSeeder extends Seeder
         $user->givePermissionTo($userPermissions);
         $this->command->line("   ✓ User: " . count($userPermissions) . " permissions");
 
-        // Member: Minimal permissions (only view own data)
+        // Member: Minimal permissions
         $memberPermissions = [
+            'users.view',
+            'content.view',
+            'products.view',
+            // Legacy IAM permissions
             'iam.org.view',
         ];
         $member->givePermissionTo($memberPermissions);

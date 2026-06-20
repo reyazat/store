@@ -319,16 +319,14 @@ const verifyOtp = async () => {
         is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
 
-      if (!authStore.isSuperAdmin) {
+      if (!authStore.isSuperAdmin && !authStore.isStoreOwner) {
         await cartStore.mergeGuestCart()
       }
 
       const redirectTo = (route.query.redirect as string) || '/'
-      router.push(
-        authStore.isSuperAdmin
-          ? '/admin/dashboard'
-          : (redirectTo !== '/' && redirectTo ? redirectTo : '/')
-      )
+      if (authStore.isSuperAdmin) router.push('/admin/dashboard')
+      else if (authStore.isStoreOwner) router.push('/store/dashboard')
+      else router.push(redirectTo !== '/' && redirectTo ? redirectTo : '/')
     } else {
       error.value = response.message || 'کد وارد شده معتبر نیست'
       if (response.data?.attempts_remaining != null) {

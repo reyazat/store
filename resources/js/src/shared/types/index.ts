@@ -60,6 +60,14 @@ export interface Order {
   created_at: string
 }
 
+export interface UserOrganization {
+  id: number
+  uuid: string
+  name: string
+  description?: string | null
+  status: 'active' | 'inactive' | 'suspended'
+}
+
 export interface User {
   id: number
   name: string
@@ -69,6 +77,8 @@ export interface User {
   permissions?: string[]
   is_admin?: boolean
   is_super_admin?: boolean
+  organization_id?: number | null
+  organization?: UserOrganization | null
 }
 
 export interface LoginCredentials {

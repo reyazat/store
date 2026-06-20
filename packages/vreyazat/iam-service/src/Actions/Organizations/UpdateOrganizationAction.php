@@ -30,9 +30,15 @@ class UpdateOrganizationAction extends BaseAction
                 return $this->error('You do not have permission to update this organization', null, 403);
             }
 
-            // Prepare update data - only include allowed fields
-            $updateData = array_intersect_key($data, array_flip(['name']));
-            
+            // Prepare update data - only include explicitly provided allowed fields
+            // Note: null values ARE allowed (to clear description/logo)
+            $allowed    = ['name', 'description', 'logo', 'status'];
+            $updateData = array_filter(
+                $data,
+                fn($key) => in_array($key, $allowed),
+                ARRAY_FILTER_USE_KEY
+            );
+
             if (empty($updateData)) {
                 return $this->error('No valid fields to update', null, 400);
             }
@@ -59,8 +65,11 @@ class UpdateOrganizationAction extends BaseAction
 
             return $this->success([
                 'organization' => [
-                    'uuid' => $organization->uuid,
-                    'name' => $organization->name,
+                    'uuid'        => $organization->uuid,
+                    'name'        => $organization->name,
+                    'description' => $organization->description,
+                    'logo'        => $organization->logo,
+                    'status'      => $organization->status,
                 ]
             ], 'Organization updated successfully');
 

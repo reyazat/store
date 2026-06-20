@@ -14,12 +14,14 @@ class UpdateOrganizationRequest extends FormRequest
 
     public function rules(): array
     {
-        // Get the organization model from route (resolved via UUID)
-        $organization = $this->route('org');
-        $organizationId = $organization instanceof \IamApi\Models\Organization ? $organization->id : null;
-        
+        $org = $this->route('org');
+        $orgId = $org instanceof \IamApi\Models\Organization ? $org->id : null;
+
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255', 'unique:organizations,name,' . $organizationId, new NoHtml()],
+            'name'        => ['sometimes', 'required', 'string', 'max:255', 'unique:organizations,name,' . $orgId, new NoHtml()],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'logo'        => ['nullable', 'string', 'max:500'],
+            'status'      => ['nullable', 'in:active,inactive,suspended'],
         ];
     }
 
@@ -27,22 +29,20 @@ class UpdateOrganizationRequest extends FormRequest
     {
         return [
             'name.required' => 'Organization name is required',
-            'name.string' => 'Organization name must be a string',
-            'name.max' => 'Organization name cannot exceed 255 characters',
-            'name.unique' => 'An organization with this name already exists',
+            'name.string'   => 'Organization name must be a string',
+            'name.max'      => 'Organization name cannot exceed 255 characters',
+            'name.unique'   => 'An organization with this name already exists',
+            'status.in'     => 'Status must be one of: active, inactive, suspended',
         ];
     }
 
-    /**
-     * Get the body parameters for API documentation
-     */
     public function bodyParameters(): array
     {
         return [
-            'name' => [
-                'description' => 'The new name of the organization',
-                'example' => 'Acme Corporation',
-            ],
+            'name'        => ['description' => 'The new name of the organization', 'example' => 'Acme Corporation'],
+            'description' => ['description' => 'Optional description',              'example' => 'A brief description'],
+            'logo'        => ['description' => 'Optional logo URL or path',         'example' => 'logos/acme.png'],
+            'status'      => ['description' => 'active|inactive|suspended',         'example' => 'active'],
         ];
     }
 }

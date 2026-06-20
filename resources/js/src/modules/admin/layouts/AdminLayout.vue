@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import { 
-  LayoutDashboard, 
-  ShoppingCart, 
-  Package, 
-  FolderTree, 
-  Users, 
-  Ticket, 
+import {
+  LayoutDashboard,
+  ShoppingCart,
+  FolderTree,
+  Users,
+  Ticket,
   Settings,
-  LogOut, 
-  Menu, 
+  LogOut,
+  Menu,
   X,
   ChevronLeft,
   Bell,
@@ -21,7 +20,8 @@ import {
   ClipboardList,
   HelpCircle,
   MessageSquare,
-  Palette
+  Palette,
+  Store,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
@@ -31,22 +31,24 @@ const authStore = useAuthStore()
 const isSidebarOpen = ref(true)
 const isMobileSidebarOpen = ref(false)
 
+// Admin panel is exclusively for super admins — all menu items are always visible.
+// Store owners and editors use /store/* routes, not this panel.
 const menuItems = [
-  { name: 'داشبورد',       icon: LayoutDashboard,  path: '/admin/dashboard' },
-  { name: 'سفارشات',       icon: ShoppingCart,     path: '/admin/orders' },
-  { name: 'محصولات',       icon: Package,          path: '/admin/products' },
-  { name: 'دسته‌بندی‌ها', icon: FolderTree,       path: '/admin/categories' },
-  { name: 'ویژگی‌ها',      icon: Palette,          path: '/admin/options' },
-  { name: 'کاربران',       icon: Users,            path: '/admin/users' },
-  { name: 'کوپن‌ها',       icon: Ticket,           path: '/admin/coupons' },
-  { name: 'اسلایدر',          icon: GalleryHorizontal, path: '/admin/sliders' },
-  { name: 'لینک‌ها',          icon: Link,              path: '/admin/nav-links' },
+  { name: 'داشبورد',           icon: LayoutDashboard,   path: '/admin/dashboard'       },
+  { name: 'فروشگاه‌ها',        icon: Store,             path: '/admin/organizations'   },
+  { name: 'سفارشات',           icon: ShoppingCart,      path: '/admin/orders'          },
+  { name: 'دسته‌بندی‌ها',     icon: FolderTree,        path: '/admin/categories'      },
+  { name: 'ویژگی‌ها',          icon: Palette,           path: '/admin/options'         },
+  { name: 'کاربران',           icon: Users,             path: '/admin/users'           },
+  { name: 'کوپن‌ها',           icon: Ticket,            path: '/admin/coupons'         },
+  { name: 'اسلایدر',           icon: GalleryHorizontal, path: '/admin/sliders'         },
+  { name: 'لینک‌ها',           icon: Link,              path: '/admin/nav-links'       },
   { name: 'روش‌های پرداخت',   icon: CreditCard,        path: '/admin/payment-methods' },
-  { name: 'وضعیت‌های سفارش', icon: ListChecks,        path: '/admin/order-statuses' },
-  { name: 'سوالات متداول',    icon: HelpCircle,        path: '/admin/faqs' },
-  { name: 'نظرات کاربران',    icon: MessageSquare,     path: '/admin/reviews' },
-  { name: 'لاگ‌های فعالیت',   icon: ClipboardList,     path: '/admin/audit-logs' },
-  { name: 'تنظیمات',          icon: Settings,          path: '/admin/site-settings' },
+  { name: 'وضعیت‌های سفارش',  icon: ListChecks,        path: '/admin/order-statuses'  },
+  { name: 'سوالات متداول',     icon: HelpCircle,        path: '/admin/faqs'            },
+  { name: 'نظرات کاربران',     icon: MessageSquare,     path: '/admin/reviews'         },
+  { name: 'لاگ‌های فعالیت',   icon: ClipboardList,     path: '/admin/audit-logs'      },
+  { name: 'تنظیمات',           icon: Settings,          path: '/admin/site-settings'   },
 ]
 
 const handleLogout = async () => {

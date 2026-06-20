@@ -40,26 +40,66 @@ class OrganizationService
         /** @var Organization $organization */
         $organization = $this->organizationRepository->create($data);
 
-        // Add owner to organization
+        // Add owner to organization (Layer 1)
         $this->organizationRepository->addMember($organization, $owner, 'owner');
+
+        // Dispatch event to create default roles and permissions (Layer 2)
+        event(new \IamApi\Events\OrganizationCreated($organization));
+
+        // After roles are created, assign owner Spatie role to the owner
+        // This ensures the owner has both Layer 1 and Layer 2 roles
+        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+        try {
+            $owner->assignRole('owner');
+        } catch (\Exception $e) {
+            \Log::warning("Could not assign owner Spatie role to user {$owner->id} in organization {$organization->id}: {$e->getMessage()}");
+        }
+        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
 
         return $organization;
     }
 
     /**
      * Add member to organization
+     * 
+     * This method bridges Layer 1 (Organization roles) and Layer 2 (Spatie Permission).
+     * When a user is added to an organization with a role, both layers are synchronized.
      */
     public function addMember(Organization $organization, User $user, string $role = 'member'): bool
     {
-        if (!in_array($role, ['owner', 'admin', 'user', 'member'])) {
-            throw new InvalidArgumentException('Invalid role. Must be one of: owner, admin, user, member');
+        if (!in_array($role, ['owner', 'admin', 'editor', 'user', 'member'])) {
+            throw new InvalidArgumentException('Invalid role. Must be one of: owner, admin, editor, user, member');
         }
 
-        return $this->organizationRepository->addMember($organization, $user, $role);
+        // Layer 1: Add member to organization (sets organization_id and role in pivot)
+        $result = $this->organizationRepository->addMember($organization, $user, $role);
+
+        if ($result) {
+            // Layer 2: Sync Spatie Permission role
+            // Set organization context for team-based permissions
+            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+            
+            // Assign Spatie role if it exists, otherwise user will rely on Layer 1 permissions
+            try {
+                $user->assignRole($role);
+            } catch (\Exception $e) {
+                // Role might not exist yet (will be created by auto-seeder)
+                // Log but don't fail the operation
+                \Log::warning("Could not assign Spatie role '{$role}' to user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
+            }
+            
+            // Clear permission cache
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+
+        return $result;
     }
 
     /**
      * Remove member from organization
+     * 
+     * This method also removes the Spatie role from the user to keep Layer 2 in sync.
+     * 
      * @throws Exception
      */
     public function removeMember(Organization $organization, User $user): bool
@@ -72,17 +112,41 @@ class OrganizationService
             }
         }
 
-        return $this->organizationRepository->removeMember($organization, $user);
+        // Get role before removing (for Layer 2 cleanup)
+        $role = $this->getUserRole($organization, $user);
+
+        // Layer 1: Remove member from organization
+        $result = $this->organizationRepository->removeMember($organization, $user);
+
+        if ($result && $role) {
+            // Layer 2: Remove Spatie role
+            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+            
+            try {
+                $user->removeRole($role);
+            } catch (\Exception $e) {
+                \Log::warning("Could not remove Spatie role '{$role}' from user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
+            }
+            
+            // Clear permission cache
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+
+        return $result;
     }
 
     /**
      * Update member role
+     * 
+     * This method bridges Layer 1 (Organization roles) and Layer 2 (Spatie Permission).
+     * When a user's role is updated, both layers are synchronized.
+     * 
      * @throws Exception
      */
     public function updateMemberRole(Organization $organization, User $user, string $role): bool
     {
-        if (!in_array($role, ['owner', 'admin', 'user', 'member'])) {
-            throw new InvalidArgumentException('Invalid role. Must be one of: owner, admin, user, member');
+        if (!in_array($role, ['owner', 'admin', 'editor', 'user', 'member'])) {
+            throw new InvalidArgumentException('Invalid role. Must be one of: owner, admin, editor, user, member');
         }
 
         // Prevent demoting the last owner
@@ -93,7 +157,33 @@ class OrganizationService
             }
         }
 
-        return $this->organizationRepository->updateMemberRole($organization, $user, $role);
+        // Get old role before update
+        $oldRole = $this->getUserRole($organization, $user);
+
+        // Layer 1: Update organization role
+        $result = $this->organizationRepository->updateMemberRole($organization, $user, $role);
+
+        if ($result && $oldRole !== $role) {
+            // Layer 2: Sync Spatie Permission role
+            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+            
+            try {
+                // Remove old Spatie role
+                if ($oldRole) {
+                    $user->removeRole($oldRole);
+                }
+                
+                // Assign new Spatie role
+                $user->assignRole($role);
+            } catch (\Exception $e) {
+                \Log::warning("Could not sync Spatie role for user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
+            }
+            
+            // Clear permission cache
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        }
+
+        return $result;
     }
 
     /**
@@ -102,20 +192,20 @@ class OrganizationService
      */
     public function inviteUser(Organization $organization, string $email, string $role, User $invitedBy): OrganizationInvitation
     {
-        if (!in_array($role, ['admin', 'user', 'member'])) {
-            throw new InvalidArgumentException('Invalid role for invitation. Must be one of: admin, user, member');
+        if (!in_array($role, ['admin', 'editor', 'user', 'member'])) {
+            throw new InvalidArgumentException('Invalid role for invitation. Must be one of: admin, editor, user, member');
         }
 
-        // Check if user is already a member or assigned to another organization
+        // Check if user is already a member or assigned to a different organization
         $existingUser = $this->userRepository->findByEmail($email);
         if ($existingUser) {
-            // In single-organization model, check if user is already assigned
-            if ($existingUser->organization_id) {
-                if ($existingUser->organization_id === $organization->id) {
-                    throw new Exception('User is already a member of this organization');
-                } else {
-                    throw new Exception('User is already assigned to another organization');
-                }
+            if ($existingUser->organization_id === $organization->id) {
+                throw new Exception('User is already a member of this organization');
+            }
+            // Buyer (organization_id = null) can be invited to any store — allowed.
+            // User already assigned to a DIFFERENT store cannot be invited.
+            if ($existingUser->organization_id !== null) {
+                throw new Exception('User is already assigned to another organization');
             }
         }
 
@@ -220,8 +310,11 @@ class OrganizationService
     /**
      * Check if user has specific permission in organization.
      *
-     * Note: This is a simple permission check based on organization role (Layer 1).
-     * For more granular permissions, use Spatie Permission (Layer 2) via $user->can().
+     * This method checks BOTH layers:
+     * - Layer 1: Organization role-based permissions (fallback)
+     * - Layer 2: Spatie Permission (granular RBAC)
+     * 
+     * Returns true if user has permission in either layer.
      */
     public function hasPermission(Organization $organization, User $user, string $permission): bool
     {
@@ -230,6 +323,13 @@ class OrganizationService
             return true;
         }
 
+        // Layer 2: Check Spatie Permission first (more granular)
+        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+        if ($user->can($permission)) {
+            return true;
+        }
+
+        // Layer 1: Fallback to organization role-based permissions
         $role = $this->getUserRole($organization, $user);
 
         if (!$role) {
@@ -242,16 +342,29 @@ class OrganizationService
             'admin' => [
                 'users.manage',
                 'users.invite',
+                'users.view',
                 'domains.manage',
-                'settings.manage'
+                'domains.view',
+                'settings.manage',
+                'content.manage',
+                'products.manage',
+                'orders.view',
+                'orders.manage',
+            ],
+            'editor' => [
+                'content.manage',
+                'products.manage',
+                'categories.view',
+                'users.view',
             ],
             'user' => [
                 'users.view',
-                'domains.view'
+                'domains.view',
+                'content.view',
             ],
             'member' => [
-                'users.view'
-            ]
+                'users.view',
+            ],
         ];
 
         $rolePermissions = $permissions[$role] ?? [];
