@@ -2,67 +2,65 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use IamApi\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class EcommerceUserSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Creates buyer users for e-commerce demo data.
+     * 
+     * These are regular customers (organization_id = null) who can:
+     * - Browse products, add to cart, checkout
+     * - Access /v1/user/* routes
+     * - Cannot access /v1/store/* or /v1/admin/*
+     * 
+     * Note: Store owners/members are created by OrganizationSeeder + TestUsersSeeder.
+     * Super Admin is created by SuperAdminSeeder.
      */
     public function run(): void
     {
-        $this->command->info('👥 Seeding e-commerce users...');
+        $this->command->info('👥 Seeding e-commerce buyer users...');
 
-        // Create admin user
-        $admin = User::firstOrCreate(['email' => 'admin@shop.com'], [
-            'name' => 'Admin User',
-            'password' => Hash::make('password'),
-            'email_verified_at' => now(),
-        ]);
-        $this->command->line('   ✓ Created admin: admin@shop.com (password: password)');
-
-        // Create demo customers
-        $customers = [
+        $buyers = [
             [
-                'name' => 'John Doe',
-                'email' => 'john@example.com',
-                'phone' => '+1234567890',
+                'name' => 'محسن کریمی',
+                'email' => 'mohsen@buyer.com',
+                'phone' => '+989181234001',
             ],
             [
-                'name' => 'Jane Smith',
-                'email' => 'jane@example.com',
-                'phone' => '+1234567891',
+                'name' => 'نازنین فراهانی',
+                'email' => 'nazanin@buyer.com',
+                'phone' => '+989181234002',
             ],
             [
                 'name' => 'Ali Rezaei',
-                'email' => 'ali@example.com',
-                'phone' => '+989123456789',
+                'email' => 'ali@buyer.com',
+                'phone' => '+989181234003',
             ],
         ];
 
-        foreach ($customers as $customerData) {
-            // Check if user exists by email OR phone
-            $existingUser = User::where('email', $customerData['email'])
-                ->orWhere('phone', $customerData['phone'])
-                ->first();
+        foreach ($buyers as $buyerData) {
+            $user = User::firstOrCreate(
+                ['email' => $buyerData['email']],
+                [
+                    'name' => $buyerData['name'],
+                    'phone' => $buyerData['phone'],
+                    'password' => Hash::make('Buyer123!'),
+                    'email_verified_at' => now(),
+                    'phone_verified_at' => now(),
+                    'status' => 'active',
+                    'must_change_password' => false,
+                    'password_changed_at' => now(),
+                    'password_expires_at' => now()->addDays(90),
+                    // organization_id = null (buyer — not part of any store)
+                ]
+            );
 
-            if ($existingUser) {
-                $this->command->line("   ⚠ Skipped: {$customerData['email']} (already exists)");
-                continue;
-            }
-
-            $customer = User::create([
-                'name' => $customerData['name'],
-                'email' => $customerData['email'],
-                'phone' => $customerData['phone'] ?? null,
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
-            ]);
-            $this->command->line("   ✓ Created customer: {$customer->email}");
+            $this->command->line("   ✓ Buyer: {$user->email} (organization_id = null)");
         }
 
-        $this->command->info('✅ E-commerce users seeded successfully!');
+        $this->command->info('✅ E-commerce buyers seeded! (password: Buyer123!)');
     }
 }

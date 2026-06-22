@@ -1,233 +1,200 @@
 <?php
 
-namespace Database\Seeders;
+namespace IamApi\Database\Seeders;
 
 use IamApi\Models\Organization;
 use IamApi\Models\User;
+use IamApi\Services\OrganizationService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class TestUsersSeeder extends Seeder
 {
+    public function __construct(
+        private readonly OrganizationService $organizationService,
+    ) {}
+
     /**
-     * Run the database seeds.
+     * Creates test users for development environment.
+     * 
+     * Uses OrganizationService::addMember() to ensure Layer 1 + Layer 2 sync:
+     * - Sets organization_id on user (Layer 1)
+     * - Assigns Spatie role in organization context (Layer 2)
+     * 
+     * User Types Created:
+     * - Store members (admin, editor, member) for existing organizations
+     * - Buyers (organization_id = null) for testing buyer flows
+     * - Edge cases: locked, expired password, unverified, inactive
      */
     public function run(): void
     {
         $this->command->info('👥 Seeding test users...');
 
-        DB::transaction(function () {
-            $acmeOrg = Organization::where('name', 'Acme Corporation')->first();
-            $techOrg = Organization::where('name', 'Tech Innovations Ltd')->first();
-            $startupOrg = Organization::where('name', 'StartupXYZ')->first();
+        // Get organizations created by OrganizationSeeder
+        $digiStore = Organization::where('name', 'دیجی‌استور')->first();
+        $technolife = Organization::where('name', 'تکنولایف مارکت')->first();
+        $fashionland = Organization::where('name', 'فشن‌لند')->first();
 
-            // Create regular users for different scenarios
-            $users = [
-                // Active users
-                [
-                    'name' => 'John Doe',
-                    'email' => 'john.doe@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1001',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => true,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => now()->subHours(3),
-                    'organization' => $acmeOrg,
-                    'org_role' => 'member',
-                ],
-                [
-                    'name' => 'Jane Smith',
-                    'email' => 'jane.smith@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1002',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => false,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => now()->subHours(1),
-                    'organization' => $acmeOrg,
-                    'org_role' => 'admin',
-                ],
-                [
-                    'name' => 'Bob Johnson',
-                    'email' => 'bob.johnson@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1003',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => true,
-                    'mfa_enabled' => true,
-                    'must_change_password' => false,
-                    'last_login' => now()->subMinutes(30),
-                    'organization' => $techOrg,
-                    'org_role' => 'admin',
-                ],
-                [
-                    'name' => 'Alice Wilson',
-                    'email' => 'alice.wilson@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1004',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => true,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => now()->subMinutes(10),
-                    'organization' => $startupOrg,
-                    'org_role' => 'member',
-                ],
-                // User with expired password
-                [
-                    'name' => 'Charlie Brown',
-                    'email' => 'charlie.brown@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1005',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => false,
-                    'mfa_enabled' => false,
-                    'must_change_password' => true,
-                    'last_login' => now()->subDays(5),
-                    'organization' => $acmeOrg,
-                    'org_role' => 'member',
-                    'password_expired' => true,
-                ],
-                // Unverified user
-                [
-                    'name' => 'Diana Prince',
-                    'email' => 'diana.prince@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1006',
-                    'status' => 'active',
-                    'email_verified' => false,
-                    'phone_verified' => false,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => null,
-                    'organization' => $techOrg,
-                    'org_role' => 'member',
-                ],
-                // Locked user
-                [
-                    'name' => 'Eve Adams',
-                    'email' => 'eve.adams@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1007',
-                    'status' => 'active',
-                    'email_verified' => true,
-                    'phone_verified' => true,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => now()->subDays(2),
-                    'organization' => $acmeOrg,
-                    'org_role' => 'member',
-                    'locked' => true,
-                ],
-                // Inactive user
-                [
-                    'name' => 'Frank Miller',
-                    'email' => 'frank.miller@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-1008',
-                    'status' => 'inactive',
-                    'email_verified' => true,
-                    'phone_verified' => true,
-                    'mfa_enabled' => false,
-                    'must_change_password' => false,
-                    'last_login' => now()->subWeeks(2),
-                    'organization' => $startupOrg,
-                    'org_role' => 'member',
-                ],
-            ];
+        if (!$digiStore || !$technolife || !$fashionland) {
+            $this->command->error('❌ Organizations not found. Run OrganizationSeeder first!');
+            return;
+        }
 
-            foreach ($users as $userData) {
-                $user = User::create([
-                    'name' => $userData['name'],
-                    'email' => $userData['email'],
-                    'email_verified_at' => $userData['email_verified'] ? now() : null,
-                    'password' => Hash::make($userData['password']),
-                    'phone' => $userData['phone'],
-                    'phone_verified_at' => $userData['phone_verified'] ? now() : null,
-                    'status' => $userData['status'],
-                    'must_change_password' => $userData['must_change_password'],
-                    'password_changed_at' => now()->subDays($userData['password_expired'] ?? false ? 100 : 10),
-                    'password_expires_at' => $userData['password_expired'] ?? false
-                        ? now()->subDays(10)
-                        : now()->addDays(90),
-                    'last_login_at' => $userData['last_login'],
-                    'last_login_ip' => $userData['last_login'] ? '192.168.1.' . rand(100, 200) : null,
-                    'failed_login_attempts' => $userData['locked'] ?? false ? 10 : rand(0, 2),
-                    'locked_until' => $userData['locked'] ?? false ? now()->addHours(2) : null,
-                    'mfa_enabled' => $userData['mfa_enabled'],
-                    'created_at' => now()->subDays(rand(1, 30)),
-                    'updated_at' => now()->subDays(rand(0, 5)),
-                ]);
+        // Store members — will be assigned via addMember (Layer 1 + 2)
+        $storeMembers = [
+            [
+                'name' => 'رضا کریمی',
+                'email' => 'reza@digistore.com',
+                'phone' => '+989151234001',
+                'organization' => $digiStore,
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'زهرا حسینی',
+                'email' => 'zahra@digistore.com',
+                'phone' => '+989151234002',
+                'organization' => $digiStore,
+                'role' => 'editor',
+            ],
+            [
+                'name' => 'حسین نوری',
+                'email' => 'hossein@technolife.com',
+                'phone' => '+989151234003',
+                'organization' => $technolife,
+                'role' => 'admin',
+            ],
+            [
+                'name' => 'فاطمه عباسی',
+                'email' => 'fatemeh@technolife.com',
+                'phone' => '+989151234004',
+                'organization' => $technolife,
+                'role' => 'editor',
+            ],
+            [
+                'name' => 'محمد جعفری',
+                'email' => 'mohammad@fashionland.com',
+                'phone' => '+989151234005',
+                'organization' => $fashionland,
+                'role' => 'member',
+            ],
+        ];
 
-                // Add to organization (set organization_id directly)
-                if ($userData['organization']) {
-                    $user->update([
-                        'organization_id' => $userData['organization']->id,
-                    ]);
-                }
-
-                $this->command->line("   - Created user: {$userData['name']} ({$userData['email']})");
-            }
-
-            // Create some users without organizations
-            $independentUsers = [
+        foreach ($storeMembers as $memberData) {
+            $user = User::firstOrCreate(
+                ['email' => $memberData['email']],
                 [
-                    'name' => 'Grace Hopper',
-                    'email' => 'grace.hopper@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-2001',
-                    'status' => 'active',
-                ],
-                [
-                    'name' => 'Alan Turing',
-                    'email' => 'alan.turing@example.com',
-                    'password' => 'User123!',
-                    'phone' => '+1-555-2002',
-                    'status' => 'active',
-                ],
-            ];
-
-            foreach ($independentUsers as $userData) {
-                $user = User::create([
-                    'name' => $userData['name'],
-                    'email' => $userData['email'],
+                    'name' => $memberData['name'],
+                    'phone' => $memberData['phone'],
+                    'password' => Hash::make('User123!'),
                     'email_verified_at' => now(),
-                    'password' => Hash::make($userData['password']),
-                    'phone' => $userData['phone'],
                     'phone_verified_at' => now(),
-                    'status' => $userData['status'],
+                    'status' => 'active',
                     'must_change_password' => false,
-                    'password_changed_at' => now()->subDays(5),
+                    'password_changed_at' => now(),
                     'password_expires_at' => now()->addDays(90),
-                    'last_login_at' => now()->subHours(rand(1, 24)),
-                    'last_login_ip' => '192.168.1.' . rand(100, 200),
-                    'failed_login_attempts' => 0,
-                    'locked_until' => null,
-                    'mfa_enabled' => false,
-                    'created_at' => now()->subDays(rand(1, 15)),
-                    'updated_at' => now()->subDays(rand(0, 3)),
-                ]);
+                ]
+            );
 
-                $this->command->line("   - Created independent user: {$userData['name']} ({$userData['email']})");
-            }
+            // Add to organization (Layer 1 + Layer 2 sync via service)
+            $this->organizationService->addMember(
+                $memberData['organization'],
+                $user,
+                $memberData['role']
+            );
 
-            $this->command->info("✅ Created test users with various scenarios:");
-            $this->command->line("   - Active users with different MFA settings");
-            $this->command->line("   - User with expired password (must change)");
-            $this->command->line("   - Unverified user (email not verified)");
-            $this->command->line("   - Locked user (failed login attempts)");
-            $this->command->line("   - Inactive user");
-            $this->command->line("   - Independent users (no organization)");
-            $this->command->line("   - Default password for all test users: User123!");
-        });
+            $this->command->line("   ✓ Store {$memberData['role']}: {$user->email} → {$memberData['organization']->name}");
+        }
+
+        // Buyers — no organization, these are regular customers
+        $buyers = [
+            [
+                'name' => 'نیما صادقی',
+                'email' => 'nima@gmail.com',
+                'phone' => '+989161234001',
+            ],
+            [
+                'name' => 'لیلا کاظمی',
+                'email' => 'leila@gmail.com',
+                'phone' => '+989161234002',
+            ],
+            [
+                'name' => 'امیر حسینی',
+                'email' => 'amir@gmail.com',
+                'phone' => '+989161234003',
+            ],
+        ];
+
+        foreach ($buyers as $buyerData) {
+            $user = User::firstOrCreate(
+                ['email' => $buyerData['email']],
+                [
+                    'name' => $buyerData['name'],
+                    'phone' => $buyerData['phone'],
+                    'password' => Hash::make('User123!'),
+                    'email_verified_at' => now(),
+                    'phone_verified_at' => now(),
+                    'status' => 'active',
+                    'must_change_password' => false,
+                    'password_changed_at' => now(),
+                    'password_expires_at' => now()->addDays(90),
+                ]
+            );
+
+            $this->command->line("   ✓ Buyer: {$user->email} (organization_id = null)");
+        }
+
+        // Edge cases for testing
+        $edgeCases = [
+            [
+                'name' => 'کاربر قفل‌شده',
+                'email' => 'locked@test.com',
+                'phone' => '+989171234001',
+                'locked_until' => now()->addHours(2),
+                'failed_login_attempts' => 10,
+            ],
+            [
+                'name' => 'کاربر تایید نشده',
+                'email' => 'unverified@test.com',
+                'phone' => '+989171234002',
+                'email_verified_at' => null,
+            ],
+            [
+                'name' => 'کاربر غیرفعال',
+                'email' => 'inactive@test.com',
+                'phone' => '+989171234003',
+                'status' => 'inactive',
+            ],
+            [
+                'name' => 'رمز منقضی',
+                'email' => 'expired-pass@test.com',
+                'phone' => '+989171234004',
+                'must_change_password' => true,
+                'password_expires_at' => now()->subDays(10),
+            ],
+        ];
+
+        foreach ($edgeCases as $caseData) {
+            User::firstOrCreate(
+                ['email' => $caseData['email']],
+                [
+                    'name' => $caseData['name'],
+                    'phone' => $caseData['phone'],
+                    'password' => Hash::make('User123!'),
+                    'email_verified_at' => $caseData['email_verified_at'] ?? now(),
+                    'phone_verified_at' => now(),
+                    'status' => $caseData['status'] ?? 'active',
+                    'must_change_password' => $caseData['must_change_password'] ?? false,
+                    'password_changed_at' => now()->subDays(100),
+                    'password_expires_at' => $caseData['password_expires_at'] ?? now()->addDays(90),
+                    'failed_login_attempts' => $caseData['failed_login_attempts'] ?? 0,
+                    'locked_until' => $caseData['locked_until'] ?? null,
+                ]
+            );
+
+            $this->command->line("   ✓ Edge case: {$caseData['email']}");
+        }
+
+        $this->command->info('✅ Test users seeded successfully!');
+        $this->command->line('   Default password: User123!');
     }
 }

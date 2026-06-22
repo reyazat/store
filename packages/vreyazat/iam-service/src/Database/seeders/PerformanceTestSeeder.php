@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace IamApi\Database\Seeders;
 
 use IamApi\Models\Organization;
 use IamApi\Models\User;

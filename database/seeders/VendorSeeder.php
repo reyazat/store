@@ -3,50 +3,21 @@
 namespace Database\Seeders;
 
 use App\Models\Vendor;
-use App\Models\User;
+use IamApi\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class VendorSeeder extends Seeder
 {
     /**
-     * Run the database seeds.
+     * Creates vendors (marketplace sellers) for e-commerce demo.
+     * 
+     * Vendors are product suppliers in the marketplace.
+     * The platform vendor (دیجی‌کالا) is the main store.
+     * Other vendors are third-party sellers.
      */
     public function run(): void
     {
         $this->command->info('🏪 Seeding vendors...');
-
-        // Get some users to assign as vendor owners
-        $admin = User::where('email', 'admin@shop.com')->first();
-        $john = User::where('email', 'john@example.com')->first();
-        $jane = User::where('email', 'jane@example.com')->first();
-
-        // If users don't exist, create them
-        if (!$admin) {
-            $admin = User::create([
-                'name' => 'Admin User',
-                'email' => 'admin@shop.com',
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
-            ]);
-        }
-        if (!$john) {
-            $john = User::create([
-                'name' => 'John Doe',
-                'email' => 'john@example.com',
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
-            ]);
-        }
-        if (!$jane) {
-            $jane = User::create([
-                'name' => 'Jane Smith',
-                'email' => 'jane@example.com',
-                'password' => Hash::make('password'),
-                'email_verified_at' => now(),
-            ]);
-        }
 
         $vendors = [
             [
@@ -98,14 +69,6 @@ class VendorSeeder extends Seeder
 
         foreach ($vendors as $vendorData) {
             $vendor = Vendor::firstOrCreate(['slug' => $vendorData['slug']], $vendorData);
-            
-            // Add owner as vendor user if not already attached
-            if (!$vendor->users()->where('user_id', $admin->id)->exists()) {
-                $vendor->users()->attach($admin->id, [
-                    'role' => 'owner',
-                ]);
-            }
-            
             $this->command->line("   ✓ Created vendor: {$vendor->name}");
         }
 

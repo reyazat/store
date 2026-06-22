@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\Seeders;
+namespace IamApi\Database\Seeders;
 
 use IamApi\Models\JwtToken;
 use IamApi\Models\User;

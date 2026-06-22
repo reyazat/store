@@ -121,10 +121,12 @@ class OrganizationController extends Controller
             return response()->json(['success' => false, 'message' => 'Super admin cannot be assigned as store owner.'], 422);
         }
 
-        // Buyer (organization_id=null) can be freely assigned as owner.
-        // Block only if they already belong to a DIFFERENT organization.
+        // If user belongs to a different organization, remove them first (transfer)
         if ($user->organization_id !== null && $user->organization_id !== $organization->id) {
-            return response()->json(['success' => false, 'message' => 'User is already assigned to another organization.'], 422);
+            $previousOrg = Organization::find($user->organization_id);
+            if ($previousOrg) {
+                $this->organizationRepository->removeMember($previousOrg, $user);
+            }
         }
 
         $this->organizationRepository->addMember($organization, $user, 'owner');

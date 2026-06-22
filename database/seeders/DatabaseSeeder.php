@@ -2,6 +2,9 @@
 
 namespace Database\Seeders;
 
+use IamApi\Database\Seeders\IamPermissionsSeeder;
+use IamApi\Database\Seeders\OrgRolePermissionSeeder;
+use IamApi\Database\Seeders\SuperAdminSeeder;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder

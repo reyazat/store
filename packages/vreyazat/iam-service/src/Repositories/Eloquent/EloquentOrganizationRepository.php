@@ -120,14 +120,18 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
             // تنظیم organization_id برای کاربر
             $user->update(['organization_id' => $organization->id]);
             
-            // حذف role های قبلی این سازمان و اضافه کردن role جدید
-            // Note: setPermissionsTeamId already filters by organization_id
-            $existingRoles = $user->roles()->get();
-            foreach ($existingRoles as $existingRole) {
-                $user->removeRole($existingRole);
-            }
+            // حذف role های قبلی مستقیماً از pivot table
+            // (avoid guard mismatch when user had roles from a different org/guard context)
+            DB::table('model_has_roles')
+                ->where('model_type', get_class($user))
+                ->where('model_id', $user->id)
+                ->delete();
             
-            // Assign role به کاربر
+            // Clear cached roles so assignRole sees fresh state
+            $user->unsetRelation('roles');
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+            
+            // Assign role جدید
             $user->assignRole($roleModel);
             
             return true;
@@ -142,16 +146,20 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
         }
 
         return DB::transaction(function () use ($organization, $user) {
-            // ابتدا role های این سازمان را حذف کن
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            // Note: setPermissionsTeamId already filters by organization_id
-            $existingRoles = $user->roles()->get();
-            foreach ($existingRoles as $existingRole) {
-                $user->removeRole($existingRole);
-            }
+            // حذف role های این سازمان مستقیماً از pivot table
+            // (avoid guard mismatch errors)
+            DB::table('model_has_roles')
+                ->where('model_type', get_class($user))
+                ->where('model_id', $user->id)
+                ->delete();
             
             // سپس organization_id را null کن
             $user->update(['organization_id' => null]);
+            
+            // Clear cached roles
+            $user->unsetRelation('roles');
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+            
             return true;
         });
     }
@@ -181,12 +189,16 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
                 ]);
             }
             
-            // حذف role های قبلی این سازمان
-            // Note: setPermissionsTeamId already filters by organization_id
-            $existingRoles = $user->roles()->get();
-            foreach ($existingRoles as $existingRole) {
-                $user->removeRole($existingRole);
-            }
+            // حذف role های قبلی مستقیماً از pivot table
+            // (avoid guard mismatch errors)
+            DB::table('model_has_roles')
+                ->where('model_type', get_class($user))
+                ->where('model_id', $user->id)
+                ->delete();
+            
+            // Clear cached roles so assignRole sees fresh state
+            $user->unsetRelation('roles');
+            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
             
             // Assign role جدید
             $user->assignRole($roleModel);

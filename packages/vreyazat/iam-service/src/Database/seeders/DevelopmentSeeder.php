@@ -1,28 +1,36 @@
 <?php
 
-namespace Database\Seeders;
+namespace IamApi\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 
 class DevelopmentSeeder extends Seeder
 {
     /**
-     * Seed the application's database for development environment.
+     * Seed development data (IAM package scope).
+     * 
+     * Order matters:
+     * 1. OrganizationSeeder — creates orgs + owners (triggers OrganizationCreated event → roles/permissions)
+     * 2. TestUsersSeeder — adds members to existing orgs via OrganizationService
+     * 3. RbacDemoSeeder — creates dedicated demo org with all role types
+     * 4. Auxiliary seeders — password history, JWT, OTP, MFA, activity logs
+     * 
+     * Note: OrgRolePermissionSeeder is NOT needed here because OrganizationCreated event
+     * automatically creates roles/permissions for each new organization.
      */
     public function run(): void
     {
-        $this->command->info('🌱 Seeding development data...');
+        $this->command->info('🌱 Seeding IAM development data...');
 
-        // Core system data (always needed)
-        $this->call([
-            OrgRolePermissionSeeder::class,
-        ]);
-
-        // Development-specific data
+        // Organizations + Owners (creates roles/permissions via event)
         $this->call([
             OrganizationSeeder::class,
             TestUsersSeeder::class,
-            RbacDemoSeeder::class,  // RBAC demo data with permissions
+            RbacDemoSeeder::class,
+        ]);
+
+        // Auxiliary test data
+        $this->call([
             PasswordHistorySeeder::class,
             JwtTokenSeeder::class,
             OtpSeeder::class,
@@ -30,6 +38,6 @@ class DevelopmentSeeder extends Seeder
             ActivityLogSeeder::class,
         ]);
 
-        $this->command->info('✅ Development seeding completed!');
+        $this->command->info('✅ IAM development seeding completed!');
     }
 }

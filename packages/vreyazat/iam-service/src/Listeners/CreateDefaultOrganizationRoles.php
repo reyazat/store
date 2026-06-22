@@ -58,9 +58,6 @@ class CreateDefaultOrganizationRoles
                     'name' => $name,
                     'guard_name' => 'api',
                     'organization_id' => $organization->id,
-                ],
-                [
-                    'description' => $description,
                 ]
             );
             $createdPermissions[$name] = $permission;
@@ -127,9 +124,6 @@ class CreateDefaultOrganizationRoles
                     'name' => $roleName,
                     'guard_name' => 'api',
                     'organization_id' => $organization->id,
-                ],
-                [
-                    'description' => $roleData['description'],
                 ]
             );
 

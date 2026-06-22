@@ -40,21 +40,13 @@ class OrganizationService
         /** @var Organization $organization */
         $organization = $this->organizationRepository->create($data);
 
-        // Add owner to organization (Layer 1)
-        $this->organizationRepository->addMember($organization, $owner, 'owner');
-
         // Dispatch event to create default roles and permissions (Layer 2)
+        // Must happen BEFORE addMember so that roles exist when assigning
         event(new \IamApi\Events\OrganizationCreated($organization));
 
-        // After roles are created, assign owner Spatie role to the owner
-        // This ensures the owner has both Layer 1 and Layer 2 roles
-        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-        try {
-            $owner->assignRole('owner');
-        } catch (\Exception $e) {
-            \Log::warning("Could not assign owner Spatie role to user {$owner->id} in organization {$organization->id}: {$e->getMessage()}");
-        }
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        // Add owner to organization (Layer 1 + Layer 2)
+        // Repository handles: set organization_id, create role if needed, assign role
+        $this->organizationRepository->addMember($organization, $owner, 'owner');
 
         return $organization;
     }
@@ -71,28 +63,9 @@ class OrganizationService
             throw new InvalidArgumentException('Invalid role. Must be one of: owner, admin, editor, user, member');
         }
 
-        // Layer 1: Add member to organization (sets organization_id and role in pivot)
-        $result = $this->organizationRepository->addMember($organization, $user, $role);
-
-        if ($result) {
-            // Layer 2: Sync Spatie Permission role
-            // Set organization context for team-based permissions
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            
-            // Assign Spatie role if it exists, otherwise user will rely on Layer 1 permissions
-            try {
-                $user->assignRole($role);
-            } catch (\Exception $e) {
-                // Role might not exist yet (will be created by auto-seeder)
-                // Log but don't fail the operation
-                \Log::warning("Could not assign Spatie role '{$role}' to user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
-            }
-            
-            // Clear permission cache
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-        }
-
-        return $result;
+        // Repository handles both Layer 1 (organization_id) and Layer 2 (Spatie role assignment)
+        // It creates the role if it doesn't exist, removes old roles, and assigns the new one
+        return $this->organizationRepository->addMember($organization, $user, $role);
     }
 
     /**
@@ -112,27 +85,8 @@ class OrganizationService
             }
         }
 
-        // Get role before removing (for Layer 2 cleanup)
-        $role = $this->getUserRole($organization, $user);
-
-        // Layer 1: Remove member from organization
-        $result = $this->organizationRepository->removeMember($organization, $user);
-
-        if ($result && $role) {
-            // Layer 2: Remove Spatie role
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            
-            try {
-                $user->removeRole($role);
-            } catch (\Exception $e) {
-                \Log::warning("Could not remove Spatie role '{$role}' from user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
-            }
-            
-            // Clear permission cache
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-        }
-
-        return $result;
+        // Repository handles both Layer 1 (organization_id = null) and Layer 2 (role removal from pivot)
+        return $this->organizationRepository->removeMember($organization, $user);
     }
 
     /**
@@ -157,33 +111,9 @@ class OrganizationService
             }
         }
 
-        // Get old role before update
-        $oldRole = $this->getUserRole($organization, $user);
-
-        // Layer 1: Update organization role
-        $result = $this->organizationRepository->updateMemberRole($organization, $user, $role);
-
-        if ($result && $oldRole !== $role) {
-            // Layer 2: Sync Spatie Permission role
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            
-            try {
-                // Remove old Spatie role
-                if ($oldRole) {
-                    $user->removeRole($oldRole);
-                }
-                
-                // Assign new Spatie role
-                $user->assignRole($role);
-            } catch (\Exception $e) {
-                \Log::warning("Could not sync Spatie role for user {$user->id} in organization {$organization->id}: {$e->getMessage()}");
-            }
-            
-            // Clear permission cache
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-        }
-
-        return $result;
+        // Repository handles both Layer 1 and Layer 2:
+        // Removes old roles from pivot table, assigns new role
+        return $this->organizationRepository->updateMemberRole($organization, $user, $role);
     }
 
     /**
