@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Store,
   Settings,
+  Star,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
@@ -25,13 +26,13 @@ const isSidebarOpen = ref(true)
 const isMobileSidebarOpen = ref(false)
 
 const menuItems = [
-  { name: 'داشبورد',       icon: LayoutDashboard, path: '/store/dashboard' },
-  { name: 'سفارشات',       icon: ShoppingCart,    path: '/store/orders' },
-  { name: 'محصولات',       icon: Package,         path: '/store/products' },
-  { name: 'اعضای فروشگاه', icon: Users,           path: '/store/members' },
-  { name: 'کوپن‌ها',       icon: Ticket,          path: '/store/coupons' },
-  { name: 'نظرات',         icon: MessageSquare,   path: '/store/reviews' },
-  { name: 'پروفایل فروشگاه', icon: Settings,      path: '/store/profile' },
+  { name: 'داشبورد',         icon: LayoutDashboard, path: '/store/dashboard' },
+  { name: 'سفارشات',         icon: ShoppingCart,    path: '/store/orders'    },
+  { name: 'محصولات',         icon: Package,         path: '/store/products'  },
+  { name: 'اعضای فروشگاه',   icon: Users,           path: '/store/members'   },
+  { name: 'کوپن‌ها',         icon: Ticket,          path: '/store/coupons'   },
+  { name: 'نظرات محصولات',   icon: Star,            path: '/store/reviews'   },
+  { name: 'پروفایل فروشگاه', icon: Settings,        path: '/store/profile'   },
 ]
 
 const handleLogout = async () => {

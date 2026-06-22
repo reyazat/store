@@ -27,6 +27,11 @@ class ProductRepository implements ProductRepositoryInterface
             $query->where('status', $filters['status']);
         }
 
+        // Store-scoped filter: limit results to a specific organization's products
+        if (!empty($filters['organization_id'])) {
+            $query->where('organization_id', $filters['organization_id']);
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($builder) use ($search) {

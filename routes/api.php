@@ -337,6 +337,9 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.
   Route::put('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'update']);
   Route::delete('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'destroy']);
 
+  // Store products (products belonging to this store only — index/read; write ops are at /products)
+  Route::get('/products', [\App\Http\Controllers\API\Store\StoreProductController::class, 'index']);
+
   // Store orders (orders containing products from this store)
   Route::get('/orders', [\App\Http\Controllers\API\Store\StoreOrderController::class, 'index']);
   Route::get('/orders/{order}', [\App\Http\Controllers\API\Store\StoreOrderController::class, 'show']);
