@@ -58,6 +58,10 @@ class ProductService
             $oldMainImage = $product->main_image;
             $attributes   = $this->resolveMainImage($data);
 
+            // Never allow organization_id to change during an update.
+            // The product's store is set once at creation and is immutable.
+            unset($attributes['organization_id']);
+
             $product->update($this->productAttributes($attributes));
 
             if (isset($attributes['main_image']) && $attributes['main_image'] !== $oldMainImage) {

@@ -44,7 +44,19 @@ function makeDefaultForm(): AdminProductFormData {
   }
 }
 
-export function useProductForm(onSuccess: (product: AdminProductDetail) => void) {
+export type ProductDetailFetcher = (slug: string) => Promise<AdminProductDetail>
+
+/**
+ * @param onSuccess   callback after save
+ * @param detailFetcher  optional override for fetching product detail when editing.
+ *   Defaults to the admin endpoint (/admin/products/{slug}).
+ *   Store panel passes its own store-scoped fetcher (/store/products/{slug})
+ *   so store owners are not blocked by admin middleware.
+ */
+export function useProductForm(
+  onSuccess: (product: AdminProductDetail) => void,
+  detailFetcher?: ProductDetailFetcher,
+) {
   const isOpen      = ref(false)
   const isSaving    = ref(false)
   const editingSlug = ref<string | null>(null)
@@ -99,7 +111,8 @@ export function useProductForm(onSuccess: (product: AdminProductDetail) => void)
     await loadLookups()
 
     try {
-      const product = await productService.getAdminProductDetail(slug)
+      const fetch   = detailFetcher ?? productService.getAdminProductDetail.bind(productService)
+      const product = await fetch(slug)
       editingSlug.value = product.slug
 
       Object.assign(form, {

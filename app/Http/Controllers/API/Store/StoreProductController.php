@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\API\Store;
 
+use App\Actions\Product\Admin\ShowAdminProductAction;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Product\Admin\AdminProductDetailResource;
 use App\Http\Resources\Product\ProductListResource;
+use App\Models\Product;
 use App\Services\ProductService;
 use IamApi\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +15,8 @@ use Illuminate\Http\Request;
 class StoreProductController extends Controller
 {
     public function __construct(
-        private readonly ProductService $productService,
+        private readonly ProductService        $productService,
+        private readonly ShowAdminProductAction $showAdminAction,
     ) {}
 
     /**
@@ -58,6 +62,33 @@ class StoreProductController extends Controller
                 'per_page'     => $products->perPage(),
                 'total'        => $products->total(),
             ],
+        ]);
+    }
+
+    /**
+     * Return full product detail for a store owner's product (used by the edit form).
+     *
+     * This endpoint mirrors GET /admin/products/{product} but is accessible to store
+     * members (not blocked by admin middleware).  Ownership is enforced: only the
+     * product's own organization may fetch it here.
+     */
+    public function show(Product $product): JsonResponse
+    {
+        /** @var User $user */
+        $user = auth()->user();
+
+        if ($product->organization_id !== $user->organization_id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'این محصول متعلق به فروشگاه شما نیست.',
+            ], 403);
+        }
+
+        $product = $this->showAdminAction->execute($product);
+
+        return response()->json([
+            'success' => true,
+            'data'    => new AdminProductDetailResource($product),
         ]);
     }
 }

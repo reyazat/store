@@ -319,6 +319,7 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
     Route::get('/{organization}/reviews', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'reviews']);
     Route::get('/{organization}/coupons', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'coupons']);
     Route::get('/{organization}/coupons/{coupon}', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'couponDetail']);
+    Route::get('/{organization}/products', [\App\Http\Controllers\API\Admin\AdminStoreDataController::class, 'products']);
   });
 });
 
@@ -337,8 +338,10 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.
   Route::put('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'update']);
   Route::delete('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'destroy']);
 
-  // Store products (products belonging to this store only — index/read; write ops are at /products)
+  // Store products — index (scoped to this org) + show (full detail for edit form)
+  // Write ops (POST/PUT/DELETE) are at /v1/products under the same middleware.
   Route::get('/products', [\App\Http\Controllers\API\Store\StoreProductController::class, 'index']);
+  Route::get('/products/{product:slug}', [\App\Http\Controllers\API\Store\StoreProductController::class, 'show']);
 
   // Store orders (orders containing products from this store)
   Route::get('/orders', [\App\Http\Controllers\API\Store\StoreOrderController::class, 'index']);

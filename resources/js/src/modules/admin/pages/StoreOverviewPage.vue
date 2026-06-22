@@ -15,6 +15,7 @@ import {
   CheckCircle,
   XCircle,
   Clock,
+  Search,
 } from 'lucide-vue-next'
 import api from '@shared/utils/api'
 
@@ -81,28 +82,61 @@ const errorMsg  = ref('')
 const store    = ref<StoreProfile | null>(null)
 const owner    = ref<StoreOwner | null>(null)
 const team     = ref<TeamData | null>(null)
-const products = ref<Product[]>([])
-const productsMeta = ref<ProductsMeta>({ current_page: 1, last_page: 1, per_page: 10, total: 0 })
+
+// ── Products tab (loaded lazily via the dedicated per-store endpoint) ──────────
+const products        = ref<Product[]>([])
+const productsMeta    = ref<ProductsMeta>({ current_page: 1, last_page: 1, per_page: 15, total: 0 })
+const productsLoading = ref(false)
+const productsError   = ref('')
+const productSearch   = ref('')
+let productSearchTimer: ReturnType<typeof setTimeout> | null = null
 
 const activeTab = ref<'overview' | 'team' | 'products'>('overview')
 
-const loadOverview = async (page = 1) => {
+// ── Overview (store info + team) ──────────────────────────────────────────────
+const loadOverview = async () => {
   isLoading.value = true
   errorMsg.value  = ''
   try {
-    const { data } = await api.get(`/admin/organizations/${route.params.uuid}/overview`, {
-      params: { per_page: 10, page },
-    })
-    store.value    = data.data.store
-    owner.value    = data.data.owner
-    team.value     = data.data.team
-    products.value = data.data.products.data
-    productsMeta.value = data.data.products.meta
+    const { data } = await api.get(`/admin/organizations/${route.params.uuid}/overview`)
+    store.value = data.data.store
+    owner.value = data.data.owner
+    team.value  = data.data.team
+    // Seed the total product count badge from overview
+    if (data.data.products?.meta) {
+      productsMeta.value.total = data.data.products.meta.total ?? 0
+    }
   } catch {
     errorMsg.value = 'خطا در بارگذاری اطلاعات فروشگاه'
   } finally {
     isLoading.value = false
   }
+}
+
+// ── Products (dedicated endpoint with full pagination + search) ───────────────
+const loadProducts = async (page = 1) => {
+  productsLoading.value = true
+  productsError.value   = ''
+  try {
+    const { data } = await api.get(`/admin/organizations/${route.params.uuid}/products`, {
+      params: { page, per_page: 15, search: productSearch.value || undefined },
+    })
+    products.value     = data.data
+    productsMeta.value = data.meta
+  } catch {
+    productsError.value = 'خطا در بارگذاری محصولات'
+  } finally {
+    productsLoading.value = false
+  }
+}
+
+const onProductTabActivate = () => {
+  if (!products.value.length) loadProducts(1)
+}
+
+const debouncedProductSearch = () => {
+  if (productSearchTimer) clearTimeout(productSearchTimer)
+  productSearchTimer = setTimeout(() => loadProducts(1), 350)
 }
 
 const roleLabel = (r: string) => ({
@@ -214,10 +248,13 @@ onMounted(() => loadOverview())
         <button
           v-for="tab in [{ id: 'overview', label: 'خلاصه تیم' }, { id: 'team', label: 'اعضا' }, { id: 'products', label: 'محصولات' }]"
           :key="tab.id"
-          @click="activeTab = tab.id as any"
+          @click="activeTab = tab.id as any; tab.id === 'products' && onProductTabActivate()"
           :class="['px-4 py-2 rounded-lg text-sm font-medium transition', activeTab === tab.id ? 'bg-white shadow-sm text-primary-600' : 'text-secondary-500 hover:text-secondary-700']"
         >
           {{ tab.label }}
+          <span v-if="tab.id === 'products' && productsMeta.total > 0" class="mr-1 text-xs bg-secondary-200 text-secondary-600 px-1.5 py-0.5 rounded-full">
+            {{ productsMeta.total }}
+          </span>
         </button>
       </div>
 
@@ -279,11 +316,39 @@ onMounted(() => loadOverview())
         </table>
       </div>
 
-      <!-- Tab: Products -->
+      <!-- Tab: Products (read-only, uses dedicated /admin/organizations/{uuid}/products endpoint) -->
       <div v-else-if="activeTab === 'products'" class="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div v-if="!products.length" class="text-secondary-400 text-sm text-center py-12">
-          این فروشگاه هنوز محصولی ندارد
+        <!-- Search bar -->
+        <div class="px-4 py-3 border-b border-secondary-100 flex items-center gap-3">
+          <div class="relative flex-1">
+            <Search class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary-400 pointer-events-none" />
+            <input
+              v-model="productSearch"
+              type="text"
+              placeholder="جستجو در نام یا SKU..."
+              class="w-full pr-9 pl-4 h-9 rounded-lg border border-secondary-200 text-sm focus:border-primary-400 focus:ring-1 focus:ring-primary-300 outline-none"
+              @input="debouncedProductSearch"
+            />
+          </div>
+          <span class="text-xs text-secondary-400 whitespace-nowrap">{{ productsMeta.total }} محصول</span>
         </div>
+
+        <!-- Loading -->
+        <div v-if="productsLoading" class="flex items-center justify-center py-16">
+          <Loader2 class="w-7 h-7 animate-spin text-primary-500" />
+        </div>
+
+        <!-- Error -->
+        <div v-else-if="productsError" class="flex items-center gap-2 text-red-500 text-sm px-5 py-4">
+          <AlertCircle class="w-4 h-4 flex-shrink-0" /> {{ productsError }}
+        </div>
+
+        <!-- Empty -->
+        <div v-else-if="!products.length" class="text-secondary-400 text-sm text-center py-12">
+          <Package class="w-10 h-10 mx-auto mb-2 text-secondary-300" />
+          {{ productSearch ? 'محصولی با این جستجو یافت نشد' : 'این فروشگاه هنوز محصولی ندارد' }}
+        </div>
+
         <table v-else class="w-full text-sm">
           <thead class="bg-secondary-50 text-secondary-500 text-right">
             <tr>
@@ -307,12 +372,15 @@ onMounted(() => loadOverview())
                   <div v-else class="w-9 h-9 rounded-lg bg-secondary-100 flex items-center justify-center flex-shrink-0">
                     <Package class="w-4 h-4 text-secondary-400" />
                   </div>
-                  <span class="font-medium text-secondary-800">{{ product.name }}</span>
+                  <div>
+                    <div class="font-medium text-secondary-800 max-w-xs truncate">{{ product.name }}</div>
+                    <div class="text-xs text-secondary-400 mt-0.5">{{ product.slug }}</div>
+                  </div>
                 </div>
               </td>
               <td class="px-4 py-3 text-secondary-500 font-mono text-xs">{{ product.base_sku }}</td>
               <td class="px-4 py-3 text-secondary-700">{{ formatPrice(product.price) }}</td>
-              <td class="px-4 py-3 text-secondary-600">{{ product.stock }}</td>
+              <td class="px-4 py-3 text-secondary-600">{{ product.stock ?? '—' }}</td>
               <td class="px-4 py-3">
                 <span v-if="product.status === 1" class="flex items-center gap-1 text-green-600 text-xs">
                   <CheckCircle class="w-3.5 h-3.5" /> فعال
@@ -326,15 +394,16 @@ onMounted(() => loadOverview())
         </table>
 
         <!-- Pagination -->
-        <div v-if="productsMeta.last_page > 1" class="flex items-center justify-center gap-2 p-4 border-t border-secondary-100">
-          <button
-            v-for="p in productsMeta.last_page"
-            :key="p"
-            @click="loadOverview(p)"
-            :class="['w-8 h-8 rounded-lg text-sm font-medium transition', p === productsMeta.current_page ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 text-secondary-600']"
-          >
-            {{ p }}
-          </button>
+        <div v-if="productsMeta.last_page > 1" class="flex items-center justify-between px-4 py-3 border-t border-secondary-100 bg-secondary-50 text-sm text-secondary-600">
+          <span>صفحه {{ productsMeta.current_page }} از {{ productsMeta.last_page }}</span>
+          <div class="flex items-center gap-1">
+            <button
+              v-for="p in productsMeta.last_page"
+              :key="p"
+              @click="loadProducts(p)"
+              :class="['w-8 h-8 rounded-lg text-sm font-medium transition', p === productsMeta.current_page ? 'bg-primary-600 text-white' : 'hover:bg-secondary-100 text-secondary-600']"
+            >{{ p }}</button>
+          </div>
         </div>
       </div>
     </template>

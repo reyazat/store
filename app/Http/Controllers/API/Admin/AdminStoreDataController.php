@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Coupon\CouponResource;
 use App\Http\Resources\Order\AdminOrderDetailResource;
 use App\Http\Resources\Order\AdminOrderListResource;
+use App\Http\Resources\Product\ProductListResource;
 use App\Models\Coupon;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\ProductReview;
 use IamApi\Models\Organization;
 use Illuminate\Http\JsonResponse;
@@ -182,6 +184,46 @@ class AdminStoreDataController extends Controller
         return response()->json([
             'success' => true,
             'data'    => new CouponResource($coupon),
+        ]);
+    }
+
+    /**
+     * List products belonging to a specific organization (read-only for Super Admin).
+     * Mirrors what the store owner sees at GET /store/products, but scoped by org UUID.
+     */
+    public function products(Request $request, Organization $organization): JsonResponse
+    {
+        $query = Product::query()
+            ->where('organization_id', $organization->id)
+            ->with([
+                'manufacturer',
+                'listings' => fn($q) => $q->where('status', 'active')
+                    ->with(['listingVariants' => fn($lv) => $lv->where('status', 1)]),
+            ]);
+
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('base_sku', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->has('status') && $request->input('status') !== '') {
+            $query->where('status', (int) $request->input('status'));
+        }
+
+        $products = $query->latest()->paginate($request->integer('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'data'    => ProductListResource::collection($products),
+            'meta'    => [
+                'current_page' => $products->currentPage(),
+                'last_page'    => $products->lastPage(),
+                'per_page'     => $products->perPage(),
+                'total'        => $products->total(),
+            ],
         ]);
     }
 }
