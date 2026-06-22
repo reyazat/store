@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\API\Admin;
 
+use App\Actions\Organization\CreateStoreWithOwnerAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Organization\StoreResource;
 use App\Http\Resources\Product\ProductListResource;
 use App\Http\Resources\User\AdminUserResource;
 use App\Models\Product;
-use IamApi\Actions\Organizations\CreateOrganizationAction;
 use IamApi\Actions\Organizations\UpdateOrganizationAction;
 use IamApi\Models\Organization;
 use IamApi\Models\User;
@@ -19,7 +19,7 @@ use Illuminate\Validation\Rule;
 class OrganizationController extends Controller
 {
     public function __construct(
-        private readonly CreateOrganizationAction $createAction,
+        private readonly CreateStoreWithOwnerAction $createStoreAction,
         private readonly UpdateOrganizationAction $updateAction,
         private readonly OrganizationRepositoryInterface $organizationRepository,
     ) {}
@@ -55,24 +55,35 @@ class OrganizationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'name'        => ['required', 'string', 'max:255', 'unique:organizations,name'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'status'      => ['nullable', 'in:active,inactive,suspended'],
-            'owner_id'    => ['nullable', 'integer', 'exists:users,id'],
+            'name'             => ['required', 'string', 'max:255', 'unique:organizations,name'],
+            'description'      => ['nullable', 'string', 'max:1000'],
+            'status'           => ['nullable', 'in:active,inactive,suspended'],
+            // Existing owner mode
+            'owner_id'         => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
+            // New owner mode
+            'new_owner'        => ['nullable', 'array', 'prohibits:owner_id'],
+            'new_owner.name'   => ['required_with:new_owner', 'string', 'max:255'],
+            'new_owner.email'  => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
+            'new_owner.password' => ['required_with:new_owner', 'string', 'min:8'],
+            'new_owner.phone'  => ['nullable', 'string', 'max:20'],
         ]);
 
-        $result = $this->createAction->execute($request->only(['name', 'description', 'status', 'owner_id']));
-
-        if (!$result['success']) {
-            return response()->json(['success' => false, 'message' => $result['message']], $result['code'] ?? 400);
+        try {
+            $result = $this->createStoreAction->execute($request->only([
+                'name', 'description', 'status', 'owner_id', 'new_owner',
+            ]));
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        $org = Organization::with('users')->where('uuid', $result['data']['organization']['uuid'])->firstOrFail();
+        /** @var Organization $org */
+        $org = $result['organization']->load('users');
 
         return response()->json([
-            'success' => true,
-            'message' => 'فروشگاه با موفقیت ایجاد شد.',
-            'data'    => new StoreResource($org),
+            'success'       => true,
+            'message'       => 'فروشگاه با موفقیت ایجاد شد.',
+            'owner_created' => $result['owner_created'],
+            'data'          => new StoreResource($org),
         ], 201);
     }
 
@@ -108,33 +119,48 @@ class OrganizationController extends Controller
         ]);
     }
 
+    /**
+     * Assign an existing user as owner of the store.
+     * Supports two modes via request body:
+     *   - owner_id: assign an existing user
+     *   - new_owner: create a new user and assign them as owner
+     */
     public function assignOwner(Request $request, Organization $organization): JsonResponse
     {
         $request->validate([
-            'owner_id' => ['required', 'integer', 'exists:users,id'],
+            // Existing user mode
+            'owner_id'           => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
+            // New user mode
+            'new_owner'          => ['nullable', 'array', 'prohibits:owner_id'],
+            'new_owner.name'     => ['required_with:new_owner', 'string', 'max:255'],
+            'new_owner.email'    => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
+            'new_owner.password' => ['required_with:new_owner', 'string', 'min:8'],
+            'new_owner.phone'    => ['nullable', 'string', 'max:20'],
         ]);
 
-        /** @var User $user */
-        $user = User::findOrFail($request->integer('owner_id'));
-
-        if ($user->is_super_admin) {
-            return response()->json(['success' => false, 'message' => 'Super admin cannot be assigned as store owner.'], 422);
+        if (empty($request->input('owner_id')) && empty($request->input('new_owner'))) {
+            return response()->json(['success' => false, 'message' => 'Either owner_id or new_owner must be provided.'], 422);
         }
 
-        // If user belongs to a different organization, remove them first (transfer)
-        if ($user->organization_id !== null && $user->organization_id !== $organization->id) {
-            $previousOrg = Organization::find($user->organization_id);
-            if ($previousOrg) {
-                $this->organizationRepository->removeMember($previousOrg, $user);
-            }
+        try {
+            // Reuse the action which handles both modes
+            $result = $this->createStoreAction->assignOwnerToExisting(
+                $organization,
+                $request->integer('owner_id') ?: null,
+                $request->input('new_owner')
+            );
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
 
-        $this->organizationRepository->addMember($organization, $user, 'owner');
+        /** @var User $owner */
+        $owner = $result['owner'];
 
         return response()->json([
-            'success' => true,
-            'message' => 'مالک فروشگاه با موفقیت تعیین شد.',
-            'data'    => ['owner' => ['id' => $user->id, 'name' => $user->name, 'email' => $user->email]],
+            'success'       => true,
+            'message'       => 'مالک فروشگاه با موفقیت تعیین شد.',
+            'owner_created' => $result['owner_created'],
+            'data'          => new StoreResource($organization->fresh(['users'])),
         ]);
     }
 

@@ -28,6 +28,7 @@ class AdminUserResource extends JsonResource
             'locked_until'         => $this->locked_until?->toISOString(),
             'created_at'           => $this->created_at->toISOString(),
             'updated_at'           => $this->updated_at->toISOString(),
+            'organization_id'      => $this->organization_id,
             'organization'         => $this->whenLoaded('organization', fn () => $this->organization ? [
                 'id'   => $this->organization->id,
                 'uuid' => $this->organization->uuid,

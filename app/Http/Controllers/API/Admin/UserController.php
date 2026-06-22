@@ -23,9 +23,14 @@ class UserController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $users = $this->listUsersAction->execute(
-            $request->only(['search', 'status', 'is_locked', 'per_page'])
-        );
+        $filters = $request->only(['search', 'status', 'is_locked', 'per_page']);
+
+        // When called with ?for_owner_selection=1, exclude super admins from the result
+        if ($request->boolean('for_owner_selection')) {
+            $filters['exclude_super_admin'] = true;
+        }
+
+        $users = $this->listUsersAction->execute($filters);
 
         return response()->json([
             'success' => true,

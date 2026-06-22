@@ -11,6 +11,11 @@ class ListUsersAction
     {
         $query = User::query()->with('organization');
 
+        // Super admins must never appear in lists used for store owner selection
+        if (!empty($filters['exclude_super_admin'])) {
+            $query->where('is_super_admin', false);
+        }
+
         if (!empty($filters['search'])) {
             $search = $filters['search'];
             $query->where(function ($q) use ($search) {
