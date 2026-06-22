@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { Plus, Search, Edit2, UserCheck, X, Loader2, Store, Eye, UserPlus } from 'lucide-vue-next'
+import { ref, computed, watch, onMounted } from 'vue'
+import { Plus, Search, Edit2, UserCheck, X, Loader2, Store, Eye, UserPlus, AlertTriangle } from 'lucide-vue-next'
 import { useRouter } from 'vue-router'
 import api from '@shared/utils/api'
 
@@ -19,9 +19,17 @@ interface StoreItem {
   created_at: string
 }
 interface PaginationMeta { current_page: number; last_page: number; per_page: number; total: number }
-interface UserOption { id: number; name: string; email: string; organization_id: number | null }
+interface UserOption { id: number; name: string; email: string; organization_id: number | null; organization?: { id: number; name: string } | null }
 
 type OwnerMode = 'existing' | 'new'
+
+// ── Transfer confirmation dialog state ────────────────────────────────────────
+interface TransferContext {
+  user: UserOption
+  fromStoreName: string
+  onConfirm: () => void
+}
+const transferConfirm = ref<TransferContext | null>(null)
 
 // ── Store list state ───────────────────────────────────────────────────────────
 const stores       = ref<StoreItem[]>([])
@@ -111,6 +119,19 @@ const debouncedLoadUsers = (term: string) => {
 watch(createUserSearch, (v) => debouncedLoadUsers(v))
 watch(assignUserSearch, (v) => debouncedLoadUsers(v))
 
+// ── Computed: selected user for transfer warning ───────────────────────────────
+const createSelectedUser = computed<UserOption | null>(() =>
+  createOwnerMode.value === 'existing' && createForm.value.owner_id
+    ? users.value.find(u => u.id === createForm.value.owner_id) ?? null
+    : null
+)
+
+const assignSelectedUser = computed<UserOption | null>(() =>
+  assignOwnerMode.value === 'existing' && assignForm.value.owner_id
+    ? users.value.find(u => u.id === assignForm.value.owner_id) ?? null
+    : null
+)
+
 // ── Modal openers ──────────────────────────────────────────────────────────────
 const openCreate = () => {
   createOwnerMode.value = 'existing'
@@ -148,7 +169,7 @@ const openAssign = (store: StoreItem) => {
 }
 
 // ── Submit handlers ────────────────────────────────────────────────────────────
-const submitCreate = async () => {
+const doCreate = async () => {
   actionLoading.value = true
   actionError.value   = ''
   try {
@@ -185,6 +206,20 @@ const submitCreate = async () => {
   }
 }
 
+const submitCreate = () => {
+  const selected = createSelectedUser.value
+  if (selected?.organization_id) {
+    // User belongs to another store — require explicit confirmation before transfer
+    transferConfirm.value = {
+      user: selected,
+      fromStoreName: selected.organization?.name ?? `فروشگاه #${selected.organization_id}`,
+      onConfirm: () => { transferConfirm.value = null; doCreate() },
+    }
+  } else {
+    doCreate()
+  }
+}
+
 const submitEdit = async () => {
   if (!selectedStore.value) return
   actionLoading.value = true
@@ -200,7 +235,7 @@ const submitEdit = async () => {
   }
 }
 
-const submitAssign = async () => {
+const doAssign = async () => {
   if (!selectedStore.value) return
   actionLoading.value = true
   actionError.value   = ''
@@ -235,6 +270,21 @@ const submitAssign = async () => {
     }
   } finally {
     actionLoading.value = false
+  }
+}
+
+const submitAssign = () => {
+  if (!selectedStore.value) return
+  const selected = assignSelectedUser.value
+  if (selected?.organization_id) {
+    // User belongs to another store — require explicit confirmation before transfer
+    transferConfirm.value = {
+      user: selected,
+      fromStoreName: selected.organization?.name ?? `فروشگاه #${selected.organization_id}`,
+      onConfirm: () => { transferConfirm.value = null; doAssign() },
+    }
+  } else {
+    doAssign()
   }
 }
 
@@ -430,8 +480,17 @@ onMounted(() => loadStores())
                     {{ u.name }} &lrm;({{ u.email }}){{ u.organization_id ? ' ★' : '' }}
                   </option>
                 </select>
-                <p v-if="users.some(u => u.organization_id)" class="text-xs text-amber-600">
-                  ★ کاربران علامت‌دار در حال حاضر عضو یک فروشگاه دیگرند و از آن منتقل خواهند شد.
+                <!-- Inline transfer warning for selected user -->
+                <div v-if="createSelectedUser?.organization_id" class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                  <AlertTriangle class="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <strong>{{ createSelectedUser.name }}</strong> در حال حاضر عضو فروشگاه
+                    <strong>{{ createSelectedUser.organization?.name ?? '(نامشخص)' }}</strong> است.
+                    با ادامه، این کاربر از آن فروشگاه منتقل خواهد شد.
+                  </span>
+                </div>
+                <p v-else-if="users.some(u => u.organization_id)" class="text-xs text-amber-600">
+                  ★ کاربران علامت‌دار در حال حاضر عضو فروشگاه دیگری هستند.
                 </p>
               </template>
 
@@ -589,8 +648,17 @@ onMounted(() => loadStores())
                   {{ u.name }} &lrm;({{ u.email }}){{ u.organization_id ? ' ★' : '' }}
                 </option>
               </select>
-              <p v-if="users.some(u => u.organization_id)" class="text-xs text-amber-600">
-                ★ کاربران علامت‌دار در حال حاضر عضو یک فروشگاه دیگرند و از آن منتقل خواهند شد.
+              <!-- Inline transfer warning for selected user -->
+              <div v-if="assignSelectedUser?.organization_id" class="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-700">
+                <AlertTriangle class="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>
+                  <strong>{{ assignSelectedUser.name }}</strong> در حال حاضر عضو فروشگاه
+                  <strong>{{ assignSelectedUser.organization?.name ?? '(نامشخص)' }}</strong> است.
+                  با ادامه، این کاربر از آن فروشگاه منتقل خواهد شد.
+                </span>
+              </div>
+              <p v-else-if="users.some(u => u.organization_id)" class="text-xs text-amber-600">
+                ★ کاربران علامت‌دار در حال حاضر عضو فروشگاه دیگری هستند.
               </p>
             </template>
 
@@ -631,6 +699,62 @@ onMounted(() => loadStores())
               <button type="button" @click="isAssignOpen = false" class="flex-1 border border-secondary-200 hover:bg-secondary-50 py-2 rounded-lg text-sm transition">انصراف</button>
             </div>
           </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         TRANSFER CONFIRMATION DIALOG
+         Shown whenever an existing user who belongs to another store
+         is selected as owner — super admin must explicitly confirm.
+    ══════════════════════════════════════════════════════════════ -->
+    <Teleport to="body">
+      <div v-if="transferConfirm" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4" dir="rtl">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+          <div class="p-5 space-y-4">
+            <!-- Icon + title -->
+            <div class="flex items-start gap-3">
+              <div class="flex-shrink-0 bg-amber-100 rounded-full p-2">
+                <AlertTriangle class="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h3 class="font-bold text-secondary-800 text-base">تأیید انتقال کاربر</h3>
+                <p class="text-sm text-secondary-500 mt-0.5">این عملیات غیرقابل بازگشت است.</p>
+              </div>
+            </div>
+
+            <!-- Details -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm space-y-1">
+              <p class="text-secondary-700">
+                کاربر <span class="font-semibold">{{ transferConfirm.user.name }}</span>
+                <span class="text-secondary-500 text-xs mr-1">({{ transferConfirm.user.email }})</span>
+              </p>
+              <p class="text-secondary-700">
+                در حال حاضر عضو فروشگاه
+                <span class="font-semibold text-amber-700">{{ transferConfirm.fromStoreName }}</span>
+                است.
+              </p>
+              <p class="text-secondary-600 mt-1">
+                با تأیید، این کاربر از فروشگاه قبلی <strong>خارج</strong> و به فروشگاه جدید به‌عنوان مالک <strong>اضافه</strong> می‌شود.
+              </p>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+              <button
+                @click="transferConfirm.onConfirm()"
+                class="flex-1 bg-amber-600 hover:bg-amber-700 text-white py-2 rounded-lg text-sm font-medium transition"
+              >
+                تأیید و انتقال
+              </button>
+              <button
+                @click="transferConfirm = null"
+                class="flex-1 border border-secondary-200 hover:bg-secondary-50 text-secondary-700 py-2 rounded-lg text-sm transition"
+              >
+                انصراف
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </Teleport>
