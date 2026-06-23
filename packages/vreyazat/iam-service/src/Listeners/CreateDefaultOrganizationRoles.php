@@ -44,6 +44,9 @@ class CreateDefaultOrganizationRoles
             // Reviews — owner/admin/editor/user can moderate & reply
             'reviews.manage' => 'Moderate reviews (approve, reject, reply)',
 
+            // Coupons — owner/admin/editor/user can manage store coupons
+            'coupons.manage' => 'Manage coupons (create, update, delete)',
+
             // Settings
             'settings.view' => 'View organization settings',
             'settings.manage' => 'Manage organization settings',
@@ -84,6 +87,7 @@ class CreateDefaultOrganizationRoles
                     'orders.view',
                     'orders.manage',
                     'reviews.manage',
+                    'coupons.manage',
                     'settings.view',
                     'settings.manage',
                     'domains.view',
@@ -99,6 +103,7 @@ class CreateDefaultOrganizationRoles
                     'products.manage',
                     'orders.view',
                     'reviews.manage',
+                    'coupons.manage',
                 ],
                 'description' => 'Editor can manage content and products',
             ],
@@ -110,6 +115,7 @@ class CreateDefaultOrganizationRoles
                     'orders.view',
                     'settings.view',
                     'reviews.manage',
+                    'coupons.manage',
                 ],
                 'description' => 'Regular user with view-only access',
             ],

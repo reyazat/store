@@ -13,6 +13,8 @@ import { useAuthStore } from '@/stores/auth'
  * products.manage    |   ✓   |   ✓   |   ✓    |  ✗   |   ✗
  * orders.view        |   ✓   |   ✓   |   ✓    |  ✓   |   ✗
  * orders.manage      |   ✓   |   ✓   |   ✗    |  ✗   |   ✗
+ * reviews.manage     |   ✓   |   ✓   |   ✓    |  ✓   |   ✗
+ * coupons.manage     |   ✓   |   ✓   |   ✓    |  ✓   |   ✗
  * users.view         |   ✓   |   ✓   |   ✓    |  ✓   |   ✓
  * users.manage       |   ✓   |   ✓   |   ✗    |  ✗   |   ✗
  * content.manage     |   ✓   |   ✓   |   ✓    |  ✗   |   ✗
@@ -79,14 +81,14 @@ export function useStorePermissions() {
     authStore.hasPermission('users.invite')
   )
 
-  /** Can manage coupons (mapped to settings.manage — financial instrument) */
+  /** Can manage coupons (create, update, delete) */
   const canManageCoupons = computed(() =>
-    authStore.hasPermission('settings.manage')
+    authStore.hasPermission('coupons.manage')
   )
 
-  /** Can moderate product reviews */
+  /** Can moderate product reviews (approve, reject, reply) */
   const canManageReviews = computed(() =>
-    authStore.hasPermission('content.manage')
+    authStore.hasPermission('reviews.manage')
   )
 
   /** Can view store settings / profile */

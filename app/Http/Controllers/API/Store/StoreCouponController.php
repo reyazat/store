@@ -7,22 +7,24 @@ use App\Http\Requests\Coupon\CouponStoreRequest;
 use App\Http\Requests\Coupon\CouponUpdateRequest;
 use App\Http\Resources\Coupon\CouponResource;
 use App\Models\Coupon;
+use IamApi\Services\OrganizationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StoreCouponController extends Controller
 {
+    public function __construct(
+        private readonly OrganizationService $organizationService,
+    ) {}
+
     /**
-     * List coupons for this store owner's organization.
-     * Store owners can only see their own store coupons.
+     * List coupons for this store's organization.
      */
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
+        $orgId = auth()->user()->organization_id;
 
-        // Get coupons for this organization only
-        $query = Coupon::query()->where('organization_id', $organizationId);
+        $query = Coupon::query()->where('organization_id', $orgId);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -50,22 +52,11 @@ class StoreCouponController extends Controller
     }
 
     /**
-     * Show a specific coupon - only if it belongs to this store.
+     * Show a specific coupon — only if it belongs to this store.
      */
     public function show(Coupon $coupon): JsonResponse
     {
-        $this->authorize('view', $coupon);
-
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
-
-        // Check if this coupon belongs to this store
-        if ($coupon->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This coupon does not belong to your store.',
-            ], 403);
-        }
+        $this->authorizeOwnership($coupon);
 
         $coupon->load('usages.user', 'usages.order');
 
@@ -77,17 +68,14 @@ class StoreCouponController extends Controller
 
     /**
      * Create a new store-level coupon.
+     * Requires coupons.manage permission.
      */
     public function store(CouponStoreRequest $request): JsonResponse
     {
-        $this->authorize('create', Coupon::class);
+        $this->authorizeManage();
 
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
-
-        // Create coupon with organization_id
         $data = $request->validated();
-        $data['organization_id'] = $organizationId;
+        $data['organization_id'] = auth()->user()->organization_id;
 
         $coupon = Coupon::create($data);
 
@@ -99,22 +87,13 @@ class StoreCouponController extends Controller
     }
 
     /**
-     * Update a store coupon - only if it belongs to this store.
+     * Update a store coupon — only if it belongs to this store.
+     * Requires coupons.manage permission.
      */
     public function update(CouponUpdateRequest $request, Coupon $coupon): JsonResponse
     {
-        $this->authorize('update', $coupon);
-
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
-
-        // Check ownership
-        if ($coupon->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This coupon does not belong to your store.',
-            ], 403);
-        }
+        $this->authorizeOwnership($coupon);
+        $this->authorizeManage();
 
         $coupon->update($request->validated());
 
@@ -126,22 +105,13 @@ class StoreCouponController extends Controller
     }
 
     /**
-     * Delete a store coupon - only if it belongs to this store.
+     * Delete a store coupon — only if it belongs to this store.
+     * Requires coupons.manage permission.
      */
     public function destroy(Coupon $coupon): JsonResponse
     {
-        $this->authorize('delete', $coupon);
-
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
-
-        // Check ownership
-        if ($coupon->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This coupon does not belong to your store.',
-            ], 403);
-        }
+        $this->authorizeOwnership($coupon);
+        $this->authorizeManage();
 
         $coupon->delete();
 
@@ -149,5 +119,36 @@ class StoreCouponController extends Controller
             'success' => true,
             'message' => 'کوپن حذف شد',
         ]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Abort with 403 if the coupon does not belong to this store.
+     */
+    private function authorizeOwnership(Coupon $coupon): void
+    {
+        $orgId = auth()->user()->organization_id;
+
+        abort_if(
+            $coupon->organization_id !== $orgId,
+            403,
+            'این کوپن متعلق به فروشگاه شما نیست.',
+        );
+    }
+
+    /**
+     * Abort with 403 if the user lacks the coupons.manage permission.
+     */
+    private function authorizeManage(): void
+    {
+        $user = auth()->user();
+        $org  = $user->organization;
+
+        abort_unless(
+            $this->organizationService->hasPermission($org, $user, 'coupons.manage'),
+            403,
+            'شما مجوز لازم برای این عملیات را ندارید.',
+        );
     }
 }

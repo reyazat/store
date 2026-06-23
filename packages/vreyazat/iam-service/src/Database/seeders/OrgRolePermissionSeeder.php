@@ -55,6 +55,9 @@ class OrgRolePermissionSeeder extends Seeder
             // Reviews
             ['name' => 'reviews.manage', 'description' => 'Moderate reviews (approve, reject, reply)'],
 
+            // Coupons
+            ['name' => 'coupons.manage', 'description' => 'Manage coupons (create, update, delete)'],
+
             // Settings
             ['name' => 'settings.view', 'description' => 'View organization settings'],
             ['name' => 'settings.manage', 'description' => 'Manage organization settings'],
@@ -116,6 +119,7 @@ class OrgRolePermissionSeeder extends Seeder
             'orders.view',
             'orders.manage',
             'reviews.manage',
+            'coupons.manage',
             'settings.view',
             'domains.view',
             // Legacy IAM permissions
@@ -136,6 +140,7 @@ class OrgRolePermissionSeeder extends Seeder
             'products.view',
             'orders.view',
             'reviews.manage',
+            'coupons.manage',
             'settings.view',
             // Legacy IAM permissions
             'iam.org.view',
