@@ -20,7 +20,7 @@ export interface ReviewFormData {
   body: string
 }
 
-export interface AdminReviewMeta {
+export interface ReviewMeta {
   current_page: number
   last_page: number
   per_page: number
@@ -28,6 +28,8 @@ export interface AdminReviewMeta {
 }
 
 export const reviewService = {
+  // ── Public / Buyer ─────────────────────────────────────────────────────────
+
   async getProductReviews(productSlug: string): Promise<ProductReview[]> {
     const response = await api.get(`/products/${productSlug}/reviews`)
     return response.data?.data || []
@@ -38,35 +40,16 @@ export const reviewService = {
     return response.data.data
   },
 
-  async adminGetAll(page = 1, perPage = 20): Promise<{ data: ProductReview[]; meta: AdminReviewMeta }> {
-    const response = await api.get('/admin/reviews', { params: { page, per_page: perPage } })
-    return { data: response.data.data, meta: response.data.meta }
-  },
-
-  async approve(id: number): Promise<ProductReview> {
-    const response = await api.post(`/admin/reviews/${id}/approve`)
-    return response.data.data
-  },
-
-  async reject(id: number): Promise<ProductReview> {
-    const response = await api.post(`/admin/reviews/${id}/reject`)
-    return response.data.data
-  },
-
-  async destroy(id: number): Promise<void> {
-    await api.delete(`/admin/reviews/${id}`)
-  },
-
-  // ── Store owner methods ────────────────────────────────────────────────────
+  // ── Store owner ────────────────────────────────────────────────────────────
 
   async storeGetAll(
     page = 1,
     perPage = 15,
     filters: { status?: string; rating?: number } = {},
-  ): Promise<{ data: ProductReview[]; meta: AdminReviewMeta }> {
+  ): Promise<{ data: ProductReview[]; meta: ReviewMeta }> {
     const params: Record<string, string | number> = { page, per_page: perPage }
-    if (filters.status)  params.status = filters.status
-    if (filters.rating)  params.rating = filters.rating
+    if (filters.status) params.status = filters.status
+    if (filters.rating) params.rating = filters.rating
     const response = await api.get('/store/reviews', { params })
     return { data: response.data.data, meta: response.data.meta }
   },

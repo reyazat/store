@@ -289,12 +289,6 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
 
   }); // end super.admin
 
-  // Reviews Management (super admin can moderate all reviews across all stores)
-  Route::get('/reviews', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'index']);
-  Route::post('/reviews/{review}/approve', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'approve']);
-  Route::post('/reviews/{review}/reject', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'reject']);
-  Route::delete('/reviews/{review}', [\App\Http\Controllers\API\Admin\ProductReviewController::class, 'destroy']);
-
   // Products Admin — detail with ALL variants and available options (super admin read-only view)
   Route::get('/products/available-options', [\App\Http\Controllers\API\Admin\AdminProductController::class, 'availableOptions']);
   Route::get('/products/{product}', [\App\Http\Controllers\API\Admin\AdminProductController::class, 'show']);
