@@ -46,11 +46,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('../pages/UsersPage.vue'),
       },
       {
-        path: 'coupons',
-        name: 'admin-coupons',
-        component: () => import('../pages/CouponsPage.vue'),
-      },
-      {
         path: 'sliders',
         name: 'admin-sliders',
         component: () => import('../pages/SlidersPage.vue'),

@@ -190,14 +190,6 @@ Route::middleware(['auth:api', 'admin'])->prefix('v1/admin')->name('admin.')->gr
   // Store owners manage their own stores via /v1/store routes.
   Route::middleware(['super.admin'])->group(function () {
 
-    // Platform-level Coupons Management (organization_id = null)
-    // Store-level coupons should be managed via /v1/store routes
-    Route::get('/coupons', [\App\Http\Controllers\API\Admin\CouponController::class, 'index']);
-    Route::post('/coupons', [\App\Http\Controllers\API\Admin\CouponController::class, 'store']);
-    Route::get('/coupons/{coupon}', [\App\Http\Controllers\API\Admin\CouponController::class, 'show']);
-    Route::put('/coupons/{coupon}', [\App\Http\Controllers\API\Admin\CouponController::class, 'update']);
-    Route::delete('/coupons/{coupon}', [\App\Http\Controllers\API\Admin\CouponController::class, 'destroy']);
-
     // Sliders Management
     Route::get('/sliders', [\App\Http\Controllers\API\Admin\SliderController::class, 'index']);
     Route::post('/sliders', [\App\Http\Controllers\API\Admin\SliderController::class, 'store']);
