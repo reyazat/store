@@ -28,23 +28,26 @@ class CreateDefaultOrganizationRoles
             'users.view' => 'View users',
             'users.manage' => 'Manage users (invite, add, remove)',
             'users.invite' => 'Invite new users',
-            
+
             // Content management
             'content.view' => 'View content',
             'content.manage' => 'Manage content',
-            
+
             // Product management
             'products.view' => 'View products',
             'products.manage' => 'Manage products (create, update, delete)',
-            
+
             // Order management
             'orders.view' => 'View orders',
             'orders.manage' => 'Manage orders (update status, notes)',
-            
+
+            // Reviews — owner/admin/editor/user can moderate & reply
+            'reviews.manage' => 'Moderate reviews (approve, reject, reply)',
+
             // Settings
             'settings.view' => 'View organization settings',
             'settings.manage' => 'Manage organization settings',
-            
+
             // Domains
             'domains.view' => 'View domains',
             'domains.manage' => 'Manage domains',
@@ -80,6 +83,7 @@ class CreateDefaultOrganizationRoles
                     'products.manage',
                     'orders.view',
                     'orders.manage',
+                    'reviews.manage',
                     'settings.view',
                     'settings.manage',
                     'domains.view',
@@ -94,6 +98,7 @@ class CreateDefaultOrganizationRoles
                     'products.view',
                     'products.manage',
                     'orders.view',
+                    'reviews.manage',
                 ],
                 'description' => 'Editor can manage content and products',
             ],
@@ -104,6 +109,7 @@ class CreateDefaultOrganizationRoles
                     'products.view',
                     'orders.view',
                     'settings.view',
+                    'reviews.manage',
                 ],
                 'description' => 'Regular user with view-only access',
             ],

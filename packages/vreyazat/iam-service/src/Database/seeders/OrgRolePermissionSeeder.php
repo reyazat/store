@@ -47,11 +47,14 @@ class OrgRolePermissionSeeder extends Seeder
             // Product management
             ['name' => 'products.view', 'description' => 'View products'],
             ['name' => 'products.manage', 'description' => 'Manage products (create, update, delete)'],
-            
+
             // Order management
             ['name' => 'orders.view', 'description' => 'View orders'],
             ['name' => 'orders.manage', 'description' => 'Manage orders (update status, notes)'],
-            
+
+            // Reviews
+            ['name' => 'reviews.manage', 'description' => 'Moderate reviews (approve, reject, reply)'],
+
             // Settings
             ['name' => 'settings.view', 'description' => 'View organization settings'],
             ['name' => 'settings.manage', 'description' => 'Manage organization settings'],
@@ -112,6 +115,7 @@ class OrgRolePermissionSeeder extends Seeder
             'products.manage',
             'orders.view',
             'orders.manage',
+            'reviews.manage',
             'settings.view',
             'domains.view',
             // Legacy IAM permissions
@@ -125,12 +129,13 @@ class OrgRolePermissionSeeder extends Seeder
         $admin->givePermissionTo($adminPermissions);
         $this->command->line("   ✓ Admin: " . count($adminPermissions) . " permissions");
 
-        // User: View-only permissions
+        // User: View-only + reviews management
         $userPermissions = [
             'users.view',
             'content.view',
             'products.view',
             'orders.view',
+            'reviews.manage',
             'settings.view',
             // Legacy IAM permissions
             'iam.org.view',

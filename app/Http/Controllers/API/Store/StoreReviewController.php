@@ -146,7 +146,7 @@ class StoreReviewController extends Controller
         $org  = $user->organization;
 
         abort_unless(
-            $this->organizationService->hasPermission($org, $user, 'products.manage'),
+            $this->organizationService->hasPermission($org, $user, 'reviews.manage'),
             403,
             'شما مجوز لازم برای این عملیات را ندارید.',
         );
