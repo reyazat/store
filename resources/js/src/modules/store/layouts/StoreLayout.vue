@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import {
   LayoutDashboard,
@@ -12,28 +12,38 @@ import {
   X,
   ChevronLeft,
   Bell,
-  MessageSquare,
-  Store,
-  Settings,
   Star,
+  Settings,
+  Store,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { authService } from '@/modules/auth/services'
+import { useStorePermissions } from '../composables/useStorePermissions'
 
 const router = useRouter()
 const authStore = useAuthStore()
-const isSidebarOpen = ref(true)
+const { canViewOrders, canViewMembers, canManageCoupons, canManageReviews, canViewSettings, currentRole } = useStorePermissions()
+
+const isSidebarOpen       = ref(true)
 const isMobileSidebarOpen = ref(false)
 
-const menuItems = [
-  { name: 'داشبورد',         icon: LayoutDashboard, path: '/store/dashboard' },
-  { name: 'سفارشات',         icon: ShoppingCart,    path: '/store/orders'    },
-  { name: 'محصولات',         icon: Package,         path: '/store/products'  },
-  { name: 'اعضای فروشگاه',   icon: Users,           path: '/store/members'   },
-  { name: 'کوپن‌ها',         icon: Ticket,          path: '/store/coupons'   },
-  { name: 'نظرات محصولات',   icon: Star,            path: '/store/reviews'   },
-  { name: 'پروفایل فروشگاه', icon: Settings,        path: '/store/profile'   },
-]
+/**
+ * Sidebar items are computed so they react to permission changes immediately.
+ * Every user with a store org sees "Dashboard" and "Products".
+ * Other items are conditionally shown based on Spatie permissions.
+ */
+const menuItems = computed(() => {
+  const items = [
+    { name: 'داشبورد',  icon: LayoutDashboard, path: '/store/dashboard', show: true },
+    { name: 'سفارشات', icon: ShoppingCart,    path: '/store/orders',    show: canViewOrders.value },
+    { name: 'محصولات', icon: Package,         path: '/store/products',  show: true },
+    { name: 'اعضای فروشگاه', icon: Users,    path: '/store/members',   show: canViewMembers.value },
+    { name: 'کوپن‌ها',  icon: Ticket,         path: '/store/coupons',   show: canManageCoupons.value },
+    { name: 'نظرات محصولات', icon: Star,      path: '/store/reviews',   show: canManageReviews.value },
+    { name: 'پروفایل فروشگاه', icon: Settings, path: '/store/profile', show: canViewSettings.value },
+  ]
+  return items.filter(item => item.show)
+})
 
 const handleLogout = async () => {
   try {
@@ -78,6 +88,12 @@ const handleLogout = async () => {
         >
           <X class="w-5 h-5" />
         </button>
+      </div>
+
+      <!-- Role badge -->
+      <div v-if="isSidebarOpen && currentRole" class="px-4 py-2 border-b border-secondary-700">
+        <span class="text-xs text-secondary-400">نقش شما: </span>
+        <span class="text-xs font-semibold text-primary-300">{{ currentRole }}</span>
       </div>
 
       <!-- Menu -->

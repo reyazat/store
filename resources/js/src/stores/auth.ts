@@ -26,14 +26,19 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.roles.some(role => ['superadmin', 'admin'].includes(role))
   })
 
-  // Store panel access: user belongs to a store organization (owner, admin, editor roles)
-  // AND has a non-null organization_id (buyers have null — they are not store members).
-  // Super admins are explicitly excluded — they manage the platform, not individual stores.
+  // Store panel access: user belongs to a store organization AND has a non-null
+  // organization_id (buyers have null — they are not store members).
+  // Super admins are explicitly excluded — they use the platform admin panel.
+  //
+  // All organization roles (owner, admin, editor, user, member) can access the store
+  // panel. Write operations are gated per-page via useStorePermissions().
   const isStoreOwner = computed(() => {
     if (!user.value || isSuperAdmin.value) return false
     if (!user.value.organization_id) return false
     if (!user.value.roles) return false
-    return user.value.roles.some(role => ['owner', 'admin', 'editor'].includes(role))
+    return user.value.roles.some(role =>
+      ['owner', 'admin', 'editor', 'user', 'member'].includes(role)
+    )
   })
 
   const hasRole = (role: string) => {

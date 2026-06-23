@@ -9,14 +9,20 @@ use Symfony\Component\HttpFoundation\Response;
 class StoreOwnerMiddleware
 {
     /**
-     * Allow users with management roles in an Organization (store).
+     * Allow users that belong to an Organization (store) to access the store panel.
      * Super admins are explicitly blocked — they manage the platform via /v1/admin,
      * and can view store data via /v1/admin/organizations/{id}/* routes.
      *
-     * Supported roles:
-     * - owner: full control
-     * - admin: can manage most store settings and members
-     * - editor: can manage content and products
+     * Supported roles and their access level:
+     * - owner   : full control (all read + write)
+     * - admin   : manage store settings, members, products, orders
+     * - editor  : manage products and content; view orders
+     * - user    : view orders, products (read-only panel access)
+     * - member  : view products and users (read-only panel access)
+     *
+     * Write operations are further guarded inside each controller/action via
+     * OrganizationService::hasPermission(), so role-level access is the only
+     * check needed here.
      */
     public function handle(Request $request, Closure $next): Response
     {
@@ -48,10 +54,10 @@ class StoreOwnerMiddleware
 
         app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($org->id);
 
-        if (!$user->hasRole(['owner', 'admin', 'editor'])) {
+        if (!$user->hasRole(['owner', 'admin', 'editor', 'user', 'member'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Store owner, admin, or editor privileges required.',
+                'message' => 'You do not have access to this store panel.',
             ], 403);
         }
 
