@@ -74,6 +74,11 @@ export function useStorePermissions() {
     authStore.hasPermission('users.manage')
   )
 
+  /** Can send / cancel / resend email invitations */
+  const canInviteMembers = computed(() =>
+    authStore.hasPermission('users.invite')
+  )
+
   /** Can manage coupons (mapped to settings.manage — financial instrument) */
   const canManageCoupons = computed(() =>
     authStore.hasPermission('settings.manage')
@@ -105,6 +110,7 @@ export function useStorePermissions() {
     canManageOrders,
     canViewMembers,
     canManageMembers,
+    canInviteMembers,
     canManageCoupons,
     canManageReviews,
     canViewSettings,

@@ -337,6 +337,14 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.
   Route::post('/members', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'store']);
   Route::put('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'update']);
   Route::delete('/members/{userId}', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'destroy']);
+  Route::post('/members/{userId}/lock', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'lock']);
+  Route::post('/members/{userId}/unlock', [\App\Http\Controllers\API\Store\StoreMemberController::class, 'unlock']);
+
+  // Store email invitations
+  Route::get('/invitations', [\App\Http\Controllers\API\Store\StoreInvitationController::class, 'index']);
+  Route::post('/invitations', [\App\Http\Controllers\API\Store\StoreInvitationController::class, 'store']);
+  Route::delete('/invitations/{uuid}', [\App\Http\Controllers\API\Store\StoreInvitationController::class, 'destroy']);
+  Route::post('/invitations/{uuid}/resend', [\App\Http\Controllers\API\Store\StoreInvitationController::class, 'resend']);
 
   // Store products — index (scoped to this org) + show (full detail for edit form)
   // Write ops (POST/PUT/DELETE) are at /v1/products under the same middleware.
