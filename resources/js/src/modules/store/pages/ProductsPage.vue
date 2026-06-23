@@ -6,7 +6,7 @@
  * ProductFormDrawer is imported from the admin module; it should be moved to shared/ in a
  * future refactoring pass.
  */
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { Plus, Search, Check, AlertCircle, Package } from 'lucide-vue-next'
 import { formatPrice } from '@shared/utils/format'
 import { storeProductService } from '../services/storeProductService'
@@ -290,7 +290,32 @@ load()
     <!-- Product Form Drawer (shared with admin panel) -->
     <!-- TODO: move ProductFormDrawer to shared/ when module boundaries are refactored -->
     <ProductFormDrawer
-      v-bind="formState"
+      :is-open="formState.isOpen.value"
+      :is-editing="formState.isEditing.value"
+      :is-saving="formState.isSaving.value"
+      :form="formState.form"
+      :errors="formState.errors.value"
+      :server-error="formState.serverError.value"
+      :categories="formState.categories.value"
+      :manufacturers="formState.manufacturers.value"
+      :tax-classes="formState.taxClasses.value"
+      :available-options="formState.availableOptions.value"
+      :main-image-preview="formState.mainImagePreview.value"
+      :related-products="formState.relatedProducts.value"
+      :related-search="formState.relatedSearch.value"
+      :related-results="formState.relatedResults.value"
+      @close="formState.close"
+      @submit="formState.submit"
+      @auto-slug="formState.autoSlug"
+      @main-image-change="formState.onMainImageChange"
+      @remove-main-image="formState.removeMainImage"
+      @add-gallery-images="formState.addGalleryImages"
+      @remove-gallery-image="formState.removeGalleryImage"
+      @toggle-category="formState.toggleCategory"
+      @add-related="formState.addRelated"
+      @remove-related="formState.removeRelated"
+      @search-related="formState.searchRelated"
+      @update:related-search="v => (formState.relatedSearch.value = v)"
       @save-success="onSaveSuccess"
       @create-category="handleCreateCategory"
       @create-manufacturer="handleCreateManufacturer"

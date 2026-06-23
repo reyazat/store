@@ -12,7 +12,8 @@
  * TODO: When ProductFormDrawer is moved to shared/, consolidate this with adminProductService.
  */
 import api from '@shared/utils/api'
-import type { AdminProduct, AdminProductDetail } from '@/modules/admin/services/productService'
+import type { AdminProduct } from '@/modules/admin/services/productService'
+import type { AdminProductDetail } from '@/modules/admin/types/product'
 import type { PaginationMeta } from '@/modules/admin/composables/useAdminList'
 
 export interface StoreProductFilters {

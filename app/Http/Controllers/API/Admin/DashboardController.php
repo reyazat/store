@@ -17,10 +17,15 @@ class DashboardController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'stats'           => $this->dashboardService->getStats(),
-                'recent_orders'   => $this->dashboardService->getRecentOrders(),
-                'top_products'    => $this->dashboardService->getTopProducts(),
-                'monthly_revenue' => $this->dashboardService->getMonthlyRevenue(),
+                'stats'               => $this->dashboardService->getStats(),
+                'recent_orders'       => $this->dashboardService->getRecentOrders(),
+                'top_products'        => $this->dashboardService->getTopProducts(),
+                'monthly_revenue'     => $this->dashboardService->getMonthlyRevenue(),
+                'order_status_breakdown' => $this->dashboardService->getOrderStatusBreakdown(),
+                'top_stores'          => $this->dashboardService->getTopStores(),
+                'pending_reviews'     => $this->dashboardService->getPendingReviews(),
+                'store_growth'        => $this->dashboardService->getStoreGrowth(),
+                'user_growth'         => $this->dashboardService->getUserGrowth(),
             ],
         ]);
     }
