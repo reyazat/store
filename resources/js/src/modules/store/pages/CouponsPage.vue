@@ -10,26 +10,31 @@ interface Coupon {
   id: number
   code: string
   name: string | null
+  description: string | null
   type: 'percentage' | 'fixed'
   value: number
-  min_order_amount: number | null
-  max_discount_amount: number | null
+  min_purchase: number | null
+  max_discount: number | null
   usage_limit: number | null
-  is_active: boolean
+  usage_per_user: number | null
+  used_count: number
+  status: boolean
+  is_valid: boolean
   starts_at: string | null
   expires_at: string | null
-  usage_count: number
 }
 
 interface CouponFormData {
   code: string
   name: string | null
+  description: string | null
   type: 'percentage' | 'fixed'
   value: number
-  min_order_amount: number | null
-  max_discount_amount: number | null
+  min_purchase: number | null
+  max_discount: number | null
   usage_limit: number | null
-  is_active: boolean
+  usage_per_user: number | null
+  status: boolean
   starts_at: string | null
   expires_at: string | null
 }
@@ -76,16 +81,18 @@ const showToast = (text: string, type: 'success' | 'error') => {
 // ─── Form ─────────────────────────────────────────────────────────────────────
 
 const defaultForm = (): CouponFormData => ({
-  code:                '',
-  name:                null,
-  type:                'percentage',
-  value:               0,
-  min_order_amount:    null,
-  max_discount_amount: null,
-  usage_limit:         null,
-  is_active:           true,
-  starts_at:           null,
-  expires_at:          null,
+  code:           '',
+  name:           null,
+  description:    null,
+  type:           'percentage',
+  value:          0,
+  min_purchase:   null,
+  max_discount:   null,
+  usage_limit:    null,
+  usage_per_user: null,
+  status:         true,
+  starts_at:      null,
+  expires_at:     null,
 })
 
 const form = reactive<CouponFormData>(defaultForm())
@@ -133,16 +140,18 @@ const openCreate = () => {
 const openEdit = (coupon: Coupon) => {
   editingId.value = coupon.id
   Object.assign(form, {
-    code:                coupon.code,
-    name:                coupon.name,
-    type:                coupon.type,
-    value:               coupon.value,
-    min_order_amount:    coupon.min_order_amount,
-    max_discount_amount: coupon.max_discount_amount,
-    usage_limit:         coupon.usage_limit,
-    is_active:           coupon.is_active,
-    starts_at:           coupon.starts_at,
-    expires_at:          coupon.expires_at,
+    code:           coupon.code,
+    name:           coupon.name,
+    description:    coupon.description,
+    type:           coupon.type,
+    value:          coupon.value,
+    min_purchase:   coupon.min_purchase,
+    max_discount:   coupon.max_discount,
+    usage_limit:    coupon.usage_limit,
+    usage_per_user: coupon.usage_per_user,
+    status:         coupon.status,
+    starts_at:      coupon.starts_at,
+    expires_at:     coupon.expires_at,
   })
   showModal.value = true
 }
@@ -357,18 +366,18 @@ onMounted(() => loadCoupons())
                 {{ couponDisplayValue(coupon) }}
               </td>
               <td class="px-5 py-4 text-center text-secondary-600">
-                {{ coupon.usage_count }}
+                {{ coupon.used_count }}
                 <span v-if="coupon.usage_limit" class="text-secondary-400"> / {{ coupon.usage_limit }}</span>
                 <span v-else class="text-secondary-400"> / ∞</span>
               </td>
               <td class="px-5 py-4 text-center">
                 <span
-                  :class="coupon.is_active
+                  :class="coupon.status
                     ? 'bg-green-100 text-green-700'
                     : 'bg-secondary-100 text-secondary-500'"
                   class="text-xs font-medium px-2.5 py-0.5 rounded-full"
                 >
-                  {{ coupon.is_active ? 'فعال' : 'غیرفعال' }}
+                  {{ coupon.status ? 'فعال' : 'غیرفعال' }}
                 </span>
               </td>
               <td class="px-5 py-4 text-secondary-500">{{ formatDate(coupon.expires_at) }}</td>
@@ -530,7 +539,7 @@ onMounted(() => loadCoupons())
               <div>
                 <label class="block text-sm font-medium text-secondary-700 mb-1">حداقل مبلغ سفارش</label>
                 <input
-                  v-model.number="form.min_order_amount"
+                  v-model.number="form.min_purchase"
                   type="number"
                   min="0"
                   placeholder="اختیاری"
@@ -540,7 +549,7 @@ onMounted(() => loadCoupons())
               <div>
                 <label class="block text-sm font-medium text-secondary-700 mb-1">سقف تخفیف (تومان)</label>
                 <input
-                  v-model.number="form.max_discount_amount"
+                  v-model.number="form.max_discount"
                   type="number"
                   min="0"
                   placeholder="اختیاری"
@@ -586,7 +595,7 @@ onMounted(() => loadCoupons())
               <div class="flex items-end pb-1">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                   <input
-                    v-model="form.is_active"
+                    v-model="form.status"
                     type="checkbox"
                     class="w-4 h-4 rounded border-secondary-300 text-primary-600"
                   />

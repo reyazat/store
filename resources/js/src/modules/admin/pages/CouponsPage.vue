@@ -19,16 +19,18 @@ const editingId   = ref<number | null>(null)
 const toastMsg    = ref<{ text: string; type: 'success' | 'error' } | null>(null)
 
 const defaultForm = (): CouponFormData => ({
-  code:                '',
-  name:                null,
-  type:                'percentage',
-  value:               0,
-  min_order_amount:    null,
-  max_discount_amount: null,
-  usage_limit:         null,
-  is_active:           true,
-  starts_at:           null,
-  expires_at:          null,
+  code:           '',
+  name:           null,
+  description:    null,
+  type:           'percentage',
+  value:          0,
+  min_purchase:   null,
+  max_discount:   null,
+  usage_limit:    null,
+  usage_per_user: null,
+  status:         true,
+  starts_at:      null,
+  expires_at:     null,
 })
 
 const form = reactive<CouponFormData>(defaultForm())
@@ -49,16 +51,18 @@ const openCreate = () => {
 const openEdit = (coupon: AdminCoupon) => {
   editingId.value = coupon.id
   Object.assign(form, {
-    code:                coupon.code,
-    name:                coupon.name,
-    type:                coupon.type,
-    value:               coupon.value,
-    min_order_amount:    coupon.min_order_amount,
-    max_discount_amount: coupon.max_discount_amount,
-    usage_limit:         coupon.usage_limit,
-    is_active:           coupon.is_active,
-    starts_at:           coupon.starts_at,
-    expires_at:          coupon.expires_at,
+    code:           coupon.code,
+    name:           coupon.name,
+    description:    coupon.description,
+    type:           coupon.type,
+    value:          coupon.value,
+    min_purchase:   coupon.min_purchase,
+    max_discount:   coupon.max_discount,
+    usage_limit:    coupon.usage_limit,
+    usage_per_user: coupon.usage_per_user,
+    status:         coupon.status,
+    starts_at:      coupon.starts_at,
+    expires_at:     coupon.expires_at,
   })
   showModal.value = true
 }
@@ -221,10 +225,10 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
               <td class="px-6 py-4 text-sm text-secondary-500">{{ formatDate(coupon.expires_at) }}</td>
               <td class="px-6 py-4 text-center">
                 <span
-                  :class="coupon.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
+                  :class="coupon.status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'"
                   class="px-2.5 py-0.5 text-xs rounded-full font-medium"
                 >
-                  {{ coupon.is_active ? 'فعال' : 'غیرفعال' }}
+                  {{ coupon.status ? 'فعال' : 'غیرفعال' }}
                 </span>
               </td>
               <td class="px-6 py-4 text-center">
@@ -316,7 +320,7 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
               <div>
                 <label class="block text-sm font-medium text-secondary-700 mb-1">حداقل مبلغ سفارش</label>
                 <input
-                  v-model.number="form.min_order_amount"
+                  v-model.number="form.min_purchase"
                   type="number"
                   min="0"
                   placeholder="اختیاری"
@@ -326,7 +330,7 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
               <div>
                 <label class="block text-sm font-medium text-secondary-700 mb-1">سقف تخفیف (تومان)</label>
                 <input
-                  v-model.number="form.max_discount_amount"
+                  v-model.number="form.max_discount"
                   type="number"
                   min="0"
                   placeholder="اختیاری"
@@ -369,7 +373,7 @@ const couponDisplayValue = (coupon: AdminCoupon) =>
               </div>
               <div class="flex items-end pb-1">
                 <label class="flex items-center gap-2 cursor-pointer">
-                  <input v-model="form.is_active" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600" />
+                  <input v-model="form.status" type="checkbox" class="w-4 h-4 rounded border-secondary-300 text-primary-600" />
                   <span class="text-sm text-secondary-700">فعال</span>
                 </label>
               </div>

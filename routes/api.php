@@ -145,6 +145,9 @@ Route::middleware(['auth:api', 'block.super.admin'])->prefix('v1/user')->name('u
   Route::put('/cart/{cartItem}', [\App\Http\Controllers\API\User\CartController::class, 'update']);
   Route::delete('/cart/{cartItem}', [\App\Http\Controllers\API\User\CartController::class, 'destroy']);
   Route::post('/cart/clear', [\App\Http\Controllers\API\User\CartController::class, 'clear']);
+  // Coupon application (must come after /cart/clear to avoid route collision)
+  Route::post('/cart/coupon', [\App\Http\Controllers\API\User\CartController::class, 'applyCoupon']);
+  Route::delete('/cart/coupon', [\App\Http\Controllers\API\User\CartController::class, 'removeCoupon']);
   
   // Orders
   Route::get('/orders', [\App\Http\Controllers\API\User\OrderController::class, 'index']);

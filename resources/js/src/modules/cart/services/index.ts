@@ -50,6 +50,16 @@ export const cartService = {
     return response.data
   },
 
+  async applyCoupon(code: string) {
+    const response = await api.post('/user/cart/coupon', { code })
+    return response.data
+  },
+
+  async removeCoupon() {
+    const response = await api.delete('/user/cart/coupon')
+    return response.data
+  },
+
   async uploadReceipt(transactionId: number, file: File, cardLastFour?: string) {
     const formData = new FormData()
     formData.append('receipt', file)

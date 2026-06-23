@@ -3,20 +3,39 @@ import type { PaginationMeta } from '../composables/useAdminList'
 
 export interface AdminCoupon {
   id: number
+  organization_id: number | null
+  is_platform: boolean
   code: string
   name: string | null
+  description: string | null
   type: 'percentage' | 'fixed'
   value: number
-  min_order_amount: number | null
-  max_discount_amount: number | null
+  min_purchase: number | null       // was: min_order_amount
+  max_discount: number | null       // was: max_discount_amount
   usage_limit: number | null
+  usage_per_user: number | null
   used_count: number
-  is_active: boolean
+  status: boolean                   // was: is_active
+  is_valid: boolean
+  starts_at: string | null
+  expires_at: string | null
+  created_at: string | null
+}
+
+export interface CouponFormData {
+  code: string
+  name: string | null
+  description: string | null
+  type: 'percentage' | 'fixed'
+  value: number
+  min_purchase: number | null
+  max_discount: number | null
+  usage_limit: number | null
+  usage_per_user: number | null
+  status: boolean
   starts_at: string | null
   expires_at: string | null
 }
-
-export type CouponFormData = Omit<AdminCoupon, 'id' | 'used_count'>
 
 export interface CouponFilters {
   search?: string

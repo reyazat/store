@@ -12,6 +12,12 @@ class Cart extends AbstractModel
     protected $fillable = [
         'user_id',
         'session_id',
+        'coupon_id',
+        'coupon_discount',
+    ];
+
+    protected $casts = [
+        'coupon_discount' => 'decimal:4',
     ];
 
     public function user(): BelongsTo
@@ -24,9 +30,25 @@ class Cart extends AbstractModel
         return $this->hasMany(CartItem::class);
     }
 
+    public function coupon(): BelongsTo
+    {
+        return $this->belongsTo(Coupon::class);
+    }
+
+    /**
+     * Subtotal before any coupon discount.
+     */
+    public function getSubtotalAttribute(): float
+    {
+        return (float) $this->items->sum(fn($item) => $item->price * $item->quantity);
+    }
+
+    /**
+     * Final total after coupon discount applied.
+     */
     public function getTotalAttribute(): float
     {
-        return $this->items->sum(fn($item) => $item->price * $item->quantity);
+        return max(0.0, $this->subtotal - (float) ($this->coupon_discount ?? 0));
     }
 
     public function getItemsCountAttribute(): int

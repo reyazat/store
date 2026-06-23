@@ -6,18 +6,33 @@ import { useAuthStore } from './auth'
 
 const GUEST_CART_KEY = 'guest_cart'
 
+interface AppliedCoupon {
+  id: number
+  code: string
+  name: string | null
+  type: 'percentage' | 'fixed'
+  value: number
+}
+
 export const useCartStore = defineStore('cart', () => {
   const authStore = useAuthStore()
   const items = ref<CartItem[]>([])
   const isDrawerOpen = ref(false)
   const isLoading = ref(false)
 
-  const itemsCount = computed(() => 
+  // Coupon state — only relevant for authenticated users (server-side cart)
+  const appliedCoupon   = ref<AppliedCoupon | null>(null)
+  const couponDiscount  = ref<number>(0)
+  const subtotal        = computed(() =>
+    items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  )
+
+  const itemsCount = computed(() =>
     items.value.reduce((sum, item) => sum + item.quantity, 0)
   )
 
-  const total = computed(() => 
-    items.value.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const total = computed(() =>
+    Math.max(0, subtotal.value - couponDiscount.value)
   )
 
   // Load guest cart from localStorage
@@ -65,6 +80,22 @@ export const useCartStore = defineStore('cart', () => {
     isDrawerOpen.value = false
   }
 
+  /** Hydrate cart state from a server CartResource response object. */
+  const hydrateFromServer = (data: any) => {
+    items.value = (data.items ?? []).map((item: any) => ({
+      id:        item.id,
+      productId: item.listing?.product?.id || item.product?.id,
+      listingId: item.listing_id,
+      variantId: item.variant_id || undefined,
+      name:      item.listing?.product?.name || item.product?.name,
+      price:     item.price,
+      image:     item.listing?.product?.image || item.product?.image,
+      quantity:  item.quantity,
+    }))
+    appliedCoupon.value  = data.coupon ?? null
+    couponDiscount.value = parseFloat(data.coupon_discount ?? 0)
+  }
+
   // Fetch cart from server (authenticated users only)
   const fetchCart = async () => {
     if (!authStore.isAuthenticated) {
@@ -76,16 +107,7 @@ export const useCartStore = defineStore('cart', () => {
     try {
       const response = await cartService.getCart()
       if (response.success) {
-        items.value = response.data.items.map((item: any) => ({
-          id: item.id,
-          productId: item.listing?.product?.id || item.product?.id,
-          listingId: item.listing_id,
-          variantId: item.variant_id || undefined,
-          name: item.listing?.product?.name || item.product?.name,
-          price: item.price,
-          image: item.listing?.product?.image || item.product?.image,
-          quantity: item.quantity,
-        }))
+        hydrateFromServer(response.data)
       }
     } catch (error) {
       console.error('Failed to fetch cart:', error)
@@ -104,7 +126,7 @@ export const useCartStore = defineStore('cart', () => {
     try {
       // Fetch user cart first
       await fetchCart()
-      
+
       // Add guest items to server
       for (const item of guestItems) {
         try {
@@ -115,10 +137,10 @@ export const useCartStore = defineStore('cart', () => {
           console.error('Failed to merge item:', error)
         }
       }
-      
+
       // Refresh cart from server
       await fetchCart()
-      
+
       // Clear guest cart
       clearGuestCart()
     } catch (error) {
@@ -128,18 +150,18 @@ export const useCartStore = defineStore('cart', () => {
 
   const addItem = async (item: CartItem) => {
     // Find existing item by productId AND variantId (if exists)
-    const existing = items.value.find(i => 
-      i.productId === item.productId && 
+    const existing = items.value.find(i =>
+      i.productId === item.productId &&
       (item.variantId ? i.variantId === item.variantId : !i.variantId)
     )
-    
+
     if (existing) {
       existing.quantity += item.quantity
     } else {
       items.value.push(item)
     }
     openDrawer()
-    
+
     // For authenticated users, sync with server
     if (authStore.isAuthenticated && item.listingId) {
       try {
@@ -188,7 +210,9 @@ export const useCartStore = defineStore('cart', () => {
 
   const clearCart = async () => {
     items.value = []
-    
+    appliedCoupon.value  = null
+    couponDiscount.value = 0
+
     // For authenticated users, sync with server
     if (authStore.isAuthenticated) {
       try {
@@ -198,6 +222,34 @@ export const useCartStore = defineStore('cart', () => {
       }
     } else {
       clearGuestCart()
+    }
+  }
+
+  /** Apply a coupon code (authenticated users only). Returns error message or null on success. */
+  const applyCoupon = async (code: string): Promise<string | null> => {
+    if (!authStore.isAuthenticated) return 'برای استفاده از کوپن باید وارد حساب خود شوید.'
+    try {
+      const response = await cartService.applyCoupon(code)
+      if (response.success) {
+        hydrateFromServer(response.data)
+        return null
+      }
+      return response.message ?? 'خطا در اعمال کوپن.'
+    } catch (e: any) {
+      return e?.response?.data?.message ?? 'خطا در اعمال کوپن.'
+    }
+  }
+
+  /** Remove the applied coupon (authenticated users only). */
+  const removeCoupon = async (): Promise<void> => {
+    if (!authStore.isAuthenticated) return
+    try {
+      const response = await cartService.removeCoupon()
+      if (response.success) {
+        hydrateFromServer(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to remove coupon:', error)
     }
   }
 
@@ -215,7 +267,10 @@ export const useCartStore = defineStore('cart', () => {
     isDrawerOpen,
     isLoading,
     itemsCount,
+    subtotal,
     total,
+    appliedCoupon,
+    couponDiscount,
     toggleDrawer,
     openDrawer,
     closeDrawer,
@@ -226,5 +281,7 @@ export const useCartStore = defineStore('cart', () => {
     clearCart,
     mergeGuestCart,
     initialize,
+    applyCoupon,
+    removeCoupon,
   }
 })

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API\User;
 
+use App\Actions\Coupon\ApplyCouponAction;
+use App\Actions\Coupon\RemoveCouponAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cart\CartAddItemRequest;
 use App\Http\Requests\Cart\CartUpdateItemRequest;
@@ -18,13 +20,16 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CartController extends Controller
 {
-    public function __construct(private readonly CartService $cartService)
-    {
-    }
+    public function __construct(
+        private readonly CartService         $cartService,
+        private readonly ApplyCouponAction   $applyCouponAction,
+        private readonly RemoveCouponAction  $removeCouponAction,
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
         $cart = $this->cartService->getOrCreateCart($request->user());
+        $cart->load('coupon');
 
         return response()->json([
             'success' => true,
@@ -146,6 +151,59 @@ class CartController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'سبد خرید خالی شد',
+        ]);
+    }
+
+    // ─── Coupon endpoints ─────────────────────────────────────────────────────
+
+    /**
+     * Apply a coupon code to the current user's cart.
+     */
+    public function applyCoupon(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'string', 'max:100'],
+        ]);
+
+        $user = $request->user();
+        $cart = $this->cartService->getOrCreateCart($user);
+        $cart->loadMissing(['items.listing.product']);
+
+        if ($cart->items->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'سبد خرید خالی است.',
+            ], 422);
+        }
+
+        $result = $this->applyCouponAction->execute($cart, $user, $data['code']);
+
+        if (!$result['success']) {
+            return response()->json(['success' => false, 'message' => $result['message']], 422);
+        }
+
+        $cart->refresh()->load(['items.listing.product', 'items.listing.vendor', 'items.listingVariant', 'coupon']);
+
+        return response()->json([
+            'success'  => true,
+            'message'  => $result['message'],
+            'data'     => new CartResource($cart),
+        ]);
+    }
+
+    /**
+     * Remove the applied coupon from the current user's cart.
+     */
+    public function removeCoupon(Request $request): JsonResponse
+    {
+        $cart = $this->cartService->getOrCreateCart($request->user());
+        $this->removeCouponAction->execute($cart);
+        $cart->refresh()->load(['items.listing.product', 'items.listing.vendor', 'items.listingVariant', 'coupon']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'کوپن حذف شد.',
+            'data'    => new CartResource($cart),
         ]);
     }
 }
