@@ -16,6 +16,8 @@ class ProductReviewResource extends JsonResource
             'body'        => $this->body,
             'status'      => $this->status,
             'approved_at' => $this->approved_at?->toDateTimeString(),
+            'reply'       => $this->reply,
+            'replied_at'  => $this->replied_at?->toDateTimeString(),
             'created_at'  => $this->created_at->toDateTimeString(),
             'user'        => $this->whenLoaded('user', fn () => [
                 'id'   => $this->user->id,

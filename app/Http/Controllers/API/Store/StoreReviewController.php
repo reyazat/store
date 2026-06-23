@@ -2,41 +2,47 @@
 
 namespace App\Http\Controllers\API\Store;
 
+use App\Actions\ProductReview\ApproveProductReviewAction;
+use App\Actions\ProductReview\RejectProductReviewAction;
+use App\Actions\ProductReview\ReplyToReviewAction;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ProductReview\ReplyToReviewRequest;
+use App\Http\Resources\ProductReview\ProductReviewResource;
 use App\Models\ProductReview;
 use App\Repositories\Contracts\ProductReviewRepositoryInterface;
+use IamApi\Services\OrganizationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class StoreReviewController extends Controller
 {
     public function __construct(
-        private readonly ProductReviewRepositoryInterface $reviewRepository
+        private readonly ProductReviewRepositoryInterface $reviewRepository,
+        private readonly ApproveProductReviewAction       $approveAction,
+        private readonly RejectProductReviewAction        $rejectAction,
+        private readonly ReplyToReviewAction              $replyAction,
+        private readonly OrganizationService              $organizationService,
     ) {}
 
     /**
-     * List reviews for products belonging to this store owner's organization.
-     * Store owners can only see reviews for their own products.
+     * List reviews for products belonging to this store's organization.
+     * Supports filtering by status and rating.
      */
     public function index(Request $request): JsonResponse
     {
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
+        $user    = auth()->user();
+        $filters = $request->only(['status', 'rating']);
+        $perPage = $request->integer('per_page', 15);
 
-        // Get reviews for products from this organization
-        $reviews = ProductReview::query()
-            ->whereHas('product', function ($query) use ($organizationId) {
-                $query->where('organization_id', $organizationId);
-            })
-            ->with(['product', 'user'])
-            ->when($request->input('status'), fn($q, $status) => $q->where('status', $status))
-            ->when($request->input('rating'), fn($q, $rating) => $q->where('rating', $rating))
-            ->latest()
-            ->paginate($request->integer('per_page', 15));
+        $reviews = $this->reviewRepository->getForOrganizationPaginated(
+            $user->organization_id,
+            $filters,
+            $perPage,
+        );
 
         return response()->json([
             'success' => true,
-            'data'    => $reviews->items(),
+            'data'    => ProductReviewResource::collection($reviews->items()),
             'meta'    => [
                 'current_page' => $reviews->currentPage(),
                 'last_page'    => $reviews->lastPage(),
@@ -47,76 +53,102 @@ class StoreReviewController extends Controller
     }
 
     /**
-     * Show a specific review - only if it belongs to this store's product.
+     * Show a specific review — only if it belongs to this store's product.
      */
     public function show(ProductReview $review): JsonResponse
     {
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
-
-        // Check if this review belongs to a product from this store
-        if ($review->product->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This review does not belong to your store.',
-            ], 403);
-        }
-
+        $this->authorizeOwnership($review);
         $review->load(['product', 'user']);
 
         return response()->json([
             'success' => true,
-            'data'    => $review,
+            'data'    => new ProductReviewResource($review),
         ]);
     }
 
     /**
-     * Approve a review (store owner can moderate reviews for their products).
+     * Approve a review (sets status=approved and approved_at timestamp).
+     * Requires products.manage permission.
      */
     public function approve(ProductReview $review): JsonResponse
     {
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOwnership($review);
+        $this->authorizeManage();
 
-        // Check ownership
-        if ($review->product->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This review does not belong to your store.',
-            ], 403);
-        }
-
-        $review->update(['status' => 'approved']);
+        $updated = $this->approveAction->execute($review);
 
         return response()->json([
             'success' => true,
-            'message' => 'Review approved successfully.',
-            'data'    => $review,
+            'message' => 'نظر تأیید شد',
+            'data'    => new ProductReviewResource($updated),
         ]);
     }
 
     /**
-     * Reject a review (store owner can moderate reviews for their products).
+     * Reject a review (sets status=rejected, clears approved_at).
+     * Requires products.manage permission.
      */
     public function reject(ProductReview $review): JsonResponse
     {
-        $user = auth()->user();
-        $organizationId = $user->organization_id;
+        $this->authorizeOwnership($review);
+        $this->authorizeManage();
 
-        // Check ownership
-        if ($review->product->organization_id !== $organizationId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This review does not belong to your store.',
-            ], 403);
-        }
-
-        $review->update(['status' => 'rejected']);
+        $updated = $this->rejectAction->execute($review);
 
         return response()->json([
             'success' => true,
-            'message' => 'Review rejected successfully.',
-            'data'    => $review,
+            'message' => 'نظر رد شد',
+            'data'    => new ProductReviewResource($updated),
         ]);
+    }
+
+    /**
+     * Add or update the store owner's reply to a customer review.
+     * Requires products.manage permission.
+     */
+    public function reply(ReplyToReviewRequest $request, ProductReview $review): JsonResponse
+    {
+        $this->authorizeOwnership($review);
+        $this->authorizeManage();
+
+        $updated = $this->replyAction->execute($review, $request->input('body'));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'پاسخ شما ثبت شد',
+            'data'    => new ProductReviewResource($updated),
+        ]);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Abort with 403 if the review's product does not belong to this store.
+     */
+    private function authorizeOwnership(ProductReview $review): void
+    {
+        $orgId = auth()->user()->organization_id;
+
+        abort_if(
+            $review->product->organization_id !== $orgId,
+            403,
+            'این نظر متعلق به محصولات فروشگاه شما نیست.',
+        );
+    }
+
+    /**
+     * Abort with 403 if the authenticated user lacks the products.manage permission
+     * (only owner/admin/editor roles have this permission by default).
+     */
+    private function authorizeManage(): void
+    {
+        $user = auth()->user();
+        $org  = $user->organization;
+
+        abort_unless(
+            $this->organizationService->hasPermission($org, $user, 'products.manage'),
+            403,
+            'شما مجوز لازم برای این عملیات را ندارید.',
+        );
     }
 }

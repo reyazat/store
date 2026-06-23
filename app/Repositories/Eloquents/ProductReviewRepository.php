@@ -28,6 +28,17 @@ class ProductReviewRepository implements ProductReviewRepositoryInterface
             ->paginate($perPage);
     }
 
+    public function getForOrganizationPaginated(int $organizationId, array $filters = [], int $perPage = 15): LengthAwarePaginator
+    {
+        return ProductReview::query()
+            ->whereHas('product', fn ($q) => $q->where('organization_id', $organizationId))
+            ->with(['product:id,name,slug', 'user:id,name'])
+            ->when($filters['status'] ?? null, fn ($q, $status) => $q->where('status', $status))
+            ->when($filters['rating'] ?? null, fn ($q, $rating) => $q->where('rating', (int) $rating))
+            ->latest()
+            ->paginate($perPage);
+    }
+
     public function findById(int $id): ?ProductReview
     {
         return ProductReview::with(['product:id,name,slug', 'user:id,name'])->find($id);
@@ -53,6 +64,16 @@ class ProductReviewRepository implements ProductReviewRepositoryInterface
         $review->update([
             'status'      => 'rejected',
             'approved_at' => null,
+        ]);
+
+        return $review->fresh();
+    }
+
+    public function reply(ProductReview $review, string $body): ProductReview
+    {
+        $review->update([
+            'reply'      => $body,
+            'replied_at' => Carbon::now(),
         ]);
 
         return $review->fresh();

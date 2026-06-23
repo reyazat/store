@@ -7,6 +7,8 @@ export interface ProductReview {
   body: string
   status: 'pending' | 'approved' | 'rejected'
   approved_at: string | null
+  reply: string | null
+  replied_at: string | null
   created_at: string
   user: { id: number; name: string } | null
   product?: { id: number; name: string; slug: string } | null
@@ -53,5 +55,34 @@ export const reviewService = {
 
   async destroy(id: number): Promise<void> {
     await api.delete(`/admin/reviews/${id}`)
+  },
+
+  // ── Store owner methods ────────────────────────────────────────────────────
+
+  async storeGetAll(
+    page = 1,
+    perPage = 15,
+    filters: { status?: string; rating?: number } = {},
+  ): Promise<{ data: ProductReview[]; meta: AdminReviewMeta }> {
+    const params: Record<string, string | number> = { page, per_page: perPage }
+    if (filters.status)  params.status = filters.status
+    if (filters.rating)  params.rating = filters.rating
+    const response = await api.get('/store/reviews', { params })
+    return { data: response.data.data, meta: response.data.meta }
+  },
+
+  async storeApprove(id: number): Promise<ProductReview> {
+    const response = await api.post(`/store/reviews/${id}/approve`)
+    return response.data.data
+  },
+
+  async storeReject(id: number): Promise<ProductReview> {
+    const response = await api.post(`/store/reviews/${id}/reject`)
+    return response.data.data
+  },
+
+  async storeReply(id: number, body: string): Promise<ProductReview> {
+    const response = await api.post(`/store/reviews/${id}/reply`, { body })
+    return response.data.data
   },
 }

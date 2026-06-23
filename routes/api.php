@@ -363,6 +363,7 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.
   Route::get('/reviews/{review}', [\App\Http\Controllers\API\Store\StoreReviewController::class, 'show']);
   Route::post('/reviews/{review}/approve', [\App\Http\Controllers\API\Store\StoreReviewController::class, 'approve']);
   Route::post('/reviews/{review}/reject', [\App\Http\Controllers\API\Store\StoreReviewController::class, 'reject']);
+  Route::post('/reviews/{review}/reply', [\App\Http\Controllers\API\Store\StoreReviewController::class, 'reply']);
 
   // Store coupons (store-level coupons with organization_id)
   // Note: Platform-level coupons (organization_id = null) are managed by super admin

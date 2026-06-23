@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, computed } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Star, Send, User, AlertCircle, CheckCircle } from 'lucide-vue-next'
+import { Star, Send, User, AlertCircle, CheckCircle, CornerDownRight } from 'lucide-vue-next'
 import { reviewService } from '../services/reviewService'
 import type { ProductReview, ReviewFormData } from '../services/reviewService'
 import { useAuthStore } from '@/stores/auth'
@@ -150,6 +150,18 @@ watch(() => props.productSlug, (slug) => {
           </div>
           <h4 v-if="review.title" class="text-sm font-semibold text-secondary-800 mb-1">{{ review.title }}</h4>
           <p class="text-sm text-secondary-600 leading-relaxed">{{ review.body }}</p>
+
+          <!-- Store owner reply -->
+          <div
+            v-if="review.reply"
+            class="mt-4 flex items-start gap-2 bg-secondary-50 border border-secondary-200 rounded-xl px-4 py-3"
+          >
+            <CornerDownRight class="w-4 h-4 text-secondary-400 shrink-0 mt-0.5" aria-hidden="true" />
+            <div class="min-w-0">
+              <p class="text-xs font-semibold text-secondary-500 mb-1">پاسخ فروشگاه</p>
+              <p class="text-sm text-secondary-700 leading-relaxed">{{ review.reply }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

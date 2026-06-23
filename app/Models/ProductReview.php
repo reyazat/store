@@ -31,11 +31,14 @@ class ProductReview extends AbstractModel
         'body',
         'status',
         'approved_at',
+        'reply',
+        'replied_at',
     ];
 
     protected $casts = [
         'rating'      => 'integer',
         'approved_at' => 'datetime',
+        'replied_at'  => 'datetime',
     ];
 
     public function product(): BelongsTo
