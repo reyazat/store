@@ -235,7 +235,10 @@ const submitEditRole = async () => {
     closeModal()
     await loadMembers()
   } catch (e: any) {
-    modalError.value = e.response?.data?.message || 'خطا در تغییر نقش'
+    const validationErrors = e.response?.data?.errors as Record<string, string[]> | undefined
+    modalError.value = validationErrors
+      ? Object.values(validationErrors).flat()[0] || 'خطا در تغییر نقش'
+      : e.response?.data?.message || 'خطا در تغییر نقش'
   } finally {
     modalLoading.value = false
   }
@@ -520,9 +523,9 @@ onMounted(() => {
               <td v-if="canManageMembers" class="px-4 py-3">
                 <div class="flex items-center justify-center gap-1">
 
-                  <!-- Edit role (never for owner from non-owner, never self-demotion if owner) -->
+                  <!-- The owner role is immutable from member management. -->
                   <button
-                    v-if="m.role !== 'owner' || m.id === myId"
+                    v-if="m.role !== 'owner'"
                     @click="openModal('editRole', m)"
                     class="p-1.5 hover:bg-secondary-100 rounded text-secondary-400 hover:text-primary-600 transition"
                     title="تغییر نقش"

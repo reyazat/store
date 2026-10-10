@@ -45,6 +45,7 @@ function makeDefaultForm(): AdminProductFormData {
 }
 
 export type ProductDetailFetcher = (slug: string) => Promise<AdminProductDetail>
+export type ProductOptionsFetcher = () => Promise<AdminOption[]>
 
 /**
  * @param onSuccess   callback after save
@@ -56,6 +57,7 @@ export type ProductDetailFetcher = (slug: string) => Promise<AdminProductDetail>
 export function useProductForm(
   onSuccess: (product: AdminProductDetail) => void,
   detailFetcher?: ProductDetailFetcher,
+  optionsFetcher: ProductOptionsFetcher = productService.getAvailableOptions.bind(productService),
 ) {
   const isOpen      = ref(false)
   const isSaving    = ref(false)
@@ -83,7 +85,7 @@ export function useProductForm(
       productService.getCategories(),
       productService.getManufacturers(),
       productService.getTaxClasses(),
-      productService.getAvailableOptions(),
+      optionsFetcher(),
     ])
     categories.value       = cats.data
     manufacturers.value    = mans.data

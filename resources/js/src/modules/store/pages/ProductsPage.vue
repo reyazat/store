@@ -72,7 +72,11 @@ const onSaveSuccess = (product: AdminProductDetail) => {
 
 // Pass store-specific detail fetcher so edit form uses GET /store/products/{slug}
 // instead of GET /admin/products/{slug} (which is admin-middleware–only and returns 403).
-const formState = useProductForm(onSaveSuccess, storeProductService.getDetail.bind(storeProductService))
+const formState = useProductForm(
+  onSaveSuccess,
+  storeProductService.getDetail.bind(storeProductService),
+  storeProductService.getAvailableOptions.bind(storeProductService),
+)
 
 // ── Delete ───────────────────────────────────────────────────────────────────
 const handleDelete = async (product: AdminProduct) => {
@@ -316,7 +320,6 @@ load()
       @remove-related="formState.removeRelated"
       @search-related="formState.searchRelated"
       @update:related-search="v => (formState.relatedSearch.value = v)"
-      @save-success="onSaveSuccess"
       @create-category="handleCreateCategory"
       @create-manufacturer="handleCreateManufacturer"
     />

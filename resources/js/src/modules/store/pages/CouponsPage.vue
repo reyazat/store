@@ -163,6 +163,7 @@ const closeModal = () => {
 
 const handleSubmit = async () => {
   if (!form.code.trim()) { showToast('کد کوپن الزامی است', 'error'); return }
+  if (!form.name?.trim()) { showToast('نام کوپن الزامی است', 'error'); return }
   if (!form.type)        { showToast('نوع کوپن الزامی است', 'error'); return }
   if (form.value <= 0)   { showToast('مقدار تخفیف باید بیشتر از صفر باشد', 'error'); return }
 
@@ -181,7 +182,9 @@ const handleSubmit = async () => {
     }
     closeModal()
   } catch (e: any) {
-    showToast(e.response?.data?.message || 'خطا در ذخیره کوپن', 'error')
+    const validationErrors = e.response?.data?.errors as Record<string, string[]> | undefined
+    const validationMessage = validationErrors ? Object.values(validationErrors).flat()[0] : null
+    showToast(validationMessage || e.response?.data?.message || 'خطا در ذخیره کوپن', 'error')
   } finally {
     isSaving.value = false
   }

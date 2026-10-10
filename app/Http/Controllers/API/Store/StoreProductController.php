@@ -4,8 +4,10 @@ namespace App\Http\Controllers\API\Store;
 
 use App\Actions\Product\Admin\ShowAdminProductAction;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Option\OptionDetailResource;
 use App\Http\Resources\Product\Admin\AdminProductDetailResource;
 use App\Http\Resources\Product\ProductListResource;
+use App\Models\Option;
 use App\Models\Product;
 use App\Services\ProductService;
 use IamApi\Models\User;
@@ -15,7 +17,7 @@ use Illuminate\Http\Request;
 class StoreProductController extends Controller
 {
     public function __construct(
-        private readonly ProductService        $productService,
+        private readonly ProductService $productService,
         private readonly ShowAdminProductAction $showAdminAction,
     ) {}
 
@@ -55,13 +57,26 @@ class StoreProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => ProductListResource::collection($products),
-            'meta'    => [
+            'data' => ProductListResource::collection($products),
+            'meta' => [
                 'current_page' => $products->currentPage(),
-                'last_page'    => $products->lastPage(),
-                'per_page'     => $products->perPage(),
-                'total'        => $products->total(),
+                'last_page' => $products->lastPage(),
+                'per_page' => $products->perPage(),
+                'total' => $products->total(),
             ],
+        ]);
+    }
+
+    public function availableOptions(): JsonResponse
+    {
+        $options = Option::query()
+            ->with('values')
+            ->orderBy('sorted')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => OptionDetailResource::collection($options),
         ]);
     }
 
@@ -88,7 +103,7 @@ class StoreProductController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => new AdminProductDetailResource($product),
+            'data' => new AdminProductDetailResource($product),
         ]);
     }
 }

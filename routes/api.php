@@ -340,6 +340,7 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1/store')->name('store.
   // Store products — index (scoped to this org) + show (full detail for edit form)
   // Write ops (POST/PUT/DELETE) are at /v1/products under the same middleware.
   Route::get('/products', [\App\Http\Controllers\API\Store\StoreProductController::class, 'index']);
+  Route::get('/products/available-options', [\App\Http\Controllers\API\Store\StoreProductController::class, 'availableOptions']);
   Route::get('/products/{product:slug}', [\App\Http\Controllers\API\Store\StoreProductController::class, 'show']);
 
   // Store orders (orders containing products from this store)

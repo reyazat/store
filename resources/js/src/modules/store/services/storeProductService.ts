@@ -13,7 +13,7 @@
  */
 import api from '@shared/utils/api'
 import type { AdminProduct } from '@/modules/admin/services/productService'
-import type { AdminProductDetail } from '@/modules/admin/types/product'
+import type { AdminOption, AdminProductDetail } from '@/modules/admin/types/product'
 import type { PaginationMeta } from '@/modules/admin/composables/useAdminList'
 
 export interface StoreProductFilters {
@@ -47,5 +47,10 @@ export const storeProductService = {
   async getDetail(slug: string): Promise<AdminProductDetail> {
     const response = await api.get(`/store/products/${slug}`)
     return response.data.data
+  },
+
+  async getAvailableOptions(): Promise<AdminOption[]> {
+    const response = await api.get('/store/products/available-options')
+    return response.data?.data || []
   },
 }
