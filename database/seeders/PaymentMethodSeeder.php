@@ -16,12 +16,12 @@ class PaymentMethodSeeder extends Seeder
                 'description' => 'انتقال وجه مستقیم به شماره کارت فروشگاه',
                 'is_active' => false,
                 'sort_order' => 10,
-                'config' => json_encode([
+                'config' => [
                     'card_number' => '',
                     'card_holder' => '',
                     'bank_name' => '',
                     'instructions' => '',
-                ]),
+                ],
                 'success_order_status' => 'pending_confirmation',
                 'failure_order_status' => 'payment_failed',
                 'cancel_order_status' => 'cancelled',
@@ -32,7 +32,7 @@ class PaymentMethodSeeder extends Seeder
                 'description' => 'پرداخت آنلاین امن با کارت‌های عضو شبکه شتاب',
                 'is_active' => false,
                 'sort_order' => 20,
-                'config' => json_encode([]),
+                'config' => [],
                 'success_order_status' => 'processing',
                 'failure_order_status' => 'payment_failed',
                 'cancel_order_status' => 'cancelled',
@@ -43,10 +43,10 @@ class PaymentMethodSeeder extends Seeder
                 'description' => 'پرداخت آنلاین امن با کارت‌های عضو شبکه شتاب',
                 'is_active' => false,
                 'sort_order' => 30,
-                'config' => json_encode([
+                'config' => [
                     'merchant_id' => '',
                     'sandbox' => true,
-                ]),
+                ],
                 'success_order_status' => 'processing',
                 'failure_order_status' => 'payment_failed',
                 'cancel_order_status' => 'cancelled',

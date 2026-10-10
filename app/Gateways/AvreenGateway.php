@@ -57,7 +57,7 @@ class AvreenGateway implements PaymentGatewayInterface
                 'amount' => $amount,
                 'clientTxnId' => $clientTxnId,
                 'redirectUrl' => (string) ($this->config['redirect_url'] ?: url('/api/v1/payment/avreen/callback')),
-                'confirmDeadlineDuration' => max(60, (int) ($this->config['confirm_deadline_seconds'] ?? 300)),
+                'confirmDeadlineDuration' => max(60, (int) ($this->config['confirm_deadline_seconds'] ?? 1800)),
                 'signature' => $signature,
                 'saleInfo' => ['invoiceNo' => (string) $order->order_number],
             ];
@@ -100,8 +100,14 @@ class AvreenGateway implements PaymentGatewayInterface
         $status = (string) ($callbackData['status'] ?? '');
         $transaction->loadMissing('order');
 
+        if ($transaction->status === 'paid') {
+            return $this->successResult((string) $transaction->gateway_ref);
+        }
+
         if ($status !== 'Ok') {
-            $transaction->update(['status' => 'cancelled', 'gateway_response' => $this->safeCallbackData($callbackData)]);
+            if ($transaction->status !== 'cancelled') {
+                $transaction->update(['status' => 'cancelled', 'gateway_response' => $this->safeCallbackData($callbackData)]);
+            }
 
             return ['success' => false, 'message' => 'پرداخت توسط کاربر لغو شد'];
         }
@@ -112,8 +118,13 @@ class AvreenGateway implements PaymentGatewayInterface
 
         if (! $signatureValid) {
             $inquiry = $this->inquiry((string) $transaction->gateway_token);
-            $signatureValid = ($inquiry['status'] ?? '') === 'payed_only'
-                && (int) ($inquiry['amount'] ?? 0) === (int) $transaction->amount * 10;
+            $inquiryValid = (int) ($inquiry['amount'] ?? 0) === (int) $transaction->amount * 10;
+
+            if ($fieldsMatch && $inquiryValid && ($inquiry['status'] ?? '') === 'payed_confirm') {
+                return $this->markPaid($transaction, (string) ($inquiry['rrn'] ?? ''), $inquiry);
+            }
+
+            $signatureValid = $inquiryValid && ($inquiry['status'] ?? '') === 'payed_only';
         }
 
         if (! $signatureValid || ! $fieldsMatch) {
@@ -126,22 +137,41 @@ class AvreenGateway implements PaymentGatewayInterface
             return ['success' => false, 'message' => 'اطلاعات بازگشتی درگاه معتبر نیست'];
         }
 
-        $confirm = $this->tokenService('confirmPay', (string) $transaction->gateway_token);
-        $transactionId = (string) ($confirm['transactionId'] ?? '');
+        try {
+            $confirm = $this->tokenService('confirmPay', (string) $transaction->gateway_token);
 
+            return $this->markPaid($transaction, (string) ($confirm['transactionId'] ?? ''), $callbackData);
+        } catch (RuntimeException $exception) {
+            $inquiry = $this->inquiry((string) $transaction->gateway_token);
+            if (($inquiry['status'] ?? '') === 'payed_confirm'
+                && (int) ($inquiry['amount'] ?? 0) === (int) $transaction->amount * 10) {
+                return $this->markPaid($transaction, (string) ($inquiry['rrn'] ?? ''), $inquiry);
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function markPaid(PaymentTransaction $transaction, string $reference, array $providerData): array
+    {
         $transaction->update([
             'status' => 'paid',
             'paid_at' => now(),
-            'gateway_ref' => $transactionId,
+            'gateway_ref' => $reference,
             'gateway_response' => [
                 'status' => 'confirmed',
-                'rrn' => $callbackData['rrn'] ?? null,
-                'stan' => $callbackData['stan'] ?? null,
-                'txn_date' => $callbackData['txnDate'] ?? null,
+                'rrn' => $providerData['rrn'] ?? null,
+                'stan' => $providerData['stan'] ?? null,
+                'txn_date' => $providerData['txnDate'] ?? null,
             ],
         ]);
 
-        return ['success' => true, 'ref_id' => $transactionId, 'message' => 'پرداخت با موفقیت انجام شد'];
+        return $this->successResult($reference);
+    }
+
+    private function successResult(string $reference): array
+    {
+        return ['success' => true, 'ref_id' => $reference, 'message' => 'پرداخت با موفقیت انجام شد'];
     }
 
     public function decodeRedirectData(string $redirectData): ?array

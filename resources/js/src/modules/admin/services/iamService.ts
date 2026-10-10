@@ -48,7 +48,7 @@ export const iamService = {
     if (filters.per_page)     params.per_page     = filters.per_page
     if (filters.page)         params.page         = filters.page
 
-    const response = await api.get('/v1/audit/logs', { params })
+    const response = await api.get('/audit/logs', { params })
 
     const responseData = response.data?.data
     return {
@@ -58,7 +58,7 @@ export const iamService = {
   },
 
   async getAuditLogById(id: number): Promise<AuditLog> {
-    const response = await api.get(`/v1/audit/logs/${id}`)
+    const response = await api.get(`/audit/logs/${id}`)
     return response.data?.data?.log
   },
 }
