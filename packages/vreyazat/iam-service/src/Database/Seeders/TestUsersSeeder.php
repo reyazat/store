@@ -30,6 +30,10 @@ class TestUsersSeeder extends Seeder
     {
         $this->command->info('👥 Seeding test users...');
 
+        // Use the configured auth User model (e.g. App\Models\User) so that Spatie
+        // stores the correct model_type in model_has_roles. Falls back to IamApi\Models\User.
+        $userClass = config('auth.providers.users.model', User::class);
+
         // Get organizations created by OrganizationSeeder
         $digiStore = Organization::where('name', 'دیجی‌استور')->first();
         $technolife = Organization::where('name', 'تکنولایف مارکت')->first();
@@ -80,7 +84,7 @@ class TestUsersSeeder extends Seeder
         ];
 
         foreach ($storeMembers as $memberData) {
-            $user = User::firstOrCreate(
+            $user = $userClass::firstOrCreate(
                 ['email' => $memberData['email']],
                 [
                     'name' => $memberData['name'],
@@ -125,7 +129,7 @@ class TestUsersSeeder extends Seeder
         ];
 
         foreach ($buyers as $buyerData) {
-            $user = User::firstOrCreate(
+            $user = $userClass::firstOrCreate(
                 ['email' => $buyerData['email']],
                 [
                     'name' => $buyerData['name'],
@@ -174,7 +178,7 @@ class TestUsersSeeder extends Seeder
         ];
 
         foreach ($edgeCases as $caseData) {
-            User::firstOrCreate(
+            $userClass::firstOrCreate(
                 ['email' => $caseData['email']],
                 [
                     'name' => $caseData['name'],

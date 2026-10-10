@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Organization;
 use App\Models\User;
+use IamApi\Database\Seeders\OrgRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,7 +15,7 @@ class LoginOrganizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->artisan('db:seed', ['--class' => 'OrgRolePermissionSeeder']);
+        $this->artisan('db:seed', ['--class' => OrgRolePermissionSeeder::class]);
     }
 
     public function test_login_response_includes_user_organizations_with_roles()
@@ -27,14 +28,14 @@ class LoginOrganizationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $org->id
+            'organization_id' => $org->id,
         ]);
 
         // Login
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
         // Assert response structure
@@ -53,16 +54,16 @@ class LoginOrganizationTest extends TestCase
                             'id',
                             'name',
                             'created_at',
-                            'updated_at'
-                        ]
+                            'updated_at',
+                        ],
                     ],
                     'tokens' => [
                         'access_token',
                         'refresh_token',
                         'token_type',
-                        'expires_in'
-                    ]
-                ]
+                        'expires_in',
+                    ],
+                ],
             ]);
 
         // Assert organization data
@@ -82,19 +83,19 @@ class LoginOrganizationTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $org->id
+            'organization_id' => $org->id,
         ]);
 
         // Login
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
         // Assert response
         $response->assertStatus(200);
-        
+
         $userData = $response->json('data.user');
         $this->assertNotNull($userData['organization']);
         $this->assertEquals($org->id, $userData['organization']['id']);

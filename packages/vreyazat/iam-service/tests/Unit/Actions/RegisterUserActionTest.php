@@ -2,25 +2,28 @@
 
 namespace Tests\Unit\Actions;
 
-use App\Actions\Users\RegisterUserAction;
 use App\Models\User;
-use App\Repositories\Contracts\UserRepositoryInterface;
-use App\Services\OtpService;
-use App\Services\PasswordPolicyService;
 use Exception;
+use IamApi\Actions\Users\RegisterUserAction;
+use IamApi\Repositories\Contracts\UserRepositoryInterface;
+use IamApi\Services\OtpService;
+use IamApi\Services\PasswordPolicyService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
-use Mockery;
 
 class RegisterUserActionTest extends TestCase
 {
     use RefreshDatabase;
 
     protected UserRepositoryInterface $userRepository;
+
     protected OtpService $otpService;
+
     protected PasswordPolicyService $passwordPolicyService;
+
     protected RegisterUserAction $action;
 
     protected function setUp(): void
@@ -38,7 +41,6 @@ class RegisterUserActionTest extends TestCase
         );
     }
 
-
     public function it_returns_error_for_weak_password(): void
     {
         $this->expectException(ValidationException::class);
@@ -46,7 +48,7 @@ class RegisterUserActionTest extends TestCase
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'password' => 'weak',
-            'password_confirmation' => 'weak'
+            'password_confirmation' => 'weak',
         ];
 
         $this->passwordPolicyService
@@ -70,7 +72,7 @@ class RegisterUserActionTest extends TestCase
             'phone' => '+1234567890',
             'password' => 'StrongPassword123!',
             'password_confirmation' => 'StrongPassword123!',
-            'send_verification_email' => true
+            'send_verification_email' => true,
         ];
 
         $user = User::factory()->make([
@@ -79,18 +81,18 @@ class RegisterUserActionTest extends TestCase
             'email' => 'john@example.com',
             'phone' => '+1234567890',
             'status' => 'active',
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         $otpData = [
             'code' => '123456',
-            'expires_at' => now()->addMinutes(60)
+            'expires_at' => now()->addMinutes(60),
         ];
 
         $this->passwordPolicyService
             ->shouldReceive('validatePassword')
             ->with('StrongPassword123!')
-            ->andReturn([]);
+            ->andReturn(['valid' => true, 'errors' => []]);
 
         $this->userRepository
             ->shouldReceive('create')
@@ -99,7 +101,7 @@ class RegisterUserActionTest extends TestCase
                 'email' => 'john@example.com',
                 'phone' => '+1234567890',
                 'password' => 'StrongPassword123!',
-                'status' => 'active'
+                'status' => 'active',
             ]))
             ->andReturn($user);
 
@@ -130,7 +132,7 @@ class RegisterUserActionTest extends TestCase
             'email' => 'john@example.com',
             'password' => 'StrongPassword123!',
             'password_confirmation' => 'StrongPassword123!',
-            'send_verification_email' => false
+            'send_verification_email' => false,
         ];
 
         $user = User::factory()->make([
@@ -138,13 +140,13 @@ class RegisterUserActionTest extends TestCase
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'status' => 'active',
-            'created_at' => now()
+            'created_at' => now(),
         ]);
 
         $this->passwordPolicyService
             ->shouldReceive('validatePassword')
             ->with('StrongPassword123!')
-            ->andReturn([]);
+            ->andReturn(['valid' => true, 'errors' => []]);
 
         $this->userRepository
             ->shouldReceive('create')
@@ -164,13 +166,13 @@ class RegisterUserActionTest extends TestCase
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'password' => 'StrongPassword123!',
-            'password_confirmation' => 'StrongPassword123!'
+            'password_confirmation' => 'StrongPassword123!',
         ];
 
         $this->passwordPolicyService
             ->shouldReceive('validatePassword')
             ->with('StrongPassword123!')
-            ->andReturn([]);
+            ->andReturn(['valid' => true, 'errors' => []]);
 
         $this->userRepository
             ->shouldReceive('create')
@@ -179,7 +181,7 @@ class RegisterUserActionTest extends TestCase
         $result = $this->action->execute($data);
 
         $this->assertFalse($result['success']);
-        $this->assertStringContains('Registration failed', $result['message']);
+        $this->assertStringContainsString('Registration failed', $result['message']);
         $this->assertEquals(500, $result['code']);
     }
 

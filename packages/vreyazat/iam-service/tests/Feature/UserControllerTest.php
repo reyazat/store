@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use App\Models\Organization;
 use App\Models\User;
+use IamApi\Database\Seeders\OrgRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
-use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class UserControllerTest extends TestCase
 {
@@ -18,7 +18,7 @@ class UserControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->artisan('db:seed', ['--class' => 'OrgRolePermissionSeeder']);
+        $this->artisan('db:seed', ['--class' => OrgRolePermissionSeeder::class]);
     }
 
     #[Test]
@@ -30,7 +30,7 @@ class UserControllerTest extends TestCase
             'phone' => '+1234567890',
             'password' => 'TestPassword123!',
             'password_confirmation' => 'TestPassword123!',
-            'send_verification_email' => true
+            'send_verification_email' => true,
         ];
 
         $response = $this->postJson('/api/v1/users/register', $userData);
@@ -40,20 +40,20 @@ class UserControllerTest extends TestCase
                 'success',
                 'message',
                 'data' => [
-                    'id', 'name', 'email', 'phone', 'status', 'created_at'
-                ]
+                    'uuid', 'name', 'email', 'phone', 'status', 'created_at',
+                ],
             ])
             ->assertJson([
                 'success' => true,
                 'data' => [
                     'name' => 'John Doe',
-                    'email' => 'john@example.com'
-                ]
+                    'email' => 'john@example.com',
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
             'email' => 'john@example.com',
-            'name' => 'John Doe'
+            'name' => 'John Doe',
         ]);
     }
 
@@ -66,7 +66,7 @@ class UserControllerTest extends TestCase
             'name' => 'John Doe',
             'email' => 'existing@example.com',
             'password' => 'TestPassword123!',
-            'password_confirmation' => 'TestPassword123!'
+            'password_confirmation' => 'TestPassword123!',
         ];
 
         $response = $this->postJson('/api/v1/users/register', $userData);
@@ -83,7 +83,7 @@ class UserControllerTest extends TestCase
         $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->getJson('/api/v1/users/profile');
 
         $response->assertStatus(200)
@@ -91,15 +91,15 @@ class UserControllerTest extends TestCase
                 'success',
                 'message',
                 'data' => [
-                    'id', 'name', 'email', 'status', 'created_at'
-                ]
+                    'uuid', 'name', 'email', 'status', 'created_at',
+                ],
             ])
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'id' => $user->id,
-                    'email' => $user->email
-                ]
+                    'uuid' => $user->uuid,
+                    'email' => $user->email,
+                ],
             ]);
     }
 
@@ -109,17 +109,17 @@ class UserControllerTest extends TestCase
         /** @var User $user */
         $user = User::factory()->create([
             'name' => 'Old Name',
-            'email' => 'old@example.com'
+            'email' => 'old@example.com',
         ]);
         $token = JWTAuth::fromUser($user);
 
         $updateData = [
             'name' => 'New Name',
-            'email' => 'new@example.com'
+            'email' => 'new@example.com',
         ];
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->putJson('/api/v1/users/profile', $updateData);
 
         $response->assertStatus(200)
@@ -127,24 +127,23 @@ class UserControllerTest extends TestCase
                 'success' => true,
                 'data' => [
                     'name' => 'New Name',
-                    'email' => 'new@example.com'
-                ]
+                    'email' => 'new@example.com',
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
             'id' => $user->id,
             'name' => 'New Name',
-            'email' => 'new@example.com'
+            'email' => 'new@example.com',
         ]);
     }
 
-
     public function test_user_can_change_password()
     {
-        $org = Organization::factory()->create();
+        $org = Organization::create(['name' => fake()->company()]);
         $user = User::factory()->create([
             'password' => Hash::make('OldPassword123!'),
-            'organization_id' => $org->id
+            'organization_id' => $org->id,
         ]);
         $token = JWTAuth::fromUser($user);
 
@@ -152,17 +151,17 @@ class UserControllerTest extends TestCase
             'current_password' => 'OldPassword123!',
             'new_password' => 'NewPassword123!',
             'new_password_confirmation' => 'NewPassword123!',
-            'logout_other_devices' => false
+            'logout_other_devices' => false,
         ];
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/password/change', $passwordData);
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Password changed successfully'
+                'message' => 'Password changed successfully',
             ]);
 
         // Verify password was changed
@@ -173,30 +172,29 @@ class UserControllerTest extends TestCase
     #[Test]
     public function test_user_cannot_change_password_with_wrong_current_password()
     {
-        $org = Organization::factory()->create();
+        $org = Organization::create(['name' => fake()->company()]);
         $user = User::factory()->create([
             'password' => Hash::make('OldPassword123!'),
-            'organization_id' => $org->id
+            'organization_id' => $org->id,
         ]);
         $token = JWTAuth::fromUser($user);
 
         $passwordData = [
             'current_password' => 'WrongPassword',
             'new_password' => 'NewPassword123!',
-            'new_password_confirmation' => 'NewPassword123!'
+            'new_password_confirmation' => 'NewPassword123!',
         ];
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/password/change', $passwordData);
 
         $response->assertStatus(400)
             ->assertJson([
                 'success' => false,
-                'message' => 'Current password is incorrect.'
+                'message' => 'Current password is incorrect.',
             ]);
     }
-
 
     public function test_user_can_delete_account()
     {
@@ -205,32 +203,31 @@ class UserControllerTest extends TestCase
         $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->deleteJson('/api/v1/users/account');
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'User account deleted successfully'
+                'message' => 'User account deleted successfully',
             ]);
 
         $this->assertDatabaseMissing('users', [
-            'id' => $user->id
+            'id' => $user->id,
         ]);
     }
 
-
     public function test_admin_can_view_all_users()
     {
-        $org = Organization::factory()->create();
+        $org = Organization::create(['name' => fake()->company()]);
         /** @var User $admin */
-        $admin = User::factory()->create(['is_super_admin' => true, 'organization_id' => $org->id]);
+        $admin = User::factory()->create(['is_super_admin' => true, 'organization_id' => null]);
         $token = JWTAuth::fromUser($admin);
 
         User::factory()->count(5)->create(['organization_id' => $org->id]);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->getJson('/api/v1/users/');
 
         $response->assertStatus(200)
@@ -239,11 +236,11 @@ class UserControllerTest extends TestCase
                 'message',
                 'data',
                 'pagination' => [
-                    'current_page', 'last_page', 'per_page', 'total'
-                ]
+                    'current_page', 'last_page', 'per_page', 'total',
+                ],
             ])
             ->assertJson([
-                'success' => true
+                'success' => true,
             ]);
     }
 
@@ -256,7 +253,7 @@ class UserControllerTest extends TestCase
         $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->getJson('/api/v1/users/');
 
         $response->assertStatus(403);
@@ -265,24 +262,24 @@ class UserControllerTest extends TestCase
     #[Test]
     public function test_admin_can_view_specific_user()
     {
-        $org = Organization::factory()->create();
+        $org = Organization::create(['name' => fake()->company()]);
         /** @var User $admin */
-        $admin = User::factory()->create(['is_super_admin' => true, 'organization_id' => $org->id]);
+        $admin = User::factory()->create(['is_super_admin' => true, 'organization_id' => null]);
         /** @var User $targetUser */
         $targetUser = User::factory()->create(['organization_id' => $org->id]);
         $token = JWTAuth::fromUser($admin);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
-        ])->getJson("/api/v1/users/$targetUser->id");
+            'Authorization' => 'Bearer '.$token,
+        ])->getJson("/api/v1/users/{$targetUser->id}");
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'data' => [
-                    'id' => $targetUser->id,
-                    'email' => $targetUser->email
-                ]
+                    'uuid' => $targetUser->uuid,
+                    'email' => $targetUser->email,
+                ],
             ]);
     }
 
@@ -302,7 +299,7 @@ class UserControllerTest extends TestCase
         $token = JWTAuth::fromUser($user);
 
         $response = $this->withHeaders([
-            'Authorization' => 'Bearer ' . $token
+            'Authorization' => 'Bearer '.$token,
         ])->postJson('/api/v1/password/change', []);
 
         $response->assertStatus(422)
@@ -316,7 +313,7 @@ class UserControllerTest extends TestCase
             'name' => 'John Doe',
             'email' => 'john@example.com',
             'password' => '123',
-            'password_confirmation' => '123'
+            'password_confirmation' => '123',
         ];
 
         $response = $this->postJson('/api/v1/users/register', $userData);

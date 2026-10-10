@@ -43,14 +43,14 @@
             "Database\\Seeders\\": "database/seeders/"
         },
         "exclude-from-classmap": [
-            "vendor/vreyazat/iam-service/src/Database/seeders/DatabaseSeeder.php",
-            "vendor/vreyazat/iam-service/src/Database/seeders/DevelopmentSeeder.php",
-            "vendor/vreyazat/iam-service/src/Database/seeders/UserSeeder.php"
+            "vendor/vreyazat/iam-service/src/Database/Seeders/DatabaseSeeder.php",
+            "vendor/vreyazat/iam-service/src/Database/Seeders/DevelopmentSeeder.php",
+            "vendor/vreyazat/iam-service/src/Database/Seeders/UserSeeder.php"
         ]
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "packages/vreyazat/iam-service/tests/"
         }
     },
     "scripts": {

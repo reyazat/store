@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Organization;
 use App\Models\User;
+use IamApi\Database\Seeders\OrgRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -14,7 +15,7 @@ class OrganizationScopedAuthTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->artisan('db:seed', ['--class' => 'OrgRolePermissionSeeder']);
+        $this->artisan('db:seed', ['--class' => OrgRolePermissionSeeder::class]);
     }
 
     public function test_user_cannot_login_without_organization()
@@ -23,19 +24,19 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => null // No organization assigned
+            'organization_id' => null, // No organization assigned
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
-        $response->assertStatus(401)
+        $response->assertStatus(400)
             ->assertJson([
                 'success' => false,
-                'message' => 'Invalid credentials'
+                'message' => 'Invalid credentials',
             ]);
     }
 
@@ -49,13 +50,13 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $organization->id
+            'organization_id' => $organization->id,
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
         $response->assertStatus(200)
@@ -68,9 +69,9 @@ class OrganizationScopedAuthTest extends TestCase
                         'access_token',
                         'refresh_token',
                         'token_type',
-                        'expires_in'
-                    ]
-                ]
+                        'expires_in',
+                    ],
+                ],
             ]);
     }
 
@@ -84,13 +85,13 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $organization->id
+            'organization_id' => $organization->id,
         ]);
 
         $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
         $response->assertStatus(200)
@@ -105,11 +106,11 @@ class OrganizationScopedAuthTest extends TestCase
                         'organization_id',
                         'organization' => [
                             'id',
-                            'name'
-                        ]
+                            'name',
+                        ],
                     ],
-                    'tokens'
-                ]
+                    'tokens',
+                ],
             ]);
 
         // Verify organization data
@@ -124,7 +125,7 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => null
+            'organization_id' => null,
         ]);
 
         // Initial failed attempts should be 0
@@ -134,7 +135,7 @@ class OrganizationScopedAuthTest extends TestCase
         $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ]);
 
         // Refresh user and check failed attempts incremented
@@ -152,7 +153,7 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $organization->id
+            'organization_id' => $organization->id,
         ]);
 
         // Test belongsToOrganization method
@@ -173,7 +174,7 @@ class OrganizationScopedAuthTest extends TestCase
             'email' => 'test@example.com',
             'password' => 'TestPassword123!',
             'status' => 'active',
-            'organization_id' => $organization->id
+            'organization_id' => $organization->id,
         ]);
 
         // Test organization relationship

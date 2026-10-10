@@ -8,6 +8,8 @@ use IamApi\Repositories\Contracts\OrganizationRepositoryInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class EloquentOrganizationRepository extends BaseRepository implements OrganizationRepositoryInterface
 {
@@ -25,6 +27,7 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
         $organization = $this->model->query()->where($conditions)->first();
         if ($organization) {
             $this->update($organization, $data);
+
             return $organization;
         }
 
@@ -48,6 +51,7 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
                 $this->model->query()->where($key, $item[$key])->update($item);
             }
         }
+
         return true;
     }
 
@@ -101,16 +105,16 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
 
         return DB::transaction(function () use ($organization, $user, $role) {
             // تنظیم team context برای Spatie Permission
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            
+            app(PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+
             // بررسی وجود role در دیتابیس
-            $roleModel = \Spatie\Permission\Models\Role::where('name', $role)
+            $roleModel = Role::where('name', $role)
                 ->where('organization_id', $organization->id)
                 ->first();
-                
+
             // اگر role وجود ندارد، آن را ایجاد کن
-            if (!$roleModel) {
-                $roleModel = \Spatie\Permission\Models\Role::create([
+            if (! $roleModel) {
+                $roleModel = Role::create([
                     'name' => $role,
                     'guard_name' => 'api',
                     'organization_id' => $organization->id,
@@ -119,21 +123,27 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
 
             // تنظیم organization_id برای کاربر
             $user->update(['organization_id' => $organization->id]);
-            
+
             // حذف role های قبلی مستقیماً از pivot table
-            // (avoid guard mismatch when user had roles from a different org/guard context)
+            // Delete by model_id only to handle any model_type variant (IamApi\Models\User or App\Models\User)
             DB::table('model_has_roles')
-                ->where('model_type', get_class($user))
                 ->where('model_id', $user->id)
                 ->delete();
-            
+
+            // Re-fetch user using the configured auth model class to ensure the correct
+            // model_type (e.g. 'App\Models\User') is written to model_has_roles by Spatie.
+            // If the passed $user is IamApi\Models\User and the app extends it as App\Models\User,
+            // calling assignRole on the base class would store the wrong model_type.
+            $authModelClass = config('auth.providers.users.model', get_class($user));
+            $userForRole = $authModelClass::find($user->id);
+
             // Clear cached roles so assignRole sees fresh state
-            $user->unsetRelation('roles');
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-            
-            // Assign role جدید
-            $user->assignRole($roleModel);
-            
+            $userForRole->unsetRelation('roles');
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            // Assign role جدید — model_type will be 'App\Models\User' (canonical)
+            $userForRole->assignRole($roleModel);
+
             return true;
         });
     }
@@ -145,21 +155,21 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
             return false;
         }
 
-        return DB::transaction(function () use ($organization, $user) {
+        return DB::transaction(function () use ($user) {
             // حذف role های این سازمان مستقیماً از pivot table
             // (avoid guard mismatch errors)
             DB::table('model_has_roles')
                 ->where('model_type', get_class($user))
                 ->where('model_id', $user->id)
                 ->delete();
-            
+
             // سپس organization_id را null کن
             $user->update(['organization_id' => null]);
-            
+
             // Clear cached roles
             $user->unsetRelation('roles');
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-            
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
             return true;
         });
     }
@@ -167,42 +177,42 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
     public function updateMemberRole(Organization $organization, User $user, string $role): bool
     {
         // بررسی عضویت کاربر
-        if (!$this->isMember($organization, $user)) {
+        if (! $this->isMember($organization, $user)) {
             return false;
         }
-        
+
         return DB::transaction(function () use ($organization, $user, $role) {
             // تنظیم team context
-            app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-            
+            app(PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+
             // بررسی وجود role در دیتابیس
-            $roleModel = \Spatie\Permission\Models\Role::where('name', $role)
+            $roleModel = Role::where('name', $role)
                 ->where('organization_id', $organization->id)
                 ->first();
-                
+
             // اگر role وجود ندارد، آن را ایجاد کن
-            if (!$roleModel) {
-                $roleModel = \Spatie\Permission\Models\Role::create([
+            if (! $roleModel) {
+                $roleModel = Role::create([
                     'name' => $role,
                     'guard_name' => 'api',
                     'organization_id' => $organization->id,
                 ]);
             }
-            
+
             // حذف role های قبلی مستقیماً از pivot table
             // (avoid guard mismatch errors)
             DB::table('model_has_roles')
                 ->where('model_type', get_class($user))
                 ->where('model_id', $user->id)
                 ->delete();
-            
+
             // Clear cached roles so assignRole sees fresh state
             $user->unsetRelation('roles');
-            app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
-            
+            app(PermissionRegistrar::class)->forgetCachedPermissions();
+
             // Assign role جدید
             $user->assignRole($roleModel);
-            
+
             return true;
         });
     }
@@ -215,7 +225,7 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
     public function hasRole(Organization $organization, User $user, string $role): bool
     {
         // بررسی اینکه کاربر عضو سازمان است و role دارد
-        if (!$this->isMember($organization, $user)) {
+        if (! $this->isMember($organization, $user)) {
             return false;
         }
 
@@ -226,13 +236,13 @@ class EloquentOrganizationRepository extends BaseRepository implements Organizat
     {
         // نوت: role در Spatie Permission است
         // اگر کاربر عضو نیست، null برگردان
-        if (!$this->isMember($organization, $user)) {
+        if (! $this->isMember($organization, $user)) {
             return null;
         }
 
         // تنظیم team context
-        app(\Spatie\Permission\PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
-        
+        app(PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+
         // اولین role را برگردان
         // Note: setPermissionsTeamId already filters by organization_id
         $role = $user->roles()->first();

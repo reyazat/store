@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Organization;
 use App\Models\User;
+use IamApi\Database\Seeders\OrgRolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -15,12 +17,13 @@ class RbacTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Organization $organization;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->artisan('db:seed', ['--class' => 'OrgRolePermissionSeeder']);
+        $this->artisan('db:seed', ['--class' => OrgRolePermissionSeeder::class]);
 
         // Create organization
         $this->organization = Organization::query()->create([
@@ -58,12 +61,12 @@ class RbacTest extends TestCase
         $this->user->assignRole($ownerRole);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_list_roles()
     {
         $this->actingAs($this->user, 'api');
 
-        $response = $this->getJson("/api/v1/orgs/{$this->organization->id}/roles");
+        $response = $this->getJson("/api/v1/orgs/{$this->organization->uuid}/roles");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -75,12 +78,12 @@ class RbacTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_role()
     {
         $this->actingAs($this->user, 'api');
 
-        $response = $this->postJson("/api/v1/orgs/{$this->organization->id}/roles", [
+        $response = $this->postJson("/api/v1/orgs/{$this->organization->uuid}/roles", [
             'name' => 'editor',
         ]);
 
@@ -96,7 +99,7 @@ class RbacTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_update_role()
     {
         $this->actingAs($this->user, 'api');
@@ -108,7 +111,7 @@ class RbacTest extends TestCase
             'organization_id' => $this->organization->id,
         ]);
 
-        $response = $this->patchJson("/api/v1/orgs/{$this->organization->id}/roles/{$role->id}", [
+        $response = $this->patchJson("/api/v1/orgs/{$this->organization->uuid}/roles/{$role->id}", [
             'name' => 'senior-editor',
         ]);
 
@@ -124,7 +127,7 @@ class RbacTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_delete_role()
     {
         $this->actingAs($this->user, 'api');
@@ -136,7 +139,7 @@ class RbacTest extends TestCase
             'organization_id' => $this->organization->id,
         ]);
 
-        $response = $this->deleteJson("/api/v1/orgs/{$this->organization->id}/roles/{$role->id}");
+        $response = $this->deleteJson("/api/v1/orgs/{$this->organization->uuid}/roles/{$role->id}");
 
         $response->assertStatus(200)
             ->assertJson([
@@ -149,7 +152,7 @@ class RbacTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_cannot_delete_role_assigned_to_users()
     {
         $this->actingAs($this->user, 'api');
@@ -163,7 +166,7 @@ class RbacTest extends TestCase
 
         $this->user->assignRole($role);
 
-        $response = $this->deleteJson("/api/v1/orgs/{$this->organization->id}/roles/{$role->id}");
+        $response = $this->deleteJson("/api/v1/orgs/{$this->organization->uuid}/roles/{$role->id}");
 
         $response->assertStatus(422)
             ->assertJson([
@@ -175,12 +178,12 @@ class RbacTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_list_permissions()
     {
         $this->actingAs($this->user, 'api');
 
-        $response = $this->getJson("/api/v1/orgs/{$this->organization->id}/permissions");
+        $response = $this->getJson("/api/v1/orgs/{$this->organization->uuid}/permissions");
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -192,12 +195,12 @@ class RbacTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_create_permission()
     {
         $this->actingAs($this->user, 'api');
 
-        $response = $this->postJson("/api/v1/orgs/{$this->organization->id}/permissions", [
+        $response = $this->postJson("/api/v1/orgs/{$this->organization->uuid}/permissions", [
             'name' => 'article.publish',
         ]);
 
@@ -213,7 +216,7 @@ class RbacTest extends TestCase
         ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_user_roles()
     {
         $this->actingAs($this->user, 'api');
@@ -241,7 +244,7 @@ class RbacTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_can_get_user_permissions()
     {
         $this->actingAs($this->user, 'api');
@@ -260,7 +263,7 @@ class RbacTest extends TestCase
             ]);
     }
 
-    /** @test */
+    #[Test]
     public function it_validates_unique_role_name_per_organization()
     {
         $this->actingAs($this->user, 'api');
@@ -273,7 +276,7 @@ class RbacTest extends TestCase
         ]);
 
         // Try to create duplicate
-        $response = $this->postJson("/api/v1/orgs/{$this->organization->id}/roles", [
+        $response = $this->postJson("/api/v1/orgs/{$this->organization->uuid}/roles", [
             'name' => 'editor',
         ]);
 
@@ -281,10 +284,10 @@ class RbacTest extends TestCase
             ->assertJsonValidationErrors(['name']);
     }
 
-    /** @test */
+    #[Test]
     public function it_requires_authentication_for_rbac_endpoints()
     {
-        $response = $this->getJson("/api/v1/orgs/{$this->organization->id}/roles");
+        $response = $this->getJson("/api/v1/orgs/{$this->organization->uuid}/roles");
 
         $response->assertStatus(401);
     }

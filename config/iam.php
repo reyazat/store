@@ -134,4 +134,17 @@ return [
         'social_login_enabled' => (bool) env('IAM_SOCIAL_LOGIN_ENABLED', false),
         'remember_me_enabled' => (bool) env('IAM_REMEMBER_ME_ENABLED', true),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Route Loading
+    |--------------------------------------------------------------------------
+    |
+    | When the consuming app loads IAM routes manually (e.g. via AppServiceProvider
+    | with the correct 'api' prefix and middleware), set this to true so the
+    | package's ServiceProvider does NOT auto-register routes without the api
+    | middleware group. This prevents duplicate routes and security gaps.
+    |
+    */
+    'disable_auto_routes' => (bool) env('IAM_DISABLE_AUTO_ROUTES', true),
 ];

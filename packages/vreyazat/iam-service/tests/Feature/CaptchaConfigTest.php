@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
 use Mews\Captcha\Facades\Captcha;
+use Tests\TestCase;
 
 class CaptchaConfigTest extends TestCase
 {
@@ -13,7 +13,7 @@ class CaptchaConfigTest extends TestCase
     public function test_captcha_uses_english_characters()
     {
         $config = config('captcha');
-        $characters = $characters = $config['characters'] ?? [];
+        $characters = $config['characters'] ?? [];
 
         // Check that we have characters
         $this->assertNotEmpty($characters, 'CAPTCHA characters should not be empty');
@@ -21,7 +21,7 @@ class CaptchaConfigTest extends TestCase
         // Check if any character is Persian
         $isPersian = false;
         foreach ($characters as $char) {
-            if (preg_match('/[\u0600-\u06FF]/u', $char)) {
+            if (preg_match('/[\x{0600}-\x{06FF}]/u', $char)) {
                 $isPersian = true;
                 break;
             }
@@ -72,8 +72,9 @@ class CaptchaConfigTest extends TestCase
         $captcha = app('captcha');
         $data = $captcha->create('default', true);
 
-        // Encrypted keys typically contain special characters and are base64-like
-        $this->assertStringContainsString(':', $data['key'], 'Encrypted CAPTCHA key should contain colons (JSON format)');
+        $decodedKey = base64_decode($data['key'], true);
+        $this->assertNotFalse($decodedKey, 'Encrypted CAPTCHA key should be valid base64');
+        $this->assertJson($decodedKey, 'Encrypted CAPTCHA key should contain a JSON payload');
         echo "✓ CAPTCHA encryption is enabled\n";
     }
 
@@ -104,7 +105,7 @@ class CaptchaConfigTest extends TestCase
      */
     public function test_middleware_uses_correct_validation()
     {
-        $middlewarePath = base_path('src/Http/Middleware/CaptchaOrThrottle.php');
+        $middlewarePath = dirname(__DIR__, 2).'/src/Http/Middleware/CaptchaOrThrottle.php';
         $this->assertFileExists($middlewarePath, 'CaptchaOrThrottle middleware should exist');
 
         $content = file_get_contents($middlewarePath);

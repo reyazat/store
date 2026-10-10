@@ -37,8 +37,12 @@ class RbacDemoSeeder extends Seeder
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
+        // Use the configured auth User model (e.g. App\Models\User) so that Spatie
+        // stores the correct model_type in model_has_roles. Falls back to IamApi\Models\User.
+        $userClass = config('auth.providers.users.model', User::class);
+
         // Create owner user first
-        $ownerUser = User::firstOrCreate(
+        $ownerUser = $userClass::firstOrCreate(
             ['email' => 'owner@demo.com'],
             [
                 'name' => 'Demo Owner',
@@ -86,7 +90,7 @@ class RbacDemoSeeder extends Seeder
         ];
 
         foreach ($members as $memberData) {
-            $user = User::firstOrCreate(
+            $user = $userClass::firstOrCreate(
                 ['email' => $memberData['email']],
                 [
                     'name' => $memberData['name'],

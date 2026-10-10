@@ -26,6 +26,10 @@ class OrganizationSeeder extends Seeder
     {
         $this->command->info('🏢 Seeding test organizations...');
 
+        // Use the configured auth User model (e.g. App\Models\User) so that Spatie
+        // stores the correct model_type in model_has_roles. Falls back to IamApi\Models\User.
+        $userClass = config('auth.providers.users.model', User::class);
+
         $organizations = [
             [
                 'name' => 'دیجی‌استور',
@@ -54,8 +58,8 @@ class OrganizationSeeder extends Seeder
         ];
 
         foreach ($organizations as $orgData) {
-            // Create owner user (buyer → will become store owner)
-            $owner = User::firstOrCreate(
+            // Create owner user using the configured auth model (correct morph type for Spatie)
+            $owner = $userClass::firstOrCreate(
                 ['email' => $orgData['owner']['email']],
                 [
                     'name' => $orgData['owner']['name'],

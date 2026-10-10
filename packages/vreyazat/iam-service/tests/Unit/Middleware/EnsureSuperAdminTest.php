@@ -2,10 +2,11 @@
 
 namespace Tests\Unit\Middleware;
 
-use App\Http\Middleware\EnsureSuperAdmin;
 use App\Models\User;
+use IamApi\Http\Middleware\EnsureSuperAdmin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class EnsureSuperAdminTest extends TestCase
@@ -17,29 +18,29 @@ class EnsureSuperAdminTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->middleware = new EnsureSuperAdmin();
+        $this->middleware = new EnsureSuperAdmin;
     }
 
-    /** @test */
+    #[Test]
     public function it_allows_super_admin_to_pass()
     {
         $superAdmin = User::factory()->create(['is_super_admin' => true]);
         $request = Request::create('/test', 'GET');
-        $request->setUserResolver(fn() => $superAdmin);
+        $request->setUserResolver(fn () => $superAdmin);
 
-        $response = $this->middleware->handle($request, fn($req) => response('OK'));
+        $response = $this->middleware->handle($request, fn ($req) => response('OK'));
 
         $this->assertEquals('OK', $response->getContent());
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_regular_user()
     {
         $user = User::factory()->create(['is_super_admin' => false]);
         $request = Request::create('/test', 'GET');
-        $request->setUserResolver(fn() => $user);
+        $request->setUserResolver(fn () => $user);
 
-        $response = $this->middleware->handle($request, fn($req) => response('OK'));
+        $response = $this->middleware->handle($request, fn ($req) => response('OK'));
 
         $this->assertEquals(403, $response->getStatusCode());
         $data = json_decode($response->getContent(), true);
@@ -47,13 +48,13 @@ class EnsureSuperAdminTest extends TestCase
         $this->assertEquals('This action requires Super Admin privileges', $data['message']);
     }
 
-    /** @test */
+    #[Test]
     public function it_blocks_unauthenticated_request()
     {
         $request = Request::create('/test', 'GET');
-        $request->setUserResolver(fn() => null);
+        $request->setUserResolver(fn () => null);
 
-        $response = $this->middleware->handle($request, fn($req) => response('OK'));
+        $response = $this->middleware->handle($request, fn ($req) => response('OK'));
 
         $this->assertEquals(403, $response->getStatusCode());
     }

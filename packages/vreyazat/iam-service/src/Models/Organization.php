@@ -12,15 +12,15 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 /**
- * @property int         $id
- * @property string      $uuid
- * @property string      $name
+ * @property int $id
+ * @property string $uuid
+ * @property string $name
  * @property string|null $description
  * @property string|null $logo
- * @property string      $status        active|inactive|suspended
- * @property Collection  $users
- * @property Carbon      $created_at
- * @property Carbon      $updated_at
+ * @property string $status active|inactive|suspended
+ * @property Collection $users
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  */
 class Organization extends Model
 {
@@ -56,7 +56,12 @@ class Organization extends Model
 
     public function users(): HasMany
     {
-        return $this->hasMany(User::class, 'organization_id', 'id');
+        // Use the configured auth User model so that Spatie role checks (hasRole, getRoleNames)
+        // use the correct model_type (e.g. 'App\Models\User' instead of 'IamApi\Models\User').
+        // This is critical in apps where App\Models\User extends IamApi\Models\User.
+        $userModel = config('auth.providers.users.model', User::class);
+
+        return $this->hasMany($userModel, 'organization_id', 'id');
     }
 
     public function departments(): HasMany
@@ -65,12 +70,22 @@ class Organization extends Model
     }
 
     public function domains(): HasMany
-    { return $this->hasMany(OrganizationDomain::class, 'organization_id', 'id'); }
+    {
+        return $this->hasMany(OrganizationDomain::class, 'organization_id', 'id');
+    }
+
     public function invitations(): HasMany
-    { return $this->hasMany(OrganizationInvitation::class, 'organization_id', 'id'); }
+    {
+        return $this->hasMany(OrganizationInvitation::class, 'organization_id', 'id');
+    }
 
     public function roles(): HasMany
-    { return $this->hasMany(Role::class, 'organization_id', 'id'); }
+    {
+        return $this->hasMany(Role::class, 'organization_id', 'id');
+    }
+
     public function permissions(): HasMany
-    { return $this->hasMany(Permission::class, 'organization_id', 'id'); }
+    {
+        return $this->hasMany(Permission::class, 'organization_id', 'id');
+    }
 }

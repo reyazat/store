@@ -2,9 +2,9 @@
 
 namespace Tests\Unit\Repositories;
 
-use App\Models\User;
 use App\Models\PasswordHistory;
-use App\Repositories\Eloquent\EloquentUserRepository;
+use App\Models\User;
+use IamApi\Repositories\Eloquent\EloquentUserRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
@@ -19,7 +19,7 @@ class EloquentUserRepositoryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new EloquentUserRepository(new User());
+        $this->repository = new EloquentUserRepository(new User);
     }
 
     #[Test]
@@ -128,7 +128,7 @@ class EloquentUserRepositoryTest extends TestCase
         /** @var User $user */
         $user = User::factory()->create([
             'locked_until' => now()->addHours(1),
-            'failed_login_attempts' => 5
+            'failed_login_attempts' => 5,
         ]);
 
         $result = $this->repository->unlockUser($user);
@@ -171,7 +171,7 @@ class EloquentUserRepositoryTest extends TestCase
         /** @var User $user */
         $user = User::factory()->create([
             'last_login_at' => null,
-            'last_login_ip' => null
+            'last_login_ip' => null,
         ]);
         $ip = '192.168.1.1';
 
@@ -201,9 +201,10 @@ class EloquentUserRepositoryTest extends TestCase
     {
         /** @var User $user */
         $user = User::factory()->create([
-            'password' => 'old_password_hash'
+            'password' => 'old_password_hash',
         ]);
 
+        $oldPasswordHash = $user->password;
         $newPassword = 'new_password_hash';
         $result = $this->repository->updatePasswordWithHistory($user, $newPassword);
 
@@ -211,7 +212,7 @@ class EloquentUserRepositoryTest extends TestCase
         $user->refresh();
 
         // Check password was updated
-        $this->assertEquals($newPassword, $user->password);
+        $this->assertTrue(Hash::check($newPassword, $user->password));
         $this->assertNotNull($user->password_changed_at);
         $this->assertNotNull($user->password_expires_at);
         $this->assertFalse($user->must_change_password);
@@ -219,7 +220,7 @@ class EloquentUserRepositoryTest extends TestCase
         // Check password history was created
         $this->assertDatabaseHas('password_histories', [
             'user_id' => $user->id,
-            'password_hash' => 'old_password_hash'
+            'password_hash' => $oldPasswordHash,
         ]);
     }
 
@@ -233,7 +234,7 @@ class EloquentUserRepositoryTest extends TestCase
         PasswordHistory::query()->create([
             'user_id' => $user->id,
             'password_hash' => Hash::make('old_password'),
-            'changed_at' => now()->subDays(1)
+            'changed_at' => now()->subDays(1),
         ]);
 
         $exists = $this->repository->passwordExistsInHistory($user, 'old_password', 5);

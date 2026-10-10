@@ -20,16 +20,19 @@ class SuperAdminSeeder extends Seeder
     {
         $this->command->info('👑 Creating Super Admin...');
 
+        // Use the configured auth User model so the user is created with the correct class
+        $userClass = config('auth.providers.users.model', User::class);
+
         // Check if super admin already exists
-        $existingSuperAdmin = User::where('is_super_admin', true)->first();
-        
+        $existingSuperAdmin = $userClass::where('is_super_admin', true)->first();
+
         if ($existingSuperAdmin) {
             $this->command->warn("⚠️  Super Admin already exists: {$existingSuperAdmin->email}");
             return;
         }
 
         // Create Super Admin user
-        $superAdmin = User::create([
+        $superAdmin = $userClass::create([
             'name' => 'System Super Administrator',
             'email' => env('SUPER_ADMIN_EMAIL', 'superadmin@iam-system.local'),
             'password' => Hash::make(env('SUPER_ADMIN_PASSWORD', 'SuperAdmin@123!Change')),

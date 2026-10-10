@@ -31,7 +31,8 @@
     "autoload": {
         "psr-4": {
             "IamApi\\": "src/",
-            "Database\\Seeders\\": "src/Database/seeders/"
+            "IamApi\\Database\\Seeders\\": "src/Database/Seeders/",
+            "Database\\Seeders\\": "src/Database/Seeders/"
         },
         "files": [
             "src/Helpers/helpers.php"
@@ -43,7 +44,7 @@
         }
     },
     "scripts": {
-        "test": "@php vendor/bin/phpunit"
+        "test": "@php ../../../vendor/bin/phpunit"
     },
     "extra": {
         "laravel": {

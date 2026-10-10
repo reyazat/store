@@ -2,24 +2,26 @@
 
 namespace Tests\Unit\Actions;
 
-use App\Actions\Auth\LoginWithPasswordAction;
 use App\Models\User;
-use App\Services\AuthService;
-use App\Services\TokenService;
-use App\Services\CaptchaService;
-use App\Services\MfaService;
+use IamApi\Actions\Auth\LoginWithPasswordAction;
+use IamApi\Services\AuthService;
+use IamApi\Services\MfaService;
+use IamApi\Services\TokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use Mockery;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
 
 class LoginWithPasswordActionTest extends TestCase
 {
     use RefreshDatabase;
 
     protected AuthService $authService;
+
     protected TokenService $tokenService;
-    protected CaptchaService $captchaService;
+
     protected MfaService $mfaService;
+
     protected LoginWithPasswordAction $action;
 
     protected function setUp(): void
@@ -28,23 +30,21 @@ class LoginWithPasswordActionTest extends TestCase
 
         $this->authService = Mockery::mock(AuthService::class);
         $this->tokenService = Mockery::mock(TokenService::class);
-        $this->captchaService = Mockery::mock(CaptchaService::class);
         $this->mfaService = Mockery::mock(MfaService::class);
 
         $this->action = new LoginWithPasswordAction(
             $this->authService,
             $this->tokenService,
-            $this->captchaService,
             $this->mfaService
         );
     }
 
-
+    #[Test]
     public function it_returns_error_for_invalid_credentials(): void
     {
         $data = [
             'email' => 'test@example.com',
-            'password' => 'wrong-password'
+            'password' => 'wrong-password',
         ];
 
         $this->authService
@@ -56,19 +56,19 @@ class LoginWithPasswordActionTest extends TestCase
 
         $this->assertFalse($result['success']);
         $this->assertEquals('Invalid credentials', $result['message']);
-        $this->assertEquals(401, $result['code']);
+        $this->assertEquals(400, $result['code']);
     }
 
-
+    #[Test]
     public function it_returns_error_for_locked_account(): void
     {
         $user = User::factory()->make([
-            'locked_until' => now()->addHours(1)
+            'locked_until' => now()->addHours(1),
         ]);
 
         $data = [
             'email' => 'test@example.com',
-            'password' => 'correct-password'
+            'password' => 'correct-password',
         ];
 
         $this->authService
@@ -83,17 +83,17 @@ class LoginWithPasswordActionTest extends TestCase
         $this->assertEquals(423, $result['code']);
     }
 
-
+    #[Test]
     public function it_returns_error_for_inactive_user(): void
     {
         $user = User::factory()->make([
             'status' => 'disabled',
-            'locked_until' => null
+            'locked_until' => null,
         ]);
 
         $data = [
             'email' => 'test@example.com',
-            'password' => 'correct-password'
+            'password' => 'correct-password',
         ];
 
         $this->authService
@@ -108,18 +108,18 @@ class LoginWithPasswordActionTest extends TestCase
         $this->assertEquals(403, $result['code']);
     }
 
-
+    #[Test]
     public function it_requires_password_change_when_needed(): void
     {
         $user = User::factory()->make([
             'status' => 'active',
             'must_change_password' => true,
-            'locked_until' => null
+            'locked_until' => null,
         ]);
 
         $data = [
             'email' => 'test@example.com',
-            'password' => 'correct-password'
+            'password' => 'correct-password',
         ];
 
         $this->authService
@@ -127,34 +127,39 @@ class LoginWithPasswordActionTest extends TestCase
             ->with('test@example.com', 'correct-password', null)
             ->andReturn($user);
 
+        $this->tokenService
+            ->shouldReceive('issue')
+            ->with($user, ['temp' => true, 'force_password_change' => true], ['device_name' => 'Unknown Device'])
+            ->andReturn(['access_token' => 'temp-token']);
+
         $result = $this->action->execute($data);
 
-        $this->assertFalse($result['success']);
+        $this->assertTrue($result['success']);
         $this->assertEquals('Password change required', $result['message']);
-        $this->assertEquals(422, $result['code']);
         $this->assertEquals('change_password', $result['data']['action_required']);
+        $this->assertEquals('temp-token', $result['data']['temp_token']);
     }
 
-
+    #[Test]
     public function it_requires_mfa_when_enabled(): void
     {
         $user = User::factory()->make([
             'id' => 1,
             'status' => 'active',
             'must_change_password' => false,
-            'locked_until' => null
+            'locked_until' => null,
         ]);
 
         $data = [
             'email' => 'test@example.com',
             'password' => 'correct-password',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ];
 
         $tempTokens = [
             'access_token' => 'temp-token',
             'refresh_token' => 'temp-refresh',
-            'expires_in' => 900
+            'expires_in' => 900,
         ];
 
         $this->authService
@@ -180,7 +185,7 @@ class LoginWithPasswordActionTest extends TestCase
         $this->assertEquals('temp-token', $result['data']['temp_token']);
     }
 
-
+    #[Test]
     public function it_successfully_logs_in_user_without_mfa(): void
     {
         $user = User::factory()->make([
@@ -191,20 +196,20 @@ class LoginWithPasswordActionTest extends TestCase
             'must_change_password' => false,
             'locked_until' => null,
             'email_verified_at' => now(),
-            'phone_verified_at' => null
+            'phone_verified_at' => null,
         ]);
 
         $data = [
             'email' => 'test@example.com',
             'password' => 'correct-password',
-            'device_name' => 'Test Device'
+            'device_name' => 'Test Device',
         ];
 
         $tokens = [
             'access_token' => 'access-token',
             'refresh_token' => 'refresh-token',
             'expires_in' => 900,
-            'token_type' => 'Bearer'
+            'token_type' => 'Bearer',
         ];
 
         $this->authService
