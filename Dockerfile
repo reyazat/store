@@ -145,11 +145,18 @@ COPY docker/php/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
 COPY docker/php/php.ini /usr/local/etc/php/conf.d/custom.ini
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-# Set permissions and create required directories
+# Set permissions, create required directories and create Laravel storage link
 RUN chmod +x /usr/local/bin/entrypoint.sh \
     && mkdir -p /run/nginx /var/log/supervisor \
-    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views bootstrap/cache \
+    && mkdir -p storage/app/public \
+    && mkdir -p storage/framework/cache \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p bootstrap/cache \
+    && rm -rf public/storage \
+    && ln -s ../storage/app/public public/storage \
     && chown -R www-data:www-data storage bootstrap/cache public/build \
+    && chown -h www-data:www-data public/storage \
     && chmod -R 775 storage bootstrap/cache
 
 # Health check

@@ -25,6 +25,7 @@ storage/framework/sessions/*
 storage/framework/views/*
 storage/logs/*.log
 storage/app/public/*
+public/storage
 .env
 .env.*
 !.env.example
