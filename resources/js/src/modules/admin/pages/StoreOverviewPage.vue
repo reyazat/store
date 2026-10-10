@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRight,
   Store,
-  Users,
   Package,
   Crown,
   ShieldCheck,
@@ -14,7 +13,6 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
-  Clock,
   Search,
 } from 'lucide-vue-next'
 import api from '@shared/utils/api'

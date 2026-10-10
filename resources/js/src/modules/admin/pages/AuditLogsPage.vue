@@ -245,7 +245,7 @@ const formatProperties = (props: Record<string, unknown>): string => {
               </div>
               <div>
                 <dt class="text-secondary-400 text-xs mb-0.5">تاریخ</dt>
-                <dd class="text-secondary-800">{{ formatDate(selectedLog.created_at) }}</dd>
+                <dd class="text-secondary-800">{{ formatDateTime(selectedLog.created_at) }}</dd>
               </div>
               <div v-if="selectedLog.causer">
                 <dt class="text-secondary-400 text-xs mb-0.5">کاربر انجام‌دهنده</dt>

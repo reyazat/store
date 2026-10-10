@@ -188,7 +188,7 @@ export const authService = {
 
   async getMyPermissions(): Promise<string[]> {
     const response = await api.get('/auth/me/permissions')
-    return response.data.data?.permissions || []
+    return response.data.data?.all_permissions || []
   },
 
   async refreshToken(refreshToken: string): Promise<IamTokens> {

@@ -110,10 +110,14 @@ const handleSubmit = async () => {
       localStorage.setItem('token_expires_at', expiresAt.toString())
       scheduleTokenRefresh(tokens.expires_in)
 
-      const roles = await authService.getMyRoles()
+      const [roles, permissions] = await Promise.all([
+        authService.getMyRoles(),
+        authService.getMyPermissions(),
+      ])
       authStore.setUser({
         ...user,
         roles,
+        permissions,
         is_admin:
           user.is_super_admin ||
           roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),

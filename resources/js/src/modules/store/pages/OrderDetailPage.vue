@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Package, User, MapPin, CreditCard, Loader2, AlertCircle, Clock } from 'lucide-vue-next'
+import { ArrowRight, Package, User, MapPin, Loader2, AlertCircle, Clock } from 'lucide-vue-next'
 import { formatDate, formatPrice } from '@shared/utils/format'
 import api from '@shared/utils/api'
 

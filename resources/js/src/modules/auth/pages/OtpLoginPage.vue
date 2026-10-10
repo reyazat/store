@@ -306,7 +306,10 @@ const verifyOtp = async () => {
       scheduleTokenRefresh(response.data.tokens.expires_in)
 
       // OTP login confirms identity — use user from response if available
-      const roles = await authService.getMyRoles()
+      const [roles, permissions] = await Promise.all([
+        authService.getMyRoles(),
+        authService.getMyPermissions(),
+      ])
       const user = response.data.user ?? (await authService.getMe().catch(() => null))
       if (!user) {
         authStore.logout()
@@ -316,6 +319,7 @@ const verifyOtp = async () => {
       authStore.setUser({
         ...user,
         roles,
+        permissions,
         is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
 

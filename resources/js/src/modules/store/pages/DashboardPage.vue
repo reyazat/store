@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import {
-  ShoppingCart, Package, MessageSquare, Clock, Loader2, AlertCircle,
-  TrendingUp, DollarSign, BarChart2, Users, CheckCircle2, XCircle,
-  Truck, Store, Star,
+  ShoppingCart, Package, Loader2, AlertCircle,
+  TrendingUp, DollarSign, BarChart2, Users,
+  Store, Star,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'

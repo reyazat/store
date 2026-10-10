@@ -96,10 +96,15 @@ export const useCartStore = defineStore('cart', () => {
     couponDiscount.value = parseFloat(data.coupon_discount ?? 0)
   }
 
-  // Fetch cart from server (authenticated users only)
+  // Fetch cart from server (authenticated buyers only)
   const fetchCart = async () => {
     if (!authStore.isAuthenticated) {
       loadGuestCart()
+      return
+    }
+
+    // Super admin and store owners cannot use customer cart
+    if (authStore.isSuperAdmin || authStore.isStoreOwner) {
       return
     }
 

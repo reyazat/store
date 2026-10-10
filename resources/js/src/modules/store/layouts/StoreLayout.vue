@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import {
   LayoutDashboard,
@@ -26,6 +26,23 @@ const { canViewOrders, canViewMembers, canManageCoupons, canManageReviews, canVi
 
 const isSidebarOpen       = ref(true)
 const isMobileSidebarOpen = ref(false)
+
+/**
+ * If the user's permissions weren't loaded yet (e.g. cached session from before
+ * the permissions-fetch was added to login flows), re-fetch them once on mount.
+ */
+onMounted(async () => {
+  if (!authStore.user?.permissions?.length) {
+    try {
+      const permissions = await authService.getMyPermissions()
+      if (authStore.user && permissions.length) {
+        authStore.setUser({ ...authStore.user, permissions })
+      }
+    } catch {
+      // Silently fail — menu will stay minimal, which is safe
+    }
+  }
+})
 
 /**
  * Sidebar items are computed so they react to permission changes immediately.

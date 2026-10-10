@@ -14,7 +14,7 @@ interface Props {
   limit?: number
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   loading: false,
   limit: 5,
   iconClass: 'text-primary-500',

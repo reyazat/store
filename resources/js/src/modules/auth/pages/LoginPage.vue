@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onUnmounted, watch, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { Smartphone, Mail, Lock, Eye, EyeOff, Loader2, AlertTriangle, Clock, ArrowLeft, ShieldCheck } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -321,7 +321,10 @@ const verifyPhoneOtp = async () => {
       scheduleTokenRefresh(response.data.tokens.expires_in)
 
       // OTP login already confirms identity — use user from response, avoid extra getMe call
-      const roles = await authService.getMyRoles()
+      const [roles, permissions] = await Promise.all([
+        authService.getMyRoles(),
+        authService.getMyPermissions(),
+      ])
       const user = response.data.user ?? (await authService.getMe().catch(() => null))
       if (!user) {
         authStore.logout()
@@ -331,6 +334,7 @@ const verifyPhoneOtp = async () => {
       authStore.setUser({
         ...user,
         roles,
+        permissions,
         is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
       if (!authStore.isSuperAdmin && !authStore.isStoreOwner) {
@@ -338,7 +342,7 @@ const verifyPhoneOtp = async () => {
       }
       if (authStore.isSuperAdmin) router.push('/admin/dashboard')
       else if (authStore.isStoreOwner) router.push('/store/dashboard')
-      else router.push(redirectTo !== '/' && redirectTo ? redirectTo : '/')
+      else router.push(redirectTo.value !== '/' && redirectTo.value ? redirectTo.value : '/')
     } else {
       phoneError.value = response.message || 'کد وارد شده معتبر نیست'
       if (response.data?.attempts_remaining != null) {
@@ -380,10 +384,14 @@ const completeLogin = async (
   const expiresAt = Date.now() + tokens.expires_in * 1000
   localStorage.setItem('token_expires_at', expiresAt.toString())
   scheduleTokenRefresh(tokens.expires_in)
-  const roles = await authService.getMyRoles()
+  const [roles, permissions] = await Promise.all([
+    authService.getMyRoles(),
+    authService.getMyPermissions(),
+  ])
   authStore.setUser({
     ...user,
     roles,
+    permissions,
     is_admin: user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
   })
   if (!authStore.isSuperAdmin && !authStore.isStoreOwner) {

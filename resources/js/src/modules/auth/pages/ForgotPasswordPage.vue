@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { Loader2, CheckCircle2, ShieldCheck, ArrowLeft, Lock, Eye, EyeOff, Check, User } from 'lucide-vue-next'
 import { authService } from '../services'
 
-const router = useRouter()
 
 // Steps: 'input' -> 'verify' -> 'reset' -> 'success'
 const step = ref<'input' | 'verify' | 'reset' | 'success'>('input')
@@ -45,12 +43,6 @@ const formatPhoneDisplay = (digits: string): string => {
   }
   return digits
 }
-
-// Determine if the identifier is currently phone-like
-const isPhoneMode = computed(() => {
-  const val = identifier.value.trim()
-  return !val.includes('@') && /^[0-9+\s\-().]*$/.test(val)
-})
 
 watch(identifier, (newVal) => {
   // Only auto-format when it looks like a phone number (no @)

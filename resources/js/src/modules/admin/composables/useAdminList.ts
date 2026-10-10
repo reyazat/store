@@ -7,13 +7,13 @@ export interface PaginationMeta {
   total: number
 }
 
-export interface AdminListOptions<F extends Record<string, unknown>> {
+export interface AdminListOptions<F extends object> {
   defaultFilters: F
   fetchFn: (filters: F & { page: number }) => Promise<{ data: unknown[]; meta: PaginationMeta }>
   debounceMs?: number
 }
 
-export function useAdminList<T, F extends Record<string, unknown>>(options: AdminListOptions<F>) {
+export function useAdminList<T, F extends object>(options: AdminListOptions<F>) {
   const { defaultFilters, fetchFn, debounceMs = 350 } = options
 
   const items    = ref<T[]>([])

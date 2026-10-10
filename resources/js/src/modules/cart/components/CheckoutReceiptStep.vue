@@ -11,7 +11,7 @@ interface CardInstructions {
   instructions?: string
 }
 
-const props = defineProps<{
+defineProps<{
   instructions: CardInstructions | null
   isUploading: boolean
 }>()

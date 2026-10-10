@@ -51,7 +51,7 @@ function generateVariants(): void {
 
   const baseSku = props.form.base_sku || 'VAR'
 
-  props.form.variants = combinations.map((combo, idx) => {
+  props.form.variants = combinations.map((combo) => {
     const skuSuffix = combo.map(c => c.value.replace(/\s+/g, '').substring(0, 4).toUpperCase()).join('-')
     return {
       sku:           `${baseSku}-${skuSuffix}`,

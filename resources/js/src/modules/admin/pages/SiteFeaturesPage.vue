@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { Plus, Edit2, Trash2, Eye, EyeOff, AlertCircle, Check, X, GripVertical } from 'lucide-vue-next'
+import { Plus, Edit2, Trash2, Eye, EyeOff, AlertCircle, Check, X } from 'lucide-vue-next'
 import { siteFeatureService } from '../services/siteFeatureService'
 import type { SiteFeature, SiteFeatureFormData } from '../types/siteFeature'
 

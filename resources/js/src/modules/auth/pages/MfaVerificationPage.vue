@@ -66,13 +66,17 @@ const verifyTotp = async () => {
       localStorage.setItem('token_expires_at', expiresAt.toString())
       scheduleTokenRefresh(response.data.tokens.expires_in)
 
-      // Get user roles
-      const roles = await authService.getMyRoles()
+      // Get user roles and permissions in parallel
+      const [roles, permissions] = await Promise.all([
+        authService.getMyRoles(),
+        authService.getMyPermissions(),
+      ])
 
-      // Set user with roles
+      // Set user with roles and permissions
       authStore.setUser({
         ...response.data.user,
         roles,
+        permissions,
         is_admin: response.data.user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
 
@@ -129,13 +133,17 @@ const verifyRecoveryCode = async () => {
       localStorage.setItem('token_expires_at', expiresAt.toString())
       scheduleTokenRefresh(response.data.tokens.expires_in)
 
-      // Get user roles
-      const roles = await authService.getMyRoles()
+      // Get user roles and permissions in parallel
+      const [roles, permissions] = await Promise.all([
+        authService.getMyRoles(),
+        authService.getMyPermissions(),
+      ])
 
-      // Set user with roles
+      // Set user with roles and permissions
       authStore.setUser({
         ...response.data.user,
         roles,
+        permissions,
         is_admin: response.data.user.is_super_admin || roles.some((r: string) => ['superadmin', 'admin', 'owner'].includes(r)),
       })
 

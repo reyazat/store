@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { Plus, Edit, Trash2, Search, AlertTriangle, X, Loader2, Check, ChevronDown, ChevronUp, GripVertical, ArrowUpDown } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Plus, Edit, Trash2, Search, AlertTriangle, X, Loader2, Check, ChevronDown, ChevronUp, GripVertical } from 'lucide-vue-next'
 import { useAdminList } from '../composables/useAdminList'
 import { optionService, type AdminOption, type AdminOptionDetail, type AdminOptionFormData } from '../services/optionService'
 import AdminPagination from '../components/AdminPagination.vue'

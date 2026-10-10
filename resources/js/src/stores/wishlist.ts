@@ -14,6 +14,8 @@ export const useWishlistStore = defineStore('wishlist', () => {
 
   const init = async () => {
     if (!authStore.isAuthenticated || isInitialized.value) return
+    // Super admin and store owners cannot use customer wishlist
+    if (authStore.isSuperAdmin || authStore.isStoreOwner) return
     try {
       const res = await userService.getWishlist()
       const items: { id: number; product: { id: number } }[] = res.data || []

@@ -2,7 +2,7 @@
 import { ChevronRight, ChevronLeft } from 'lucide-vue-next'
 import type { PaginationMeta } from '../composables/useAdminList'
 
-const props = defineProps<{ meta: PaginationMeta }>()
+defineProps<{ meta: PaginationMeta }>()
 const emit = defineEmits<{ (e: 'page', value: number): void }>()
 </script>
 

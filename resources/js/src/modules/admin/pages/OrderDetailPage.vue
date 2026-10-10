@@ -5,7 +5,7 @@ import {
   ArrowRight, Check, AlertCircle, MapPin, CreditCard, Package,
   CheckCircle, XCircle, Clock, FileImage, Truck, Bell, Printer, History, Banknote,
 } from 'lucide-vue-next'
-import { orderService, type AdminOrderDetail, type AdminOrderHistoryEntry } from '../services/orderService'
+import { orderService, type AdminOrderDetail } from '../services/orderService'
 import { orderStatusService } from '../services/paymentMethodService'
 import type { OrderStatus } from '../types/payment'
 import { formatDate, formatDateTime, formatPrice } from '@shared/utils/format'
