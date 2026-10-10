@@ -6,7 +6,6 @@ use App\Actions\Organization\CreateStoreWithOwnerAction;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Organization\StoreResource;
 use App\Http\Resources\Product\ProductListResource;
-use App\Http\Resources\User\AdminUserResource;
 use App\Models\Product;
 use IamApi\Actions\Organizations\UpdateOrganizationAction;
 use IamApi\Models\Organization;
@@ -15,6 +14,7 @@ use IamApi\Repositories\Contracts\OrganizationRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\PermissionRegistrar;
 
 class OrganizationController extends Controller
 {
@@ -31,7 +31,7 @@ class OrganizationController extends Controller
             ->where('name', '!=', 'Default Organization');
 
         if ($search = $request->input('search')) {
-            $query->where('name', 'like', '%' . $search . '%');
+            $query->where('name', 'like', '%'.$search.'%');
         }
 
         if ($status = $request->input('status')) {
@@ -42,12 +42,12 @@ class OrganizationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => StoreResource::collection($stores->load('users')),
-            'meta'    => [
+            'data' => StoreResource::collection($stores->load('users')),
+            'meta' => [
                 'current_page' => $stores->currentPage(),
-                'last_page'    => $stores->lastPage(),
-                'per_page'     => $stores->perPage(),
-                'total'        => $stores->total(),
+                'last_page' => $stores->lastPage(),
+                'per_page' => $stores->perPage(),
+                'total' => $stores->total(),
             ],
         ]);
     }
@@ -55,17 +55,17 @@ class OrganizationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'name'             => ['required', 'string', 'max:255', 'unique:organizations,name'],
-            'description'      => ['nullable', 'string', 'max:1000'],
-            'status'           => ['nullable', 'in:active,inactive,suspended'],
+            'name' => ['required', 'string', 'max:255', 'unique:organizations,name'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'status' => ['nullable', 'in:active,inactive,suspended'],
             // Existing owner mode
-            'owner_id'         => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
+            'owner_id' => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
             // New owner mode
-            'new_owner'        => ['nullable', 'array', 'prohibits:owner_id'],
-            'new_owner.name'   => ['required_with:new_owner', 'string', 'max:255'],
-            'new_owner.email'  => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
+            'new_owner' => ['nullable', 'array', 'prohibits:owner_id'],
+            'new_owner.name' => ['required_with:new_owner', 'string', 'max:255'],
+            'new_owner.email' => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
             'new_owner.password' => ['required_with:new_owner', 'string', 'min:8'],
-            'new_owner.phone'  => ['nullable', 'string', 'max:20'],
+            'new_owner.phone' => ['nullable', 'string', 'max:20'],
         ]);
 
         try {
@@ -80,10 +80,10 @@ class OrganizationController extends Controller
         $org = $result['organization']->load('users');
 
         return response()->json([
-            'success'       => true,
-            'message'       => 'فروشگاه با موفقیت ایجاد شد.',
+            'success' => true,
+            'message' => 'فروشگاه با موفقیت ایجاد شد.',
             'owner_created' => $result['owner_created'],
-            'data'          => new StoreResource($org),
+            'data' => new StoreResource($org),
         ], 201);
     }
 
@@ -91,16 +91,16 @@ class OrganizationController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data'    => new StoreResource($organization->load('users')),
+            'data' => new StoreResource($organization->load('users')),
         ]);
     }
 
     public function update(Request $request, Organization $organization): JsonResponse
     {
         $request->validate([
-            'name'        => ['sometimes', 'string', 'max:255', Rule::unique('organizations', 'name')->ignore($organization->id)],
+            'name' => ['sometimes', 'string', 'max:255', Rule::unique('organizations', 'name')->ignore($organization->id)],
             'description' => ['nullable', 'string', 'max:1000'],
-            'status'      => ['nullable', 'in:active,inactive,suspended'],
+            'status' => ['nullable', 'in:active,inactive,suspended'],
         ]);
 
         $result = $this->updateAction->execute(array_merge(
@@ -108,14 +108,14 @@ class OrganizationController extends Controller
             ['organization' => $organization, 'user' => auth()->user()]
         ));
 
-        if (!$result['success']) {
+        if (! $result['success']) {
             return response()->json(['success' => false, 'message' => $result['message']], $result['code'] ?? 400);
         }
 
         return response()->json([
             'success' => true,
             'message' => 'فروشگاه با موفقیت بروزرسانی شد.',
-            'data'    => new StoreResource($organization->fresh(['users'])),
+            'data' => new StoreResource($organization->fresh(['users'])),
         ]);
     }
 
@@ -129,13 +129,13 @@ class OrganizationController extends Controller
     {
         $request->validate([
             // Existing user mode
-            'owner_id'           => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
+            'owner_id' => ['nullable', 'integer', 'exists:users,id', 'prohibits:new_owner'],
             // New user mode
-            'new_owner'          => ['nullable', 'array', 'prohibits:owner_id'],
-            'new_owner.name'     => ['required_with:new_owner', 'string', 'max:255'],
-            'new_owner.email'    => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
+            'new_owner' => ['nullable', 'array', 'prohibits:owner_id'],
+            'new_owner.name' => ['required_with:new_owner', 'string', 'max:255'],
+            'new_owner.email' => ['required_with:new_owner', 'string', 'email', 'max:255', 'unique:users,email'],
             'new_owner.password' => ['required_with:new_owner', 'string', 'min:8'],
-            'new_owner.phone'    => ['nullable', 'string', 'max:20'],
+            'new_owner.phone' => ['nullable', 'string', 'max:20'],
         ]);
 
         if (empty($request->input('owner_id')) && empty($request->input('new_owner'))) {
@@ -157,10 +157,10 @@ class OrganizationController extends Controller
         $owner = $result['owner'];
 
         return response()->json([
-            'success'       => true,
-            'message'       => 'مالک فروشگاه با موفقیت تعیین شد.',
+            'success' => true,
+            'message' => 'مالک فروشگاه با موفقیت تعیین شد.',
             'owner_created' => $result['owner_created'],
-            'data'          => new StoreResource($organization->fresh(['users'])),
+            'data' => new StoreResource($organization->fresh(['users'])),
         ]);
     }
 
@@ -173,13 +173,31 @@ class OrganizationController extends Controller
     {
         $organization->load(['users']);
 
-        $owner = $organization->users->first(fn($u) => $u->hasRole('owner'));
+        // Set permissionsTeamId so Spatie role checks are scoped to this organization
+        app(PermissionRegistrar::class)->setPermissionsTeamId($organization->id);
+
+        // Unset cached roles to force re-query with correct team scope
+        $organization->users->each(fn ($u) => $u->unsetRelation('roles'));
+
+        $owner = $organization->users->first(fn ($u) => $u->hasRole('owner'));
+
+        // Resolve each user's role within this organization via Spatie
+        $getUserRole = function ($user): string {
+            $roles = $user->getRoleNames();
+            // Priority order: owner > admin > editor > viewer > user > member
+            foreach (['owner', 'admin', 'editor', 'viewer', 'user', 'member'] as $role) {
+                if ($roles->contains($role)) {
+                    return $role;
+                }
+            }
+
+            return 'member';
+        };
 
         // Team breakdown by role
-        $team = $organization->users->groupBy(fn($u) => $u->pivot->role ?? 'member');
+        $team = $organization->users->groupBy($getUserRole);
 
-        // Products belonging to this organization (via organization_id on products table if exists,
-        // or fallback to products owned by org members)
+        // Products belonging to this organization
         $products = Product::query()
             ->where('organization_id', $organization->id)
             ->with(['listings', 'manufacturer'])
@@ -188,35 +206,35 @@ class OrganizationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => [
-                'store'    => new StoreResource($organization),
-                'owner'    => $owner ? [
-                    'id'    => $owner->id,
-                    'uuid'  => $owner->uuid,
-                    'name'  => $owner->name,
+            'data' => [
+                'store' => new StoreResource($organization),
+                'owner' => $owner ? [
+                    'id' => $owner->id,
+                    'uuid' => $owner->uuid,
+                    'name' => $owner->name,
                     'email' => $owner->email,
                     'phone' => $owner->phone,
                 ] : null,
                 'team' => [
-                    'total'   => $organization->users->count(),
-                    'owners'  => $team->get('owner', collect())->count(),
-                    'admins'  => $team->get('admin', collect())->count(),
+                    'total' => $organization->users->count(),
+                    'owners' => $team->get('owner', collect())->count(),
+                    'admins' => $team->get('admin', collect())->count(),
                     'editors' => $team->get('editor', collect())->count(),
-                    'members' => $team->get('member', collect())->count(),
-                    'list'    => $organization->users->map(fn($u) => [
-                        'id'    => $u->id,
-                        'name'  => $u->name,
+                    'members' => $team->get('member', collect())->count() + $team->get('viewer', collect())->count() + $team->get('user', collect())->count(),
+                    'list' => $organization->users->map(fn ($u) => [
+                        'id' => $u->id,
+                        'name' => $u->name,
                         'email' => $u->email,
-                        'role'  => $u->pivot->role ?? 'member',
+                        'role' => $getUserRole($u),
                     ]),
                 ],
                 'products' => [
                     'data' => ProductListResource::collection($products->items()),
                     'meta' => [
                         'current_page' => $products->currentPage(),
-                        'last_page'    => $products->lastPage(),
-                        'per_page'     => $products->perPage(),
-                        'total'        => $products->total(),
+                        'last_page' => $products->lastPage(),
+                        'per_page' => $products->perPage(),
+                        'total' => $products->total(),
                     ],
                 ],
             ],

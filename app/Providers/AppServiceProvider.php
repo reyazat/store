@@ -2,45 +2,50 @@
 
 namespace App\Providers;
 
-use App\Repositories\Contracts\CategoryRepositoryInterface;
-use App\Repositories\Eloquents\CategoryRepository;
-use App\Repositories\Contracts\CustomerGroupRepositoryInterface;
-use App\Repositories\Eloquents\CustomerGroupRepository;
-use App\Repositories\Contracts\ManufacturerRepositoryInterface;
-use App\Repositories\Eloquents\ManufacturerRepository;
-use App\Repositories\Contracts\OptionRepositoryInterface;
-use App\Repositories\Eloquents\OptionRepository;
-use App\Repositories\Contracts\OptionValueRepositoryInterface;
-use App\Repositories\Eloquents\OptionValueRepository;
-use App\Repositories\Contracts\ProductRepositoryInterface;
-use App\Repositories\Eloquents\ProductRepository;
-use App\Repositories\Contracts\TaxClassRepositoryInterface;
-use App\Repositories\Eloquents\TaxClassRepository;
-use App\Repositories\Contracts\VendorRepositoryInterface;
-use App\Repositories\Eloquents\VendorRepository;
-use App\Repositories\Contracts\ListingRepositoryInterface;
-use App\Repositories\Eloquents\ListingRepository;
+use App\Models\Coupon;
+use App\Models\Product;
+use App\Models\User;
+use App\Policies\CouponPolicy;
+use App\Policies\ProductPolicy;
 use App\Repositories\Contracts\CartRepositoryInterface;
-use App\Repositories\Eloquents\CartRepository;
-use App\Repositories\Contracts\OrderRepositoryInterface;
-use App\Repositories\Eloquents\OrderRepository;
-use App\Repositories\Contracts\SliderRepositoryInterface;
-use App\Repositories\Eloquents\SliderRepository;
-use App\Repositories\Contracts\SiteFeatureRepositoryInterface;
-use App\Repositories\Eloquents\SiteFeatureRepository;
-use App\Repositories\Contracts\PromoBannerRepositoryInterface;
-use App\Repositories\Eloquents\PromoBannerRepository;
-use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
-use App\Repositories\Eloquents\NewsletterSubscriberRepository;
-use App\Repositories\Contracts\SiteSettingRepositoryInterface;
-use App\Repositories\Eloquents\SiteSettingRepository;
-use App\Repositories\Contracts\NavLinkRepositoryInterface;
-use App\Repositories\Eloquents\NavLinkRepository;
+use App\Repositories\Contracts\CategoryRepositoryInterface;
+use App\Repositories\Contracts\CustomerGroupRepositoryInterface;
 use App\Repositories\Contracts\FaqRepositoryInterface;
-use App\Repositories\Eloquents\FaqRepository;
+use App\Repositories\Contracts\ListingRepositoryInterface;
+use App\Repositories\Contracts\ManufacturerRepositoryInterface;
+use App\Repositories\Contracts\NavLinkRepositoryInterface;
+use App\Repositories\Contracts\NewsletterSubscriberRepositoryInterface;
+use App\Repositories\Contracts\OptionRepositoryInterface;
+use App\Repositories\Contracts\OptionValueRepositoryInterface;
+use App\Repositories\Contracts\OrderRepositoryInterface;
+use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\ProductReviewRepositoryInterface;
+use App\Repositories\Contracts\PromoBannerRepositoryInterface;
+use App\Repositories\Contracts\SiteFeatureRepositoryInterface;
+use App\Repositories\Contracts\SiteSettingRepositoryInterface;
+use App\Repositories\Contracts\SliderRepositoryInterface;
+use App\Repositories\Contracts\TaxClassRepositoryInterface;
+use App\Repositories\Contracts\VendorRepositoryInterface;
+use App\Repositories\Eloquents\CartRepository;
+use App\Repositories\Eloquents\CategoryRepository;
+use App\Repositories\Eloquents\CustomerGroupRepository;
+use App\Repositories\Eloquents\FaqRepository;
+use App\Repositories\Eloquents\ListingRepository;
+use App\Repositories\Eloquents\ManufacturerRepository;
+use App\Repositories\Eloquents\NavLinkRepository;
+use App\Repositories\Eloquents\NewsletterSubscriberRepository;
+use App\Repositories\Eloquents\OptionRepository;
+use App\Repositories\Eloquents\OptionValueRepository;
+use App\Repositories\Eloquents\OrderRepository;
+use App\Repositories\Eloquents\ProductRepository;
 use App\Repositories\Eloquents\ProductReviewRepository;
+use App\Repositories\Eloquents\PromoBannerRepository;
+use App\Repositories\Eloquents\SiteFeatureRepository;
+use App\Repositories\Eloquents\SiteSettingRepository;
+use App\Repositories\Eloquents\SliderRepository;
+use App\Repositories\Eloquents\TaxClassRepository;
 use App\Repositories\Eloquents\UserRepository;
+use App\Repositories\Eloquents\VendorRepository;
 use IamApi\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -82,15 +87,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Override vendor's UserRepository to use App\Models\User with guardName() method
-        // Must be in boot() to run after vendor's RepositoryServiceProvider
-        $this->app->singleton(UserRepositoryInterface::class, function ($app) {
-            return new UserRepository(new \App\Models\User());
+        // Override the IAM package's UserRepository binding to use App\Models\User.
+        // This must be in boot() (not register()) to run AFTER the IAM package's
+        // RepositoryServiceProvider which binds EloquentUserRepository → IamApi\Models\User.
+        // Using bind() (not singleton) keeps it consistent with all other repositories.
+        $this->app->bind(UserRepositoryInterface::class, function () {
+            return new UserRepository(new User);
         });
 
         // Register policies
-        Gate::policy(\App\Models\Product::class, \App\Policies\ProductPolicy::class);
-        Gate::policy(\App\Models\Coupon::class, \App\Policies\CouponPolicy::class);
+        Gate::policy(Product::class, ProductPolicy::class);
+        Gate::policy(Coupon::class, CouponPolicy::class);
 
         // Configure rate limiters
         $this->configureRateLimiting();
@@ -100,11 +107,14 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Load IAM service routes with proper API prefix.
+     * Load IAM service routes under the correct 'api/' prefix with api middleware group.
      *
-     * IAM service loads routes without 'api' prefix, so we manually
-     * load them again with the correct prefix. The duplicate routes
-     * without prefix will be ignored by Laravel's router.
+     * The IAM package's ServiceProvider normally loads its own routes without the 'api/'
+     * prefix and without the api middleware group (bypassing rate limiting).
+     * We disable that auto-loading via config('iam.disable_auto_routes') = true and
+     * register the routes here with proper prefix and middleware instead.
+     *
+     * Result: routes are accessible at /api/v1/auth/... with full api middleware applied.
      */
     protected function loadIamRoutes(): void
     {

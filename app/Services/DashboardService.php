@@ -19,65 +19,65 @@ class DashboardService
         $totalGmv = (clone $paidOrderQuery)->sum('total');
 
         return [
-            'total_orders'        => Order::count(),
-            'total_revenue'       => $totalGmv,
-            'total_users'         => User::where('is_super_admin', false)->count(),
-            'total_products'      => Product::count(),
-            'total_stores'        => Organization::count(),
-            'active_stores'       => Organization::where('status', 'active')->count(),
-            'inactive_stores'     => Organization::where('status', 'inactive')->count(),
-            'suspended_stores'    => Organization::where('status', 'suspended')->count(),
-            'total_sellers'       => User::where('is_super_admin', false)->whereNotNull('organization_id')->count(),
-            'total_buyers'        => User::where('is_super_admin', false)->whereNull('organization_id')->count(),
-            'total_listings'      => Listing::count(),
-            'pending_reviews'     => ProductReview::where('status', 'pending')->count(),
-            'pending_orders'      => Order::where('status', 'pending')->count(),
+            'total_orders' => Order::count(),
+            'total_revenue' => $totalGmv,
+            'total_users' => User::where('is_super_admin', false)->count(),
+            'total_products' => Product::count(),
+            'total_stores' => Organization::count(),
+            'active_stores' => Organization::where('status', 'active')->count(),
+            'inactive_stores' => Organization::where('status', 'inactive')->count(),
+            'suspended_stores' => Organization::where('status', 'suspended')->count(),
+            'total_sellers' => User::where('is_super_admin', false)->whereNotNull('organization_id')->count(),
+            'total_buyers' => User::where('is_super_admin', false)->whereNull('organization_id')->count(),
+            'total_listings' => Listing::count(),
+            'pending_reviews' => ProductReview::where('status', 'pending')->count(),
+            'pending_orders' => Order::where('status', 'pending')->count(),
             'processing_orders' => Order::where('status', 'processing')->count(),
-            'shipped_orders'      => Order::where('status', 'shipped')->count(),
-            'orders_today'        => Order::whereDate('created_at', today())->count(),
-            'revenue_today'       => Order::where('payment_status', 'paid')->whereDate('created_at', today())->sum('total'),
-            'aov'                 => $paidOrdersCount > 0 ? round($totalGmv / $paidOrdersCount, 2) : 0,
+            'shipped_orders' => Order::where('status', 'shipped')->count(),
+            'orders_today' => Order::whereDate('created_at', today())->count(),
+            'revenue_today' => Order::where('payment_status', 'paid')->whereDate('created_at', today())->sum('total'),
+            'aov' => $paidOrdersCount > 0 ? round($totalGmv / $paidOrdersCount, 2) : 0,
         ];
     }
 
     public function getRecentOrders(int $limit = 10): array
     {
         $statusLabels = [
-            'pending'    => 'در انتظار',
+            'pending' => 'در انتظار',
             'processing' => 'در حال پردازش',
-            'shipped'    => 'ارسال شده',
-            'delivered'  => 'تحویل شده',
-            'cancelled'  => 'لغو شده',
-            'refunded'   => 'مسترد شده',
+            'shipped' => 'ارسال شده',
+            'delivered' => 'تحویل شده',
+            'cancelled' => 'لغو شده',
+            'refunded' => 'مسترد شده',
         ];
 
         return Order::with('user')
             ->latest()
             ->limit($limit)
             ->get()
-            ->map(fn($order) => [
-                'id'            => $order->id,
-                'order_number'  => $order->order_number,
+            ->map(fn ($order) => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
                 'customer_name' => $order->user?->name,
-                'total'         => $order->total,
-                'status'        => $order->status,
-                'status_label'  => $statusLabels[$order->status] ?? $order->status,
-                'created_at'    => $order->created_at,
+                'total' => $order->total,
+                'status' => $order->status,
+                'status_label' => $statusLabels[$order->status] ?? $order->status,
+                'created_at' => $order->created_at,
             ])
             ->all();
     }
 
     public function getTopProducts(int $limit = 10): array
     {
-        return Product::withCount(['orderItems' => fn($q) => $q->whereHas(
-            'order', fn($query) => $query->where('payment_status', 'paid')
+        return Product::withCount(['orderItems' => fn ($q) => $q->whereHas(
+            'order', fn ($query) => $query->where('payment_status', 'paid')
         )])
             ->orderByDesc('order_items_count')
             ->limit($limit)
             ->get()
-            ->map(fn($product) => [
-                'id'          => $product->id,
-                'name'        => $product->name,
+            ->map(fn ($product) => [
+                'id' => $product->id,
+                'name' => $product->name,
                 'sales_count' => $product->order_items_count,
             ])
             ->all();
@@ -94,8 +94,8 @@ class DashboardService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->map(fn($row) => [
-                'month'   => $row->month,
+            ->map(fn ($row) => [
+                'month' => $row->month,
                 'revenue' => (float) $row->revenue,
             ])
             ->all();
@@ -107,9 +107,9 @@ class DashboardService
             ->groupBy('status')
             ->orderByDesc('count')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'status' => $row->status,
-                'count'  => (int) $row->count,
+                'count' => (int) $row->count,
             ])
             ->all();
     }
@@ -117,13 +117,20 @@ class DashboardService
     public function getTopStores(int $limit = 6): array
     {
         $statusLabels = [
-            'active'    => 'فعال',
-            'inactive'  => 'غیرفعال',
+            'active' => 'فعال',
+            'inactive' => 'غیرفعال',
             'suspended' => 'معلق',
         ];
 
         return Organization::query()
-            ->select('organizations.*', DB::raw('COALESCE(SUM(paid_orders.total), 0) as gmv'))
+            ->select(
+                'organizations.id',
+                'organizations.uuid',
+                'organizations.name',
+                'organizations.status',
+                DB::raw('COALESCE(SUM(paid_orders.total), 0) as gmv'),
+                DB::raw('(SELECT COUNT(*) FROM products WHERE products.organization_id = organizations.id) as products_count')
+            )
             ->leftJoin('products', 'products.organization_id', '=', 'organizations.id')
             ->leftJoin('order_items', 'order_items.product_id', '=', 'products.id')
             ->leftJoin(
@@ -132,18 +139,18 @@ class DashboardService
                 '=',
                 'order_items.order_id'
             )
-            ->groupBy('organizations.id')
+            ->groupBy('organizations.id', 'organizations.uuid', 'organizations.name', 'organizations.status')
             ->orderByDesc('gmv')
             ->limit($limit)
             ->get()
-            ->map(fn($store) => [
-                'id'          => $store->id,
-                'uuid'        => $store->uuid,
-                'name'        => $store->name,
-                'status'      => $store->status,
-                'status_label'=> $statusLabels[$store->status] ?? $store->status,
-                'gmv'         => (float) $store->gmv,
-                'products_count' => $store->products()->count(),
+            ->map(fn ($store) => [
+                'id' => $store->id,
+                'uuid' => $store->uuid,
+                'name' => $store->name,
+                'status' => $store->status,
+                'status_label' => $statusLabels[$store->status] ?? $store->status,
+                'gmv' => (float) $store->gmv,
+                'products_count' => (int) $store->products_count,
             ])
             ->all();
     }
@@ -155,14 +162,14 @@ class DashboardService
             ->latest()
             ->limit($limit)
             ->get()
-            ->map(fn($review) => [
-                'id'           => $review->id,
-                'rating'       => $review->rating,
-                'title'        => $review->title,
-                'body'         => $review->body,
+            ->map(fn ($review) => [
+                'id' => $review->id,
+                'rating' => $review->rating,
+                'title' => $review->title,
+                'body' => $review->body,
                 'product_name' => $review->product?->name,
-                'customer_name'=> $review->user?->name,
-                'created_at'   => $review->created_at,
+                'customer_name' => $review->user?->name,
+                'created_at' => $review->created_at,
             ])
             ->all();
     }
@@ -177,7 +184,7 @@ class DashboardService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'month' => $row->month,
                 'count' => (int) $row->count,
             ])
@@ -196,7 +203,7 @@ class DashboardService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->mapWithKeys(fn($row) => [$row->month => (int) $row->count]);
+            ->mapWithKeys(fn ($row) => [$row->month => (int) $row->count]);
 
         $sellers = User::where('is_super_admin', false)
             ->whereNotNull('organization_id')
@@ -208,18 +215,18 @@ class DashboardService
             ->groupBy('month')
             ->orderBy('month')
             ->get()
-            ->mapWithKeys(fn($row) => [$row->month => (int) $row->count]);
+            ->mapWithKeys(fn ($row) => [$row->month => (int) $row->count]);
 
         $monthsList = collect(range($months - 1, 0))
-            ->map(fn($i) => now()->subMonths($i)->format('Y-m'))
+            ->map(fn ($i) => now()->subMonths($i)->format('Y-m'))
             ->unique()
             ->sort()
             ->values();
 
-        return $monthsList->map(fn($month) => [
-            'month'  => $month,
+        return $monthsList->map(fn ($month) => [
+            'month' => $month,
             'buyers' => $buyers[$month] ?? 0,
-            'sellers'=> $sellers[$month] ?? 0,
+            'sellers' => $sellers[$month] ?? 0,
         ])->all();
     }
 }
