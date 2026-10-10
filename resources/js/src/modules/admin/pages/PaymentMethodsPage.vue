@@ -89,7 +89,9 @@ const saveMethod = async (method: AdminPaymentMethod) => {
   try {
     const config = method.driver === 'card_to_card'
       ? { ...cardToCardConfig.value }
-      : { ...zarinpalConfig.value }
+      : method.driver === 'zarinpal'
+        ? { ...zarinpalConfig.value }
+        : {}
 
     const updated = await paymentMethodService.update(method.id, {
       config,
@@ -224,6 +226,18 @@ const zarinpalAllowedDomain = window.location.hostname
                 <label class="block text-sm font-medium text-secondary-700 mb-1">راهنمای پرداخت (نمایش به کاربر)</label>
                 <textarea v-model="cardToCardConfig.instructions" rows="3"
                   class="w-full px-4 py-2 rounded-lg border border-secondary-200 focus:border-primary-500 focus:ring-1 focus:ring-primary-500 resize-none"></textarea>
+              </div>
+            </div>
+
+            <div v-if="method.driver === 'avreen'" class="max-w-2xl">
+              <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <Info class="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <p class="text-sm font-semibold text-blue-800">تنظیمات امن درگاه آورین</p>
+                </div>
+                <p class="text-xs leading-6 text-blue-700">
+                  شناسه پذیرنده، ترمینال، رمز و کلیدهای RSA فقط از متغیرهای محیطی سرور خوانده می‌شوند و در پنل یا پایگاه داده ذخیره نمی‌شوند. پس از تکمیل تنظیمات IPG در سرور، این روش را فعال کنید.
+                </p>
               </div>
             </div>
 

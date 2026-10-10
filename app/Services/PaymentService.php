@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Contracts\PaymentGatewayInterface;
+use App\Gateways\AvreenGateway;
 use App\Gateways\CardToCardGateway;
 use App\Gateways\ZarinpalGateway;
 use App\Models\Order;
@@ -13,9 +14,7 @@ use RuntimeException;
 
 class PaymentService
 {
-    public function __construct(private readonly OrderService $orderService)
-    {
-    }
+    public function __construct(private readonly OrderService $orderService) {}
 
     /**
      * Resolve the gateway driver for a given payment method.
@@ -23,9 +22,10 @@ class PaymentService
     public function resolveGateway(PaymentMethod $paymentMethod): PaymentGatewayInterface
     {
         return match ($paymentMethod->driver) {
+            'avreen' => new AvreenGateway($paymentMethod),
             'card_to_card' => new CardToCardGateway($paymentMethod),
-            'zarinpal'     => new ZarinpalGateway($paymentMethod),
-            default        => throw new RuntimeException("درایور پرداخت '{$paymentMethod->driver}' پشتیبانی نمی‌شود"),
+            'zarinpal' => new ZarinpalGateway($paymentMethod),
+            default => throw new RuntimeException("درایور پرداخت '{$paymentMethod->driver}' پشتیبانی نمی‌شود"),
         };
     }
 
@@ -55,7 +55,7 @@ class PaymentService
     public function verifyPayment(PaymentTransaction $transaction, array $callbackData): array
     {
         $paymentMethod = PaymentMethod::where('driver', $transaction->driver)->firstOrFail();
-        $gateway       = $this->resolveGateway($paymentMethod);
+        $gateway = $this->resolveGateway($paymentMethod);
 
         $result = $gateway->verify($transaction, $callbackData);
 

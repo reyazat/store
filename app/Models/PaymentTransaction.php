@@ -10,6 +10,8 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'order_id',
         'driver',
+        'client_txn_id',
+        'gateway_token',
         'gateway_ref',
         'amount',
         'status',
@@ -20,9 +22,9 @@ class PaymentTransaction extends Model
     ];
 
     protected $casts = [
-        'amount'           => 'decimal:4',
+        'amount' => 'decimal:4',
         'gateway_response' => 'array',
-        'paid_at'          => 'datetime',
+        'paid_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

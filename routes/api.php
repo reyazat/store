@@ -129,7 +129,9 @@ Route::middleware(['auth:api', 'store.owner'])->prefix('v1')->group(function () 
 Route::get('/v1/payment/methods', [\App\Http\Controllers\API\User\PaymentController::class, 'methods']);
 
 
-// Zarinpal callback — must be accessible without auth (redirected from Zarinpal)
+// Payment callbacks — must be accessible without auth (redirected from gateways)
+Route::match(['get', 'post'], '/v1/payment/avreen/callback', [\App\Http\Controllers\API\User\PaymentController::class, 'avreenCallback'])
+    ->middleware('throttle:60,1');
 Route::get('/v1/payment/zarinpal/callback', [\App\Http\Controllers\API\User\PaymentController::class, 'zarinpalCallback']);
 
 // User Panel Routes (authenticated users only — super admin is blocked)

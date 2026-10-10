@@ -15,15 +15,15 @@ class UpdatePaymentMethodRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'is_active'            => ['boolean'],
-            'label'                => ['string', 'max:100'],
-            'description'          => ['nullable', 'string', 'max:500'],
-            'sort_order'           => ['integer', 'min:0'],
-            'config'               => ['nullable', 'array'],
-            'config.*'             => ['nullable', 'string', 'max:500'],
+            'is_active' => ['boolean'],
+            'label' => ['string', 'max:100'],
+            'description' => ['nullable', 'string', 'max:500'],
+            'sort_order' => ['integer', 'min:0'],
+            'config' => ['nullable', 'array'],
+            'config.*' => ['nullable', 'string', 'max:500'],
             'success_order_status' => ['nullable', 'string', 'exists:order_statuses,key'],
             'failure_order_status' => ['nullable', 'string', 'exists:order_statuses,key'],
-            'cancel_order_status'  => ['nullable', 'string', 'exists:order_statuses,key'],
+            'cancel_order_status' => ['nullable', 'string', 'exists:order_statuses,key'],
         ];
     }
 
@@ -38,7 +38,7 @@ class UpdatePaymentMethodRequest extends FormRequest
             $isActive = $this->boolean('is_active', $paymentMethod->is_active);
 
             // Only check config if trying to activate
-            if (!$isActive) {
+            if (! $isActive) {
                 return;
             }
 
@@ -46,11 +46,23 @@ class UpdatePaymentMethodRequest extends FormRequest
 
             // Validate required config based on driver
             match ($paymentMethod->driver) {
+                'avreen' => $this->validateAvreenConfig($validator),
                 'zarinpal' => $this->validateZarinpalConfig($validator, $config),
                 'card_to_card' => $this->validateCardToCardConfig($validator, $config),
                 default => null,
             };
         });
+    }
+
+    private function validateAvreenConfig(Validator $validator): void
+    {
+        foreach (['mid', 'terminal_id', 'password', 'private_key_path', 'center_public_key_path'] as $key) {
+            if (empty(config("services.avreen.{$key}"))) {
+                $validator->errors()->add('config', 'برای فعال کردن درگاه آورین، تنظیمات محیطی و کلیدهای IPG باید کامل باشند.');
+
+                return;
+            }
+        }
     }
 
     private function validateZarinpalConfig(Validator $validator, array $config): void

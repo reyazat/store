@@ -103,7 +103,7 @@ const submitOrder = async () => {
 
     // Step 4: Redirect based on payment type
     if (payRes.redirect_url) {
-      // ZarinPal: redirect to gateway
+      // Online gateway: redirect to payment page
       window.location.href = payRes.redirect_url
     } else if (payRes.instructions) {
       // Card-to-card: go to receipt upload step
