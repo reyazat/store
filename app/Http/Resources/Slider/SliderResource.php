@@ -14,7 +14,7 @@ class SliderResource extends JsonResource
             'id'          => $this->id,
             'title'       => $this->title,
             'subtitle'    => $this->subtitle,
-            'image'       => $this->image ? Storage::disk('public')->url($this->image) : null,
+            'image'       => $this->resolveImageUrl($this->image),
             'link'        => $this->link,
             'button_text' => $this->button_text,
             'button_link' => $this->button_link,
@@ -22,5 +22,14 @@ class SliderResource extends JsonResource
             'is_active'   => $this->is_active,
             'created_at'  => $this->created_at,
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

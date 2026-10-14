@@ -15,7 +15,7 @@ class PromoBannerResource extends JsonResource
             'title'         => $this->title,
             'subtitle'      => $this->subtitle,
             'icon'          => $this->icon,
-            'image'         => $this->image ? Storage::disk('public')->url($this->image) : null,
+            'image'         => $this->resolveImageUrl($this->image),
             'link'          => $this->link,
             'cta_text'      => $this->cta_text,
             'gradient_from' => $this->gradient_from,
@@ -26,5 +26,14 @@ class PromoBannerResource extends JsonResource
             'starts_at'     => $this->starts_at?->toDateTimeString(),
             'ends_at'       => $this->ends_at?->toDateTimeString(),
         ];
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }
