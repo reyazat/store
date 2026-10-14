@@ -46,7 +46,7 @@ class CheckPasswordExpiry
                     [
                         'must_change_password' => true,
                         'reason' => $this->getPasswordChangeReason($user),
-                        'change_password_url' => route('password.force-change')
+                        'change_password_url' => route('iam.password.force-change')
                     ]
                 ),
                 403
@@ -65,7 +65,7 @@ class CheckPasswordExpiry
                         'password_expired' => true,
                         'expired_at' => $user->password_expires_at->toISOString(),
                         'must_change_password' => true,
-                        'change_password_url' => route('password.force-change')
+                        'change_password_url' => route('iam.password.force-change')
                     ]
                 ),
                 403

@@ -47,6 +47,9 @@ let lockInterval: ReturnType<typeof setInterval> | null = null
 
 const redirectTo = computed(() => (route.query.redirect as string) || '/')
 
+// Delay before the user can request a new OTP code (independent of code expiry)
+const OTP_RESEND_COOLDOWN_SECONDS = 120
+
 const formattedLockCountdown = computed(() => {
   const m = Math.floor(lockCountdown.value / 60)
   const s = lockCountdown.value % 60
@@ -263,12 +266,7 @@ const sendPhoneOtp = async () => {
       phoneSuccess.value = `کد به ${maskPhone(cleanPhone)} ارسال شد`
       phoneAttemptsRemaining.value = response.data?.attempts_remaining ?? 3
       phoneStep.value = 'verify'
-      if (response.data?.expires_at) {
-        const diff = Math.ceil((new Date(response.data.expires_at).getTime() - Date.now()) / 1000)
-        startPhoneCountdown(Math.max(diff, 0))
-      } else {
-        startPhoneCountdown(300)
-      }
+      startPhoneCountdown(OTP_RESEND_COOLDOWN_SECONDS)
       await nextTick()
       otpInputRefs.value[0]?.focus()
       // Try to auto-read OTP from SMS on supported mobile browsers (WebOTP API)
@@ -286,6 +284,8 @@ const sendPhoneOtp = async () => {
         : 'تعداد درخواست های بیش از حد. لطفا بعدا دوباره تلاش کنید.'
     } else if (status === 403) {
       phoneError.value = 'حساب کاربری غیرفعال است. با پشتیبانی تماس بگیرید.'
+    } else if (status && status >= 500) {
+      phoneError.value = 'خطای سرور رخ داد. لطفا دوباره تلاش کنید.'
     } else {
       phoneError.value = err.response?.data?.message || 'خطایی رخ داد. لطفا دوباره تلاش کنید'
     }
@@ -310,6 +310,14 @@ const verifyPhoneOtp = async () => {
       type: 'login_verification',
       channel: 'sms',
     })
+    if (response.success && response.data?.action_required === 'change_password' && response.data?.temp_token) {
+      webOtpAbortController?.abort()
+      router.push({
+        name: 'force-password-change',
+        query: { temp_token: response.data.temp_token, redirect: redirectTo.value },
+      })
+      return
+    }
     if (response.success && response.data?.tokens) {
       // Abort any pending WebOTP request
       webOtpAbortController?.abort()
@@ -356,6 +364,8 @@ const verifyPhoneOtp = async () => {
     const status = err.response?.status
     if (status === 423) {
       phoneError.value = 'تعداد تلاش های نامعتبر بیش از حد. لطفا دوباره کد جدید درخواست کنید.'
+    } else if (status && status >= 500) {
+      phoneError.value = 'خطای سرور رخ داد. لطفا دوباره تلاش کنید.'
     } else {
       phoneError.value = err.response?.data?.message || 'خطا در تایید کد. لطفا دوباره تلاش کنید.'
     }

@@ -141,6 +141,35 @@ class VerifyOtpAction
             ];
         }
 
+        // Check if password change is required.
+        // Mirror the password login flow: issue a short-lived temp token so the
+        // frontend can call /password/force-change-login without a full session.
+        $passwordExpired = $user->password_expires_at && $user->password_expires_at->isPast();
+        if ($user->must_change_password || $passwordExpired) {
+            if ($passwordExpired && !$user->must_change_password) {
+                $user->update(['must_change_password' => true]);
+            }
+
+            $tempToken = $this->tokenService->issue($user, [
+                'temp' => true,
+                'force_password_change' => true,
+            ], [
+                'device_name' => request()->userAgent() ?? 'Unknown Device'
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Password change required',
+                'data' => [
+                    'verified' => true,
+                    'type' => 'login_verification',
+                    'action_required' => 'change_password',
+                    'temp_token' => $tempToken['access_token'],
+                    'user_id' => $user->id,
+                ]
+            ];
+        }
+
         // Generate JWT tokens
         $tokens = $this->tokenService->issue($user);
 

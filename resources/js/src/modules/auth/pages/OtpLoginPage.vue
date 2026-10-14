@@ -25,9 +25,15 @@ const error = ref('')
 const successMessage = ref('')
 const attemptsRemaining = ref<number | null>(null)
 
-// Countdown timer
+// Countdown timer (tracks code expiry, shown as the "expires in" badge)
 const countdown = ref(0)
 let countdownInterval: ReturnType<typeof setInterval> | null = null
+
+// Resend cooldown — independent of code expiry so users aren't blocked
+// for the whole OTP lifetime before requesting a new code
+const OTP_RESEND_COOLDOWN_SECONDS = 120
+const resendCountdown = ref(0)
+let resendInterval: ReturnType<typeof setInterval> | null = null
 
 // OTP input refs for focus management
 const otpInputRefs = ref<(HTMLInputElement | null)[]>([])
@@ -70,11 +76,17 @@ const isPhoneValid = computed(() => {
 
 const isOtpComplete = computed(() => otpCode.value.every(d => d.length === 1))
 
-const canResend = computed(() => countdown.value === 0 && !isLoading.value)
+const canResend = computed(() => resendCountdown.value === 0 && !isLoading.value)
 
 const formattedCountdown = computed(() => {
   const m = Math.floor(countdown.value / 60)
   const s = countdown.value % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
+
+const formattedResendCountdown = computed(() => {
+  const m = Math.floor(resendCountdown.value / 60)
+  const s = resendCountdown.value % 60
   return `${m}:${s.toString().padStart(2, '0')}`
 })
 
@@ -93,8 +105,22 @@ const startCountdown = (seconds: number) => {
   }, 1000)
 }
 
+const startResendCountdown = (seconds: number) => {
+  resendCountdown.value = seconds
+  if (resendInterval) clearInterval(resendInterval)
+  resendInterval = setInterval(() => {
+    if (resendCountdown.value > 0) {
+      resendCountdown.value--
+    } else {
+      clearInterval(resendInterval!)
+      resendInterval = null
+    }
+  }, 1000)
+}
+
 onUnmounted(() => {
   if (countdownInterval) clearInterval(countdownInterval)
+  if (resendInterval) clearInterval(resendInterval)
   webOtpAbortController?.abort()
 })
 
@@ -120,6 +146,8 @@ const handleApiError = (err: unknown): string => {
   if (status === 423) return 'حساب کاربری موقتاً قفل شده است. لطفاً بعداً تلاش کنید.'
   if (status === 403) return 'حساب کاربری غیرفعال است. با پشتیبانی تماس بگیرید.'
   if (status === 503) return message || 'سرویس پیامک در حال حاضر در دسترس نیست. لطفاً بعداً دوباره تلاش کنید.'
+  // Never surface raw server/exception messages to the user
+  if (status && status >= 500) return 'خطای سرور رخ داد. لطفاً دوباره تلاش کنید.'
   return message || 'خطایی رخ داد. لطفاً دوباره تلاش کنید.'
 }
 
@@ -256,6 +284,7 @@ const sendOtp = async () => {
       successMessage.value = `کد به ${maskPhone(cleanPhone)} ارسال شد`
       attemptsRemaining.value = (response.data?.attempts_remaining as number | undefined) ?? 3
       step.value = 'verify'
+      startResendCountdown(OTP_RESEND_COOLDOWN_SECONDS)
 
       if (response.data?.expires_at) {
         const diff = Math.ceil((new Date(response.data.expires_at).getTime() - Date.now()) / 1000)
@@ -296,6 +325,17 @@ const verifyOtp = async () => {
       type: 'login_verification',
       channel: 'sms',
     })
+
+    if (response.success && response.data?.action_required === 'change_password' && response.data?.temp_token) {
+      router.push({
+        name: 'force-password-change',
+        query: {
+          temp_token: response.data.temp_token,
+          redirect: (route.query.redirect as string) || '/',
+        },
+      })
+      return
+    }
 
     if (response.success && response.data?.tokens) {
       authStore.setToken(response.data.tokens.access_token)
@@ -371,6 +411,8 @@ const goBack = () => {
   attemptsRemaining.value = null
   if (countdownInterval) clearInterval(countdownInterval)
   countdown.value = 0
+  if (resendInterval) clearInterval(resendInterval)
+  resendCountdown.value = 0
   webOtpAbortController?.abort()
 }
 
@@ -568,8 +610,8 @@ const goToLogin = () => {
             </button>
 
             <div class="text-sm">
-              <span v-if="countdown > 0" class="text-secondary-400">
-                ارسال مجدد پس از <span class="font-mono font-medium" dir="ltr">{{ formattedCountdown }}</span>
+              <span v-if="resendCountdown > 0" class="text-secondary-400">
+                ارسال مجدد پس از <span class="font-mono font-medium" dir="ltr">{{ formattedResendCountdown }}</span>
               </span>
               <button
                 v-else

@@ -91,6 +91,10 @@ export interface OtpLoginResponse {
     user?: User & { is_super_admin: boolean }
     tokens?: IamTokens
     attempts_remaining?: number
+    // Action-required fields (e.g. forced password change during OTP login)
+    action_required?: 'change_password'
+    temp_token?: string
+    user_id?: number
   }
 }
 
